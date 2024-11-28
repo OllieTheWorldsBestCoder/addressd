@@ -1,0 +1,9 @@
+{
+    "crons": [{
+      "path": "/api/cron/generate-summaries",
+      "schedule": "0 0 * * *",
+      "headers": {
+        "Authorization": "Bearer @cron_secret_key"
+      }
+    }]
+  }
