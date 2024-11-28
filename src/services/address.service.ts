@@ -12,6 +12,12 @@ interface MatchResult {
   confidence: number;
 }
 
+interface AddressMatch {
+  rawAddress: string;
+  matchedAt: Date;
+  confidence: number;
+}
+
 export class AddressService {
   private googleMapsClient: Client;
   private addressCollection = 'addresses';
@@ -414,7 +420,27 @@ export class AddressService {
     const existingAddress = await this.findExistingAddress(geocodeResult);
     if (existingAddress) {
       console.log('Found existing address:', existingAddress);
-      return existingAddress;
+      
+      // Add this raw address to the matched addresses array
+      const confidence = this.calculateAddressConfidence(geocodeResult, rawAddress);
+      const newMatch: AddressMatch = {
+        rawAddress,
+        matchedAt: new Date(),
+        confidence
+      };
+
+      // Update the existing address with the new match
+      const updatedAddress = {
+        ...existingAddress,
+        matchedAddresses: [
+          ...(existingAddress.matchedAddresses || []),
+          newMatch
+        ].sort((a, b) => b.confidence - a.confidence).slice(0, 100), // Keep top 100 matches
+        updatedAt: new Date()
+      };
+
+      await setDoc(doc(db, this.addressCollection, existingAddress.id), updatedAddress);
+      return updatedAddress;
     }
 
     // Create new address if no match found
@@ -424,6 +450,7 @@ export class AddressService {
       geocodeResult.geometry.location.lng
     ]);
 
+    const confidence = this.calculateAddressConfidence(geocodeResult, rawAddress);
     const address: Address = {
       id: addressId,
       rawAddress,
@@ -433,6 +460,11 @@ export class AddressService {
       geohash,
       summary: `Summary for ${geocodeResult.formatted_address}`,
       descriptions: [],
+      matchedAddresses: [{
+        rawAddress,
+        matchedAt: new Date(),
+        confidence
+      }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -442,5 +474,53 @@ export class AddressService {
     console.log('Created new address:', address);
 
     return address;
+  }
+
+  private async findSimilarRawAddresses(rawAddress: string): Promise<Array<{address: Address, confidence: number}>> {
+    const addressesRef = collection(db, this.addressCollection);
+    const snapshot = await getDocs(addressesRef);
+    const results: Array<{address: Address, confidence: number}> = [];
+
+    for (const doc of snapshot.docs) {
+      const address = doc.data() as Address;
+      if (address.matchedAddresses?.length > 0) {
+        // Check if any of the raw addresses are similar
+        const similarityScore = Math.max(
+          ...address.matchedAddresses.map(match => 
+            this.calculateStringSimilarity(rawAddress.toLowerCase(), match.rawAddress.toLowerCase())
+          )
+        );
+
+        if (similarityScore > 0.8) { // Adjust threshold as needed
+          results.push({ address, confidence: similarityScore });
+        }
+      }
+    }
+
+    return results.sort((a, b) => b.confidence - a.confidence);
+  }
+
+  private calculateStringSimilarity(s1: string, s2: string): number {
+    const track = Array(s2.length + 1).fill(null).map(() =>
+      Array(s1.length + 1).fill(null));
+    for (let i = 0; i <= s1.length; i += 1) {
+      track[0][i] = i;
+    }
+    for (let j = 0; j <= s2.length; j += 1) {
+      track[j][0] = j;
+    }
+    for (let j = 1; j <= s2.length; j += 1) {
+      for (let i = 1; i <= s1.length; i += 1) {
+        const indicator = s1[i - 1] === s2[j - 1] ? 0 : 1;
+        track[j][i] = Math.min(
+          track[j][i - 1] + 1, // deletion
+          track[j - 1][i] + 1, // insertion
+          track[j - 1][i - 1] + indicator, // substitution
+        );
+      }
+    }
+    const distance = track[s2.length][s1.length];
+    const maxLength = Math.max(s1.length, s2.length);
+    return 1 - (distance / maxLength);
   }
 } 
