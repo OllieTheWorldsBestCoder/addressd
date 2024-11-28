@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "ts-node src/scripts/test-address-api.ts",
     "create-admin": "ts-node src/scripts/create-admin-user.ts",
-    "check-token": "ts-node src/scripts/check-admin-token.ts"
+    "check-token": "ts-node src/scripts/check-admin-token.ts",
+    "test-cron": "ts-node src/scripts/test-cron.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",

@@ -43,27 +43,35 @@ export class AddressService {
     
     // Components-based variants
     const components = geocodeResult.address_components;
-    const postcode = components.find(comp => comp.types.includes('postal_code'))?.long_name;
     const streetNumber = components.find(comp => comp.types.includes('street_number'))?.long_name;
+    const premise = components.find(comp => comp.types.includes('premise'))?.long_name;
     const route = components.find(comp => comp.types.includes('route'))?.long_name;
-    const subpremise = components.find(comp => comp.types.includes('subpremise'))?.long_name;
+    const locality = components.find(comp => comp.types.includes('locality'))?.long_name;
+    const postalCode = components.find(comp => comp.types.includes('postal_code'))?.long_name;
     
-    if (postcode && streetNumber) {
-        // Basic variant
-        variants.add(createHash('md5').update(`${postcode}${streetNumber}`).digest('hex'));
-        
-        // With route
-        if (route) {
-            variants.add(createHash('md5').update(`${postcode}${streetNumber}${route.toLowerCase()}`).digest('hex'));
-        }
-        
-        // With subpremise (flat/unit number)
-        if (subpremise) {
-            variants.add(createHash('md5').update(`${postcode}${streetNumber}${subpremise}`).digest('hex'));
-            if (route) {
-                variants.add(createHash('md5').update(`${postcode}${streetNumber}${subpremise}${route.toLowerCase()}`).digest('hex'));
-            }
-        }
+    // Create variants with different combinations
+    if (streetNumber || premise) {
+      const number = streetNumber || premise;
+      
+      // Basic number + route
+      if (route) {
+        variants.add(createHash('md5').update(`${number}${route.toLowerCase()}`).digest('hex'));
+      }
+      
+      // Number + route + locality
+      if (route && locality) {
+        variants.add(createHash('md5').update(`${number}${route.toLowerCase()}${locality.toLowerCase()}`).digest('hex'));
+      }
+      
+      // Number + postal code
+      if (postalCode) {
+        variants.add(createHash('md5').update(`${number}${postalCode}`).digest('hex'));
+      }
+      
+      // Full combination
+      if (route && locality && postalCode) {
+        variants.add(createHash('md5').update(`${number}${route.toLowerCase()}${locality.toLowerCase()}${postalCode}`).digest('hex'));
+      }
     }
     
     return Array.from(variants);
@@ -109,24 +117,12 @@ export class AddressService {
 
   async validateAndFormatAddress(rawAddress: string): Promise<GeocodeResult | null> {
     try {
-      // First, try to extract postcode and number
-      const postcode = rawAddress.match(/[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/i)?.[0];
-      const number = rawAddress.match(/\d+/)?.[0];
-      
-      console.log('Extracted postcode:', postcode);
-      console.log('Extracted number:', number);
-
-      // If we have both, enhance the query
-      if (postcode && number) {
-        rawAddress = `${number} West Smithfield, London ${postcode}`;
-        console.log('Enhanced address:', rawAddress);
-      }
+      console.log('Validating address:', rawAddress);
 
       const response = await this.googleMapsClient.geocode({
         params: {
           address: rawAddress,
           key: process.env.GOOGLE_MAPS_API_KEY ?? '',
-          components: { country: 'GB' }
         },
       });
 
@@ -135,8 +131,21 @@ export class AddressService {
         return null;
       }
 
-      console.log('Geocoding result:', response.data.results[0]);
-      return response.data.results[0];
+      // Get the most accurate result
+      const result = response.data.results[0];
+      console.log('Geocoding result:', result);
+      
+      // Verify it's a valid address (has street number or premise)
+      const hasStreetNumber = result.address_components.some(
+        comp => comp.types.includes('street_number') || comp.types.includes('premise')
+      );
+
+      if (!hasStreetNumber) {
+        console.log('Result lacks street number or premise');
+        return null;
+      }
+
+      return result;
     } catch (error) {
       console.error('Error validating address:', error);
       return null;
@@ -203,13 +212,7 @@ export class AddressService {
     const postcode = rawAddress.match(/[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/i)?.[0];
     const number = rawAddress.match(/\d+/)?.[0];
     
-    if (postcode && number) {
-        // If we're dealing with a West Smithfield address (based on postcode)
-        if (postcode.toUpperCase() === 'EC1A9HX') {
-            return `${number} West Smithfield, London ${postcode}`;
-        }
-    }
-    
+    // Don't try to enhance the address, just return it as is
     return rawAddress;
   }
 
