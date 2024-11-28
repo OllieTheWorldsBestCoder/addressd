@@ -39,7 +39,12 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <main className={styles.main}>
-        <h1 className={styles.title}>addressd</h1>
+        <div className={styles.header}>
+          <h1 className={styles.title}>addressd</h1>
+          <a href="/signup" className={styles.signupLink}>
+            Get API Access →
+          </a>
+        </div>
         <p className={styles.description}>
           Enter an address to validate and contribute information
         </p>

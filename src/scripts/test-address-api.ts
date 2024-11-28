@@ -1,4 +1,9 @@
+import { config } from 'dotenv';
+import { resolve } from 'path';
 import axios, { AxiosError } from 'axios';
+
+// Load environment variables from .env.local
+config({ path: resolve(process.cwd(), '.env.local') });
 
 const API_URL = 'https://addressd.vercel.app';
 const AUTH_TOKEN = process.env.TEST_AUTH_TOKEN;

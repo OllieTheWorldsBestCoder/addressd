@@ -8,11 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "test": "ts-node src/scripts/test-address-api.ts",
-    "create-admin": "ts-node src/scripts/create-admin-user.ts"
+    "create-admin": "ts-node src/scripts/create-admin-user.ts",
+    "check-token": "ts-node src/scripts/check-admin-token.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",
     "axios": "^1.7.8",
+    "dotenv": "^16.4.5",
     "firebase": "^11.0.2",
     "next": "^14.0.3",
     "react": "^18.2.0",

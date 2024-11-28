@@ -75,4 +75,24 @@
 
 .result a:hover {
   text-decoration: underline;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin-bottom: 2rem;
+}
+
+.signupLink {
+  color: #0070f3;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.signupLink:hover {
+  color: #0051b3;
+  text-decoration: underline;
 } 
