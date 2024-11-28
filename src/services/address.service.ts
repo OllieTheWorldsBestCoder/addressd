@@ -127,25 +127,48 @@ export class AddressService {
     try {
       console.log('Validating address:', rawAddress);
 
+      // First, try to get a Google Maps result
       const response = await this.googleMapsClient.geocode({
         params: {
           address: rawAddress,
           key: process.env.GOOGLE_MAPS_API_KEY ?? '',
+          region: 'uk'  // Focus on UK addresses
         },
       });
 
       if (response.data.results.length === 0) {
-        console.log('No results found');
+        console.log('No Google Maps results found');
         return null;
       }
 
       const result = response.data.results[0];
-      console.log('Geocoding result:', result);
+      console.log('Google Maps result:', result);
 
-      // Only accept results that are exact addresses
-      if (!this.isExactAddress(result)) {
-        console.log('Result is not an exact address');
+      // Check if this is a real location (not just a postal code or area)
+      if (result.types?.includes('postal_code') || 
+          result.types?.includes('postal_code_prefix') ||
+          result.types?.includes('locality') ||
+          result.types?.includes('administrative_area_level_1') ||
+          result.types?.includes('administrative_area_level_2')) {
+        console.log('Result is too general (postal code or area)');
         return null;
+      }
+
+      // Extract the postal code from the input
+      const postcodeRegex = /[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/i;
+      const inputPostcode = rawAddress.match(postcodeRegex)?.[0]?.toUpperCase();
+      
+      // If we have a postcode in the input, make sure it's in the result
+      if (inputPostcode) {
+        const resultPostcode = result.address_components
+          .find(comp => comp.types.includes('postal_code'))
+          ?.long_name
+          ?.toUpperCase();
+        
+        if (resultPostcode && this.normalizePostcode(resultPostcode) !== this.normalizePostcode(inputPostcode)) {
+          console.log('Postcode mismatch:', { input: inputPostcode, result: resultPostcode });
+          return null;
+        }
       }
 
       return result;
@@ -153,6 +176,10 @@ export class AddressService {
       console.error('Error validating address:', error);
       return null;
     }
+  }
+
+  private normalizePostcode(postcode: string): string {
+    return postcode.replace(/\s+/g, '').toUpperCase();
   }
 
   private isExactAddress(result: GeocodeResult): boolean {
@@ -376,12 +403,9 @@ export class AddressService {
   }
 
   async createOrUpdateAddress(rawAddress: string): Promise<Address | null> {
-    // Enhance partial address if possible
-    const enhancedAddress = this.enhancePartialAddress(rawAddress);
-    console.log('Enhanced address:', enhancedAddress);
+    console.log('Processing address:', rawAddress);
     
-    const geocodeResult = await this.validateAndFormatAddress(enhancedAddress);
-    
+    const geocodeResult = await this.validateAndFormatAddress(rawAddress);
     if (!geocodeResult) {
       return null;
     }
@@ -389,6 +413,7 @@ export class AddressService {
     // Try to find existing address using all matching strategies
     const existingAddress = await this.findExistingAddress(geocodeResult);
     if (existingAddress) {
+      console.log('Found existing address:', existingAddress);
       return existingAddress;
     }
 
@@ -414,6 +439,7 @@ export class AddressService {
 
     // Save to Firebase
     await setDoc(doc(db, this.addressCollection, addressId), address);
+    console.log('Created new address:', address);
 
     return address;
   }
