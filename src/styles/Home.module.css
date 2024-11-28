@@ -1,57 +1,55 @@
 .container {
   min-height: 100vh;
-  padding: 0 0.5rem;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   background-color: #f5f5f5;
 }
 
 .main {
-  padding: 5rem 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
   width: 100%;
   max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .title {
-  margin: 0;
-  line-height: 1.15;
   font-size: 4rem;
-  text-align: center;
+  margin: 0;
   color: #333;
 }
 
 .description {
   text-align: center;
-  line-height: 1.5;
-  font-size: 1.5rem;
   color: #666;
-  margin: 1rem 0 2rem;
+  font-size: 1.2rem;
+  margin: 2rem 0;
 }
 
-.formContainer {
+.form {
   width: 100%;
   max-width: 600px;
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
-  position: relative;
-  z-index: 1;
 }
 
-.inputWrapper {
+.input {
   flex: 1;
-  position: relative;
-  z-index: 1;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 0.5rem;
+  outline: none;
 }
 
-.validateButton {
+.input:focus {
+  border-color: #4a90e2;
+}
+
+.button {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   color: white;
@@ -60,40 +58,35 @@
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
-  position: relative;
-  z-index: 2;
-  min-width: 100px;
-  height: 44px;
 }
 
-.validateButton:hover:not(:disabled) {
+.button:hover:not(:disabled) {
   background-color: #357abd;
 }
 
-.validateButton:disabled {
+.button:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
 
 .error {
   color: #e53e3e;
-  margin-top: 1rem;
-  padding: 0.75rem;
   background-color: #fff5f5;
+  padding: 1rem;
   border-radius: 0.5rem;
   width: 100%;
   max-width: 600px;
   text-align: center;
+  margin-bottom: 1rem;
 }
 
 .result {
-  margin-top: 2rem;
+  width: 100%;
+  max-width: 600px;
   padding: 2rem;
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  width: 100%;
-  max-width: 600px;
 }
 
 .result h2 {
@@ -106,29 +99,8 @@
   margin-top: 1rem;
   color: #4a90e2;
   text-decoration: none;
-  font-weight: 500;
 }
 
 .link:hover {
-  text-decoration: underline;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  margin-bottom: 2rem;
-}
-
-.signupLink {
-  color: #0070f3;
-  text-decoration: none;
-  transition: color 0.2s;
-  font-weight: 500;
-}
-
-.signupLink:hover {
-  color: #0051b3;
   text-decoration: underline;
 } 
