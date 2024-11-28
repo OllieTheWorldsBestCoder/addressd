@@ -34,6 +34,13 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.inputWrapper {
+  flex: 1;
+  min-width: 0;
 }
 
 .input {
@@ -58,6 +65,11 @@
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
+  white-space: nowrap;
+  min-width: 100px;
+  height: 44px;
+  z-index: 2;
+  position: relative;
 }
 
 .button:hover:not(:disabled) {
