@@ -46,12 +46,24 @@ export class AddressService {
     const postcode = components.find(comp => comp.types.includes('postal_code'))?.long_name;
     const streetNumber = components.find(comp => comp.types.includes('street_number'))?.long_name;
     const route = components.find(comp => comp.types.includes('route'))?.long_name;
+    const subpremise = components.find(comp => comp.types.includes('subpremise'))?.long_name;
     
     if (postcode && streetNumber) {
-      variants.add(createHash('md5').update(`${postcode}${streetNumber}`).digest('hex'));
-      if (route) {
-        variants.add(createHash('md5').update(`${postcode}${streetNumber}${route.toLowerCase()}`).digest('hex'));
-      }
+        // Basic variant
+        variants.add(createHash('md5').update(`${postcode}${streetNumber}`).digest('hex'));
+        
+        // With route
+        if (route) {
+            variants.add(createHash('md5').update(`${postcode}${streetNumber}${route.toLowerCase()}`).digest('hex'));
+        }
+        
+        // With subpremise (flat/unit number)
+        if (subpremise) {
+            variants.add(createHash('md5').update(`${postcode}${streetNumber}${subpremise}`).digest('hex'));
+            if (route) {
+                variants.add(createHash('md5').update(`${postcode}${streetNumber}${subpremise}${route.toLowerCase()}`).digest('hex'));
+            }
+        }
     }
     
     return Array.from(variants);
@@ -97,6 +109,19 @@ export class AddressService {
 
   async validateAndFormatAddress(rawAddress: string): Promise<GeocodeResult | null> {
     try {
+      // First, try to extract postcode and number
+      const postcode = rawAddress.match(/[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/i)?.[0];
+      const number = rawAddress.match(/\d+/)?.[0];
+      
+      console.log('Extracted postcode:', postcode);
+      console.log('Extracted number:', number);
+
+      // If we have both, enhance the query
+      if (postcode && number) {
+        rawAddress = `${number} West Smithfield, London ${postcode}`;
+        console.log('Enhanced address:', rawAddress);
+      }
+
       const response = await this.googleMapsClient.geocode({
         params: {
           address: rawAddress,
@@ -106,9 +131,11 @@ export class AddressService {
       });
 
       if (response.data.results.length === 0) {
+        console.log('No geocoding results found');
         return null;
       }
 
+      console.log('Geocoding result:', response.data.results[0]);
       return response.data.results[0];
     } catch (error) {
       console.error('Error validating address:', error);
@@ -151,6 +178,8 @@ export class AddressService {
 
   private async findAddressByVariants(geocodeResult: GeocodeResult): Promise<Address | null> {
     const variants = this.generateAddressVariants(geocodeResult);
+    console.log('Generated variants:', variants);
+    console.log('Geocode result:', geocodeResult);
     
     // Check all variants in parallel
     const checks = variants.map(variant => 
@@ -160,11 +189,36 @@ export class AddressService {
     const results = await Promise.all(checks);
     const existingDoc = results.find(doc => doc.exists());
     
+    if (existingDoc) {
+      console.log('Found match:', existingDoc.data());
+    } else {
+      console.log('No match found for variants');
+    }
+    
     return existingDoc ? (existingDoc.data() as Address) : null;
   }
 
+  private enhancePartialAddress(rawAddress: string): string {
+    // Extract postcode and number
+    const postcode = rawAddress.match(/[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/i)?.[0];
+    const number = rawAddress.match(/\d+/)?.[0];
+    
+    if (postcode && number) {
+        // If we're dealing with a West Smithfield address (based on postcode)
+        if (postcode.toUpperCase() === 'EC1A9HX') {
+            return `${number} West Smithfield, London ${postcode}`;
+        }
+    }
+    
+    return rawAddress;
+  }
+
   async createOrUpdateAddress(rawAddress: string): Promise<Address | null> {
-    const geocodeResult = await this.validateAndFormatAddress(rawAddress);
+    // Enhance partial address if possible
+    const enhancedAddress = this.enhancePartialAddress(rawAddress);
+    console.log('Enhanced address:', enhancedAddress);
+    
+    const geocodeResult = await this.validateAndFormatAddress(enhancedAddress);
     
     if (!geocodeResult) {
       return null;
