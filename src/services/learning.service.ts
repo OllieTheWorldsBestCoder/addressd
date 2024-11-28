@@ -7,7 +7,7 @@ export class LearningService {
   private patternsCollection = 'matchingPatterns';
   private feedbackCollection = 'addressFeedback';
 
-  async updatePatterns(feedback: AddressFeedback) {
+  async updateFromFeedback(feedback: AddressFeedback) {
     // Extract successful patterns
     const patterns = this.extractPatterns(
       feedback.inputAddress,
@@ -20,7 +20,7 @@ export class LearningService {
       feedback.isPositive
     );
 
-    // Generate new patterns
+    // Generate new patterns if feedback is positive
     if (feedback.isPositive) {
       await this.generateNewPatterns(
         feedback.inputAddress,
