@@ -7,9 +7,21 @@ export default function Home() {
   const [result, setResult] = useState<{summary: string; uploadLink: string} | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
 
-  const handleAddressSelect = async (place: google.maps.places.PlaceResult) => {
+  const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
     if (!place.formatted_address) return;
+    setAddress(place.formatted_address);
+    setSelectedPlace(place);
+    setError('');
+    setResult(null);
+  };
+
+  const handleValidate = async () => {
+    if (!selectedPlace?.formatted_address) {
+      setError('Please select an address from the suggestions');
+      return;
+    }
     
     setIsLoading(true);
     setError('');
@@ -22,11 +34,11 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          address: place.formatted_address,
-          placeId: place.place_id,
+          address: selectedPlace.formatted_address,
+          placeId: selectedPlace.place_id,
           coordinates: {
-            lat: place.geometry?.location?.lat(),
-            lng: place.geometry?.location?.lng()
+            lat: selectedPlace.geometry?.location?.lat(),
+            lng: selectedPlace.geometry?.location?.lng()
           }
         }),
       });
@@ -58,13 +70,22 @@ export default function Home() {
           Enter an address to validate and contribute information
         </p>
         
-        <div className={styles.form}>
-          <AddressAutocomplete
-            value={address}
-            onChange={setAddress}
-            onSelect={handleAddressSelect}
-            disabled={isLoading}
-          />
+        <div className={styles.formContainer}>
+          <div className={styles.inputWrapper}>
+            <AddressAutocomplete
+              value={address}
+              onChange={setAddress}
+              onSelect={handleAddressSelect}
+              disabled={isLoading}
+            />
+          </div>
+          <button 
+            onClick={handleValidate}
+            disabled={isLoading || !selectedPlace}
+            className={styles.validateButton}
+          >
+            {isLoading ? 'Validating...' : 'Validate'}
+          </button>
         </div>
 
         {error && <p className={styles.error}>{error}</p>}
