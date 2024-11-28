@@ -172,9 +172,9 @@ export class AddressService {
     // Check if it's a precise rooftop location
     const isPreciseLocation = result.geometry.location_type === 'ROOFTOP';
 
-    // Check result types to ensure it's a street address
-    const isStreetAddress = result.types.includes('street_address') || 
-                           result.types.includes('premise');
+    // Check result types to ensure it's a street address (with null check)
+    const isStreetAddress = result.types?.includes('street_address') || 
+                           result.types?.includes('premise') || false;
 
     // For named buildings (like "Four Furlongs House"), check for premise
     const isPremise = result.address_components.some(
