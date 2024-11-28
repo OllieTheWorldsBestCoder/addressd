@@ -1,6 +1,9 @@
 {
     "crons": [{
-      "path": "/api/cron/generate-summaries",
+      "path": "/api/cron/optimize-addresses",
       "schedule": "0 0 * * *"
-    }]
+    }],
+    "env": {
+      "CRON_SECRET_KEY": "@cron_secret_key"
+    }
   }

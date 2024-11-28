@@ -7,12 +7,25 @@ export class LearningService {
   private patternsCollection = 'matchingPatterns';
   private feedbackCollection = 'addressFeedback';
 
-  async updateFromFeedback(feedback: AddressFeedback) {
-    // Extract patterns from the successful/failed match
-    const patterns = this.extractPatterns(feedback.inputAddress, feedback.matchedAddress);
-    
-    for (const pattern of patterns) {
-      await this.updatePattern(pattern, feedback.isPositive);
+  async updatePatterns(feedback: AddressFeedback) {
+    // Extract successful patterns
+    const patterns = this.extractPatterns(
+      feedback.inputAddress,
+      feedback.matchedAddress
+    );
+
+    // Update pattern confidence
+    await this.updatePatternConfidence(
+      patterns,
+      feedback.isPositive
+    );
+
+    // Generate new patterns
+    if (feedback.isPositive) {
+      await this.generateNewPatterns(
+        feedback.inputAddress,
+        feedback.matchedAddress
+      );
     }
   }
 
@@ -50,6 +63,12 @@ export class LearningService {
     }
 
     return patterns;
+  }
+
+  private async updatePatternConfidence(patterns: string[], isSuccess: boolean) {
+    for (const pattern of patterns) {
+      await this.updatePattern(pattern, isSuccess);
+    }
   }
 
   private async updatePattern(pattern: string, isSuccess: boolean) {

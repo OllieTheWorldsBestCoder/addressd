@@ -8,10 +8,13 @@
     "start": "next start",
     "lint": "next lint",
     "test": "ts-node src/scripts/test-address-api.ts",
+    "test-address": "ts-node src/scripts/test-address-api.ts",
+    "test-address-api": "ts-node src/scripts/test-address-api.ts",
     "create-admin": "ts-node src/scripts/create-admin-user.ts",
     "check-token": "ts-node src/scripts/check-admin-token.ts",
     "test-cron": "ts-node src/scripts/test-cron.ts",
-    "test-feedback": "ts-node src/scripts/test-feedback.ts"
+    "test-feedback": "ts-node src/scripts/test-feedback.ts",
+    "test-cases": "ts-node src/scripts/test-address-cases.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",
@@ -20,6 +23,7 @@
     "firebase": "^11.0.2",
     "geofire-common": "^6.0.0",
     "next": "^14.0.3",
+    "openai": "^3.3.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
