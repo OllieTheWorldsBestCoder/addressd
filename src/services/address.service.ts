@@ -7,6 +7,11 @@ import { createHash } from 'crypto';
 import { geohashForLocation } from 'geofire-common';
 import { LearningService } from './learning.service';
 
+interface MatchResult {
+  address: Address | null;
+  confidence: number;
+}
+
 export class AddressService {
   private googleMapsClient: Client;
   private addressCollection = 'addresses';
@@ -242,11 +247,11 @@ export class AddressService {
       }));
 
       const results = await Promise.all(matchPromises);
-      const bestMatch = results.reduce((best, current) => 
+      const bestMatch = results.reduce<MatchResult>((best, current) => 
         current.confidence > best.confidence ? current : best
       , { confidence: -1, address: null });
 
-      if (bestMatch.confidence >= confidenceThreshold) {
+      if (bestMatch.confidence >= confidenceThreshold && bestMatch.address) {
         return bestMatch.address;
       }
     }
