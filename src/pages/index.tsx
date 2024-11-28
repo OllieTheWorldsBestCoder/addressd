@@ -19,8 +19,8 @@ export default function Home() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedPlace?.formatted_address) {
-      setError('Please select an address from the suggestions');
+    if (!address.trim()) {
+      setError('Please enter an address');
       return;
     }
 
@@ -35,12 +35,14 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          address: selectedPlace.formatted_address,
-          placeId: selectedPlace.place_id,
-          coordinates: {
-            lat: selectedPlace.geometry?.location?.lat(),
-            lng: selectedPlace.geometry?.location?.lng()
-          }
+          address: selectedPlace?.formatted_address || address,
+          ...(selectedPlace && {
+            placeId: selectedPlace.place_id,
+            coordinates: {
+              lat: selectedPlace.geometry?.location?.lat(),
+              lng: selectedPlace.geometry?.location?.lng()
+            }
+          })
         }),
       });
 
@@ -71,14 +73,19 @@ export default function Home() {
           <div className={styles.inputWrapper}>
             <AddressAutocomplete
               value={address}
-              onChange={setAddress}
+              onChange={(val) => {
+                setAddress(val);
+                if (!selectedPlace?.formatted_address || val !== selectedPlace.formatted_address) {
+                  setSelectedPlace(null);
+                }
+              }}
               onSelect={handleAddressSelect}
               disabled={isLoading}
             />
           </div>
           <button 
             type="submit"
-            disabled={isLoading || !selectedPlace}
+            disabled={isLoading || !address.trim()}
             className={styles.button}
           >
             {isLoading ? 'Validating...' : 'Validate'}
