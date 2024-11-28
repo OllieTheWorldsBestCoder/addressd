@@ -43,7 +43,7 @@ export default async function handler(
     console.log('Address processed successfully:', result.id);
 
     // If the address already existed (has descriptions), increment the user's summary count
-    if (result.descriptions?.length > 0) {
+    if (result.descriptions && result.descriptions.length > 0) {
       console.log('Updating user summary count...');
       await updateDoc(doc(db, 'users', user.id), {
         summaryCount: increment(1),
