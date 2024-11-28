@@ -1,7 +1,7 @@
 // Updated address validation with improved fallback strategies
 import { Client } from '@googlemaps/google-maps-services-js';
 import { Address } from '../types/address';
-import { GeocodeResult } from 'google-maps-types';
+import { GeocodeResult, AddressType } from 'google-maps-types';
 import { db } from '../config/firebase';
 import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { createHash } from 'crypto';
