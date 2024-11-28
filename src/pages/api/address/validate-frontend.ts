@@ -33,6 +33,7 @@ export default async function handler(
     const response: AddressResponse = {
       summary: result.summary,
       uploadLink: `${process.env.NEXT_PUBLIC_BASE_URL}/upload/${result.id}`,
+      addressId: result.id
     };
 
     return res.status(200).json(response);
