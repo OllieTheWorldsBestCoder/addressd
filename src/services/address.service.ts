@@ -127,67 +127,134 @@ export class AddressService {
     try {
       console.log('Validating address:', rawAddress);
 
-      // Try with the original address first
-      let response = await this.googleMapsClient.geocode({
+      const response = await this.googleMapsClient.geocode({
         params: {
           address: rawAddress,
           key: process.env.GOOGLE_MAPS_API_KEY ?? '',
         },
       });
 
-      // If no results or no specific location, try with different formats
-      if (response.data.results.length === 0 || !this.isValidLocation(response.data.results[0])) {
-        // Try with different variations
-        const variations = [
-          rawAddress,
-          `Building ${rawAddress}`,
-          rawAddress.replace(/house/i, 'Building'),
-          // Add the country if not present
-          rawAddress.toLowerCase().includes('uk') ? rawAddress : `${rawAddress}, UK`
-        ];
-
-        for (const variant of variations) {
-          response = await this.googleMapsClient.geocode({
-            params: {
-              address: variant,
-              key: process.env.GOOGLE_MAPS_API_KEY ?? '',
-            },
-          });
-
-          if (response.data.results.length > 0 && this.isValidLocation(response.data.results[0])) {
-            break;
-          }
-        }
-      }
-
       if (response.data.results.length === 0) {
-        console.log('No geocoding results found');
+        console.log('No results found');
         return null;
       }
 
-      // Get the most accurate result
       const result = response.data.results[0];
-      console.log('Geocoding result:', JSON.stringify(result, null, 2));
+      console.log('Geocoding result:', result);
 
-      // Accept the result if:
-      // 1. It has a valid component (street_number, premise, etc.)
-      // 2. OR it's a named location that matches our input
-      // 3. OR it has a precise location (not just a street)
-      if (this.isValidLocation(result)) {
-        return result;
+      // Only accept results that are exact addresses
+      if (!this.isExactAddress(result)) {
+        console.log('Result is not an exact address');
+        return null;
       }
 
-      console.log('Result validation failed. Components:', 
-        result.address_components.map(c => ({
-          long_name: c.long_name,
-          types: c.types
-        }))
-      );
-      return null;
+      return result;
     } catch (error) {
       console.error('Error validating address:', error);
       return null;
     }
+  }
+
+  private isExactAddress(result: GeocodeResult): boolean {
+    // Check if result has the necessary components for an exact address
+    const hasStreetNumber = result.address_components.some(
+      comp => comp.types.includes('street_number')
+    );
+    
+    const hasRoute = result.address_components.some(
+      comp => comp.types.includes('route')
+    );
+
+    const hasPostcode = result.address_components.some(
+      comp => comp.types.includes('postal_code')
+    );
+
+    // Check if it's a precise rooftop location
+    const isPreciseLocation = result.geometry.location_type === 'ROOFTOP';
+
+    // Check result types to ensure it's a street address
+    const isStreetAddress = result.types.includes('street_address') || 
+                           result.types.includes('premise');
+
+    // For named buildings (like "Four Furlongs House"), check for premise
+    const isPremise = result.address_components.some(
+      comp => comp.types.includes('premise') || comp.types.includes('subpremise')
+    );
+
+    // Must have either:
+    // 1. Street number + route + postcode, OR
+    // 2. Be a precise premise with postcode
+    return (
+      ((hasStreetNumber && hasRoute) || isPremise) &&
+      hasPostcode &&
+      (isPreciseLocation || isStreetAddress)
+    );
+  }
+
+  private generateAddressVariations(address: string): string[] {
+    const variations: string[] = [address];
+    
+    // Split address into components
+    const parts = address.split(',').map(p => p.trim());
+    
+    // Handle different formats
+    if (parts.length > 0) {
+      // Original address
+      variations.push(address);
+      
+      // Without building name (if it exists)
+      if (parts.length > 1) {
+        variations.push(parts.slice(1).join(', '));
+      }
+      
+      // With 'UK' added
+      if (!address.toLowerCase().includes('uk')) {
+        variations.push(`${address}, UK`);
+      }
+      
+      // Without flat/apartment numbers
+      const withoutFlat = address.replace(/^(flat|apt|apartment|unit)\s+\d+,?\s*/i, '');
+      if (withoutFlat !== address) {
+        variations.push(withoutFlat);
+      }
+      
+      // Standardize road/street/etc
+      const standardized = address
+        .replace(/\b(rd|road)\b/gi, 'Road')
+        .replace(/\b(st|street)\b/gi, 'Street')
+        .replace(/\b(ave|avenue)\b/gi, 'Avenue')
+        .replace(/\b(ln|lane)\b/gi, 'Lane');
+      variations.push(standardized);
+    }
+
+    return [...new Set(variations)]; // Remove duplicates
+  }
+
+  private calculateAddressConfidence(result: GeocodeResult, originalAddress: string): number {
+    let confidence = 0;
+    
+    // Check location type
+    if (result.geometry.location_type === 'ROOFTOP') confidence += 0.4;
+    else if (result.geometry.location_type === 'RANGE_INTERPOLATED') confidence += 0.3;
+    else if (result.geometry.location_type === 'GEOMETRIC_CENTER') confidence += 0.2;
+    
+    // Check components
+    const components = result.address_components;
+    if (components.some(c => c.types.includes('street_number'))) confidence += 0.2;
+    if (components.some(c => c.types.includes('route'))) confidence += 0.1;
+    if (components.some(c => c.types.includes('postal_code'))) confidence += 0.1;
+    if (components.some(c => c.types.includes('premise') || c.types.includes('subpremise'))) confidence += 0.1;
+    
+    // Check if original building name is preserved (if exists)
+    const buildingName = originalAddress.split(',')[0].trim();
+    if (buildingName && result.formatted_address.toLowerCase().includes(buildingName.toLowerCase())) {
+      confidence += 0.1;
+    }
+    
+    // Check for partial match flag
+    if (result.partial_match) confidence -= 0.1;
+    
+    return Math.min(1, confidence); // Cap at 1.0
   }
 
   private isValidLocation(result: GeocodeResult): boolean {
@@ -200,10 +267,25 @@ export class AddressService {
               comp.types.includes('subpremise')
     );
 
-    // Check if it's a named building
-    const isNamedBuilding = result.formatted_address.toLowerCase().includes('house') ||
-                           result.formatted_address.toLowerCase().includes('building') ||
-                           /^[A-Za-z]/.test(result.formatted_address);
+    // Enhanced check for named buildings
+    const isNamedBuilding = (address: string): boolean => {
+      const buildingPatterns = [
+        /house/i,
+        /building/i,
+        /court/i,
+        /manor/i,
+        /hall/i,
+        /plaza/i,
+        /towers?/i,
+        /cottage/i,
+        /villa/i,
+        /lodge/i,
+        // Add pattern for "X Y House" format (like "Four Furlongs House")
+        /^([A-Za-z]+\s+){1,3}(house|building|court|manor|hall|plaza|towers?|cottage|villa|lodge)/i
+      ];
+
+      return buildingPatterns.some(pattern => pattern.test(address));
+    };
 
     // Check if it's a precise location (not just a street)
     const isPreciseLocation = result.geometry.location_type === 'ROOFTOP' ||
@@ -212,9 +294,12 @@ export class AddressService {
     // Check if the location has bounds (indicating a specific area)
     const hasBounds = !!result.geometry.bounds;
 
+    // Enhanced validation logic
     return hasValidComponent || 
-           (isNamedBuilding && (isPreciseLocation || hasBounds)) ||
-           isPreciseLocation;
+           (isNamedBuilding(result.formatted_address) && (isPreciseLocation || hasBounds)) ||
+           isPreciseLocation ||
+           // Additional check for house names in the first part of the address
+           /^[A-Za-z\s]+(house|building|court|manor|hall|plaza|towers?|cottage|villa|lodge)/i.test(result.formatted_address.split(',')[0]);
   }
 
   generateAddressId(formattedAddress: string): string {
