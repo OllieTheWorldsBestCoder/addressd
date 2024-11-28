@@ -21,4 +21,15 @@ export interface Address {
 export interface AddressResponse {
   summary: string;
   uploadLink: string;
+  addressId: string;
+}
+
+export interface AddressFeedback {
+  id: string;
+  addressId: string;
+  isPositive: boolean;
+  comment?: string;
+  inputAddress: string;
+  matchedAddress: string;
+  createdAt: Date;
 } 

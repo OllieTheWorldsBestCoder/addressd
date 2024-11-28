@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import styles from '../styles/Home.module.css';
 import AddressAutocomplete from '../components/AddressAutocomplete';
+import AddressFeedback from '../components/AddressFeedback';
 
 export default function Home() {
   const [address, setAddress] = useState('');
@@ -106,6 +107,11 @@ export default function Home() {
             >
               Add Description →
             </a>
+            <AddressFeedback
+              addressId={result.addressId}
+              inputAddress={address}
+              matchedAddress={selectedPlace?.formatted_address || address}
+            />
           </div>
         )}
       </main>
