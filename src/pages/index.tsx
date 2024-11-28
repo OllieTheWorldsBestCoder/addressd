@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, FormEvent } from 'react';
 import styles from '../styles/Home.module.css';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 
@@ -17,7 +17,9 @@ export default function Home() {
     setResult(null);
   };
 
-  const handleValidate = async () => {
+  const handleValidate = async (e?: FormEvent) => {
+    e?.preventDefault();
+    
     if (!selectedPlace?.formatted_address) {
       setError('Please select an address from the suggestions');
       return;
@@ -70,7 +72,7 @@ export default function Home() {
           Enter an address to validate and contribute information
         </p>
         
-        <div className={styles.formContainer}>
+        <form onSubmit={handleValidate} className={styles.formContainer}>
           <div className={styles.inputWrapper}>
             <AddressAutocomplete
               value={address}
@@ -80,13 +82,13 @@ export default function Home() {
             />
           </div>
           <button 
-            onClick={handleValidate}
+            type="submit"
             disabled={isLoading || !selectedPlace}
             className={styles.validateButton}
           >
             {isLoading ? 'Validating...' : 'Validate'}
           </button>
-        </div>
+        </form>
 
         {error && <p className={styles.error}>{error}</p>}
         
