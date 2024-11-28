@@ -1,5 +1,4 @@
-// Updated address validation with improved fallback strategies
-import { Client } from '@googlemaps/google-maps-services-js';
+import { Client, AddressType as GoogleAddressType } from '@googlemaps/google-maps-services-js';
 import { Address } from '../types/address';
 import { GeocodeResult, AddressType } from 'google-maps-types';
 import { db } from '../config/firebase';
@@ -337,16 +336,16 @@ export class AddressService {
     });
 
     // For postcode-only searches, be very lenient
-    if (hasPostcode && result.types?.includes('postal_code' as AddressType)) {
+    if (hasPostcode && result.types?.includes('postal_code' as GoogleAddressType)) {
       return true;
     }
 
     // Check for minimum required components
     const components = result.address_components;
-    const hasStreetNumber = components.some(c => c.types.includes('street_number' as AddressType));
-    const hasRoute = components.some(c => c.types.includes('route' as AddressType));
-    const hasPremise = components.some(c => c.types.includes('premise' as AddressType));
-    const hasPostalCode = components.some(c => c.types.includes('postal_code' as AddressType));
+    const hasStreetNumber = components.some(c => c.types.includes('street_number' as GoogleAddressType));
+    const hasRoute = components.some(c => c.types.includes('route' as GoogleAddressType));
+    const hasPremise = components.some(c => c.types.includes('premise' as GoogleAddressType));
+    const hasPostalCode = components.some(c => c.types.includes('postal_code' as GoogleAddressType));
 
     // Accept if we have either:
     // 1. A street number and route

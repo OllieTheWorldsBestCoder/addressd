@@ -12,10 +12,15 @@ export interface Address {
   latitude: number;
   longitude: number;
   geohash: string;
-  summary: string;
-  descriptions: Contribution[];
-  createdAt: Date | Timestamp;
-  updatedAt: Date | Timestamp;
+  embedding?: number[];
+  matchedAddresses?: Array<{
+    rawAddress: string;
+    matchedAt: Date;
+  }>;
+  summary?: string;
+  descriptions?: Contribution[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AddressResponse {
