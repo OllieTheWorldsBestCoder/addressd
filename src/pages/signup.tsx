@@ -19,11 +19,11 @@ export default function Signup() {
     setSuccess(null);
 
     try {
-      // Generate a secure random token
+      // Generate a secure random token for auth
       const authToken = crypto.randomBytes(32).toString('hex');
       
-      // Create user ID from email
-      const userId = email.toLowerCase().replace(/[^a-z0-9]/g, '-');
+      // Generate a random user ID (16 characters hex)
+      const userId = crypto.randomBytes(8).toString('hex');
       
       const newUser: User = {
         id: userId,
