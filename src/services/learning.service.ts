@@ -1,6 +1,7 @@
 import { db } from '../config/firebase';
 import { collection, doc, getDoc, setDoc, updateDoc, increment, query, where, getDocs } from 'firebase/firestore';
 import { MatchingPattern, MatchingResult, AddressFeedback } from '../types/address';
+import { createHash } from 'crypto';
 
 export class LearningService {
   private patternsCollection = 'matchingPatterns';
