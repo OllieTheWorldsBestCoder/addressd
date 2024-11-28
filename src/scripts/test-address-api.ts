@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 const API_URL = 'https://addressd.vercel.app';
+const AUTH_TOKEN = process.env.TEST_AUTH_TOKEN;
 
 async function testAddressApi(address: string) {
   console.log('Testing address:', address);
@@ -13,7 +14,8 @@ async function testAddressApi(address: string) {
     }, {
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${AUTH_TOKEN}`
       }
     });
 

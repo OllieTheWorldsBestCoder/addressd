@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { AddressService } from '../../../services/address.service';
 import { AddressResponse } from '../../../types/address';
+import { authenticateRequest } from '../../../middleware/auth';
+import { doc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 
 export default async function handler(
   req: NextApiRequest,
@@ -8,6 +11,12 @@ export default async function handler(
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Authenticate the request
+  const user = await authenticateRequest(req, res);
+  if (!user) {
+    return; // Response already sent by authenticateRequest
   }
 
   try {
@@ -22,6 +31,14 @@ export default async function handler(
 
     if (!result) {
       return res.status(400).json({ error: 'Invalid address' });
+    }
+
+    // If the address already existed (has descriptions), increment the user's summary count
+    if (result.descriptions.length > 0) {
+      await updateDoc(doc(db, 'users', user.id), {
+        summaryCount: increment(1),
+        updatedAt: new Date()
+      });
     }
 
     const response: AddressResponse = {
