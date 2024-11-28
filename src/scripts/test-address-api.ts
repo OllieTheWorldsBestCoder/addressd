@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 
-const API_URL = 'https://addressd-dgyp2e5gi-ollietheworldsbestcoders-projects.vercel.app';
+const API_URL = 'https://addressd.vercel.app';
 
 async function testAddressApi(address: string) {
   console.log('Testing address:', address);
