@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styles from '../styles/Home.module.css';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 export default function Home() {
   const [address, setAddress] = useState('');
@@ -7,8 +8,9 @@ export default function Home() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddressSelect = async (place: google.maps.places.PlaceResult) => {
+    if (!place.formatted_address) return;
+    
     setIsLoading(true);
     setError('');
     setResult(null);
@@ -19,7 +21,14 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ 
+          address: place.formatted_address,
+          placeId: place.place_id,
+          coordinates: {
+            lat: place.geometry?.location?.lat(),
+            lng: place.geometry?.location?.lng()
+          }
+        }),
       });
 
       const data = await response.json();
@@ -44,27 +53,19 @@ export default function Home() {
             Get API Access →
           </a>
         </div>
+        
         <p className={styles.description}>
           Enter an address to validate and contribute information
         </p>
         
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <input
-            type="text"
+        <div className={styles.form}>
+          <AddressAutocomplete
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter an address..."
-            className={styles.input}
+            onChange={setAddress}
+            onSelect={handleAddressSelect}
             disabled={isLoading}
           />
-          <button 
-            type="submit" 
-            className={styles.button}
-            disabled={isLoading || !address.trim()}
-          >
-            {isLoading ? 'Processing...' : 'Validate'}
-          </button>
-        </form>
+        </div>
 
         {error && <p className={styles.error}>{error}</p>}
         

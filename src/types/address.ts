@@ -11,6 +11,7 @@ export interface Address {
   formattedAddress: string;
   latitude: number;
   longitude: number;
+  geohash: string;
   summary: string;
   descriptions: Contribution[];
   createdAt: Date | Timestamp;
