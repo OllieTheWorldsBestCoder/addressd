@@ -4,17 +4,24 @@ import { useEffect } from 'react';
 
 function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
-    // Force a cache bust on client-side
-    if (typeof window !== 'undefined') {
+    // Only update URL if it doesn't already have a version parameter
+    if (typeof window !== 'undefined' && !window.location.search.includes('v=')) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('v', Date.now().toString());
       window.history.replaceState(
-        null, 
+        window.history.state, 
         '', 
-        `${window.location.pathname}?v=${Date.now()}`
+        newUrl.toString()
       );
     }
   }, []);
 
-  return <Component {...pageProps} />;
+  // Wrap the component in a div to ensure consistent rendering
+  return (
+    <div suppressHydrationWarning>
+      <Component {...pageProps} />
+    </div>
+  );
 }
 
 export default MyApp; 
