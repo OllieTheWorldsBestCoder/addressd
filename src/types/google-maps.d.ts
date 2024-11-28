@@ -6,6 +6,27 @@ declare module 'google-maps-types' {
         lat: number;
         lng: number;
       };
+      location_type?: 'ROOFTOP' | 'RANGE_INTERPOLATED' | 'GEOMETRIC_CENTER' | 'APPROXIMATE';
+      viewport?: {
+        northeast: {
+          lat: number;
+          lng: number;
+        };
+        southwest: {
+          lat: number;
+          lng: number;
+        };
+      };
+      bounds?: {
+        northeast: {
+          lat: number;
+          lng: number;
+        };
+        southwest: {
+          lat: number;
+          lng: number;
+        };
+      };
     };
     place_id: string;
     address_components: Array<{
@@ -13,5 +34,7 @@ declare module 'google-maps-types' {
       short_name: string;
       types: string[];
     }>;
+    types?: string[];
+    partial_match?: boolean;
   }
 } 
