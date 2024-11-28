@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { AddressService } from '../../../services/address.service';
 import { AddressResponse } from '../../../types/address';
-import { doc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '../../../config/firebase';
 
 export default async function handler(
   req: NextApiRequest,

@@ -25,11 +25,13 @@ export default function Home() {
       return;
     }
     
+    console.log('Validating address:', selectedPlace.formatted_address);
     setIsLoading(true);
     setError('');
     setResult(null);
 
     try {
+      console.log('Making request to /api/address/validate-frontend');
       const response = await fetch('/api/address/validate-frontend', {
         method: 'POST',
         headers: {
@@ -45,13 +47,17 @@ export default function Home() {
         }),
       });
 
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
+
       if (response.ok) {
         setResult(data);
       } else {
         setError(data.error || 'Something went wrong');
       }
     } catch (err) {
+      console.error('Error:', err);
       setError('Failed to process address');
     } finally {
       setIsLoading(false);
