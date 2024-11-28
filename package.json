@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start -p $PORT",
+    "start": "next start",
     "lint": "next lint",
     "test": "ts-node src/scripts/test-address-api.ts",
     "test-address": "ts-node src/scripts/test-address-api.ts",
@@ -35,3 +35,4 @@
     "typescript": "^5.3.2"
   }
 }
+
