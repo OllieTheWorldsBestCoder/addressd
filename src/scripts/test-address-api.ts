@@ -1,11 +1,13 @@
 import axios, { AxiosError } from 'axios';
 
+const API_URL = 'https://addressd-2t7ju4imv-ollietheworldsbestcoders-projects.vercel.app';
+
 async function testAddressApi(address: string) {
   console.log('Testing address:', address);
-  console.log('Making request to: http://localhost:3000/api/address/validate');
+  console.log('Making request to:', `${API_URL}/api/address/validate`);
   
   try {
-    const response = await axios.post('http://localhost:3000/api/address/validate', {
+    const response = await axios.post(`${API_URL}/api/address/validate`, {
       address,
     });
 
