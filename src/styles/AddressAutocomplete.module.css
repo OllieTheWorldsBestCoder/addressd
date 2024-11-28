@@ -15,20 +15,4 @@
 
 .input:focus {
   border-color: #4a90e2;
-}
-
-/* Google Places Autocomplete custom styles */
-:global(.pac-container) {
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-:global(.pac-item) {
-  padding: 0.5rem;
-  cursor: pointer;
-}
-
-:global(.pac-item:hover) {
-  background-color: #f7fafc;
 } 
