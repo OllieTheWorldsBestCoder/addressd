@@ -10,7 +10,8 @@
     "test": "ts-node src/scripts/test-address-api.ts",
     "create-admin": "ts-node src/scripts/create-admin-user.ts",
     "check-token": "ts-node src/scripts/check-admin-token.ts",
-    "test-cron": "ts-node src/scripts/test-cron.ts"
+    "test-cron": "ts-node src/scripts/test-cron.ts",
+    "test-feedback": "ts-node src/scripts/test-feedback.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",

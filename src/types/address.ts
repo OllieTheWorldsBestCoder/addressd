@@ -32,4 +32,21 @@ export interface AddressFeedback {
   inputAddress: string;
   matchedAddress: string;
   createdAt: Date;
+}
+
+export interface MatchingPattern {
+  id: string;
+  pattern: string;
+  successCount: number;
+  failureCount: number;
+  confidence: number;
+  lastUsed: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface MatchingResult {
+  patternId: string;
+  matched: boolean;
+  addressId: string;
 } 

@@ -3,6 +3,7 @@ import { db } from '../../../config/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { AddressFeedback } from '../../../types/address';
 import crypto from 'crypto';
+import { LearningService } from '../../../services/learning.service';
 
 export default async function handler(
   req: NextApiRequest,
@@ -29,6 +30,9 @@ export default async function handler(
     };
 
     await addDoc(collection(db, 'addressFeedback'), feedback);
+
+    const learningService = new LearningService();
+    await learningService.updateFromFeedback(feedback);
 
     return res.status(200).json({ message: 'Feedback submitted successfully' });
   } catch (error) {

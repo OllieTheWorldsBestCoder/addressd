@@ -2,10 +2,11 @@ import { useState, FormEvent } from 'react';
 import styles from '../styles/Home.module.css';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
+import { AddressResponse } from '../types/address';
 
 export default function Home() {
   const [address, setAddress] = useState('');
-  const [result, setResult] = useState<{summary: string; uploadLink: string} | null>(null);
+  const [result, setResult] = useState<AddressResponse | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);

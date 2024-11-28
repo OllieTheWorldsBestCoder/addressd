@@ -5,13 +5,16 @@ import { db } from '../config/firebase';
 import { collection, doc, getDoc, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { createHash } from 'crypto';
 import { geohashForLocation } from 'geofire-common';
+import { LearningService } from './learning.service';
 
 export class AddressService {
   private googleMapsClient: Client;
   private addressCollection = 'addresses';
+  private learningService: LearningService;
 
   constructor() {
     this.googleMapsClient = new Client({});
+    this.learningService = new LearningService();
   }
 
   private standardizeAddress(address: string): string {
@@ -119,12 +122,38 @@ export class AddressService {
     try {
       console.log('Validating address:', rawAddress);
 
-      const response = await this.googleMapsClient.geocode({
+      // Try with the original address first
+      let response = await this.googleMapsClient.geocode({
         params: {
           address: rawAddress,
           key: process.env.GOOGLE_MAPS_API_KEY ?? '',
         },
       });
+
+      // If no results or no specific location, try with different formats
+      if (response.data.results.length === 0 || !this.isValidLocation(response.data.results[0])) {
+        // Try with different variations
+        const variations = [
+          rawAddress,
+          `Building ${rawAddress}`,
+          rawAddress.replace(/house/i, 'Building'),
+          // Add the country if not present
+          rawAddress.toLowerCase().includes('uk') ? rawAddress : `${rawAddress}, UK`
+        ];
+
+        for (const variant of variations) {
+          response = await this.googleMapsClient.geocode({
+            params: {
+              address: variant,
+              key: process.env.GOOGLE_MAPS_API_KEY ?? '',
+            },
+          });
+
+          if (response.data.results.length > 0 && this.isValidLocation(response.data.results[0])) {
+            break;
+          }
+        }
+      }
 
       if (response.data.results.length === 0) {
         console.log('No geocoding results found');
@@ -133,23 +162,54 @@ export class AddressService {
 
       // Get the most accurate result
       const result = response.data.results[0];
-      console.log('Geocoding result:', result);
-      
-      // Verify it's a valid address (has street number or premise)
-      const hasStreetNumber = result.address_components.some(
-        comp => comp.types.includes('street_number') || comp.types.includes('premise')
-      );
+      console.log('Geocoding result:', JSON.stringify(result, null, 2));
 
-      if (!hasStreetNumber) {
-        console.log('Result lacks street number or premise');
-        return null;
+      // Accept the result if:
+      // 1. It has a valid component (street_number, premise, etc.)
+      // 2. OR it's a named location that matches our input
+      // 3. OR it has a precise location (not just a street)
+      if (this.isValidLocation(result)) {
+        return result;
       }
 
-      return result;
+      console.log('Result validation failed. Components:', 
+        result.address_components.map(c => ({
+          long_name: c.long_name,
+          types: c.types
+        }))
+      );
+      return null;
     } catch (error) {
       console.error('Error validating address:', error);
       return null;
     }
+  }
+
+  private isValidLocation(result: GeocodeResult): boolean {
+    // Check for specific components
+    const hasValidComponent = result.address_components.some(
+      comp => comp.types.includes('street_number') || 
+              comp.types.includes('premise') ||
+              comp.types.includes('establishment') ||
+              comp.types.includes('point_of_interest') ||
+              comp.types.includes('subpremise')
+    );
+
+    // Check if it's a named building
+    const isNamedBuilding = result.formatted_address.toLowerCase().includes('house') ||
+                           result.formatted_address.toLowerCase().includes('building') ||
+                           /^[A-Za-z]/.test(result.formatted_address);
+
+    // Check if it's a precise location (not just a street)
+    const isPreciseLocation = result.geometry.location_type === 'ROOFTOP' ||
+                             result.geometry.location_type === 'RANGE_INTERPOLATED';
+
+    // Check if the location has bounds (indicating a specific area)
+    const hasBounds = !!result.geometry.bounds;
+
+    return hasValidComponent || 
+           (isNamedBuilding && (isPreciseLocation || hasBounds)) ||
+           isPreciseLocation;
   }
 
   generateAddressId(formattedAddress: string): string {
@@ -161,9 +221,7 @@ export class AddressService {
   async findExistingAddress(geocodeResult: GeocodeResult): Promise<Address | null> {
     // Try all matching strategies in parallel
     const [variantMatches, nearbyMatches] = await Promise.all([
-      // 1. Check all variants
       this.findAddressByVariants(geocodeResult),
-      // 2. Check nearby addresses
       this.findNearbyAddresses(
         geocodeResult.geometry.location.lat,
         geocodeResult.geometry.location.lng
@@ -173,13 +231,24 @@ export class AddressService {
     // If we found a direct match through variants, use that
     if (variantMatches) return variantMatches;
 
-    // If we found nearby matches, check for similar addresses
+    // If we found nearby matches, check for similar addresses using learned patterns
     if (nearbyMatches.length > 0) {
-      const standardizedInput = this.standardizeAddress(geocodeResult.formatted_address);
-      const match = nearbyMatches.find(addr => 
-        this.standardizeAddress(addr.formattedAddress) === standardizedInput
-      );
-      if (match) return match;
+      const input = geocodeResult.formatted_address;
+      const confidenceThreshold = 0.5;
+
+      const matchPromises = nearbyMatches.map(async addr => ({
+        address: addr,
+        confidence: await this.learningService.getMatchingConfidence(input, addr.formattedAddress)
+      }));
+
+      const results = await Promise.all(matchPromises);
+      const bestMatch = results.reduce((best, current) => 
+        current.confidence > best.confidence ? current : best
+      , { confidence: -1, address: null });
+
+      if (bestMatch.confidence >= confidenceThreshold) {
+        return bestMatch.address;
+      }
     }
 
     return null;
