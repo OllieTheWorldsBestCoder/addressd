@@ -14,11 +14,10 @@ export default function Home() {
     setResult(null);
 
     try {
-      const response = await fetch('/api/address/validate', {
+      const response = await fetch('/api/address/validate-frontend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_AUTH_TOKEN}`
         },
         body: JSON.stringify({ address }),
       });
