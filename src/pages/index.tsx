@@ -1,15 +1,28 @@
 import { useState, FormEvent } from 'react';
 import styles from '../styles/Home.module.css';
+import AddressAutocomplete from '../components/AddressAutocomplete';
 
 export default function Home() {
   const [address, setAddress] = useState('');
   const [result, setResult] = useState<{summary: string; uploadLink: string} | null>(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
+
+  const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
+    if (!place.formatted_address) return;
+    setAddress(place.formatted_address);
+    setSelectedPlace(place);
+    setError('');
+    setResult(null);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!address.trim()) return;
+    if (!selectedPlace?.formatted_address) {
+      setError('Please select an address from the suggestions');
+      return;
+    }
 
     setIsLoading(true);
     setError('');
@@ -21,7 +34,14 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ 
+          address: selectedPlace.formatted_address,
+          placeId: selectedPlace.place_id,
+          coordinates: {
+            lat: selectedPlace.geometry?.location?.lat(),
+            lng: selectedPlace.geometry?.location?.lng()
+          }
+        }),
       });
 
       const data = await response.json();
@@ -48,17 +68,17 @@ export default function Home() {
         </p>
         
         <form onSubmit={handleSubmit} className={styles.form}>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter an address..."
-            className={styles.input}
-            disabled={isLoading}
-          />
+          <div className={styles.inputWrapper}>
+            <AddressAutocomplete
+              value={address}
+              onChange={setAddress}
+              onSelect={handleAddressSelect}
+              disabled={isLoading}
+            />
+          </div>
           <button 
             type="submit"
-            disabled={isLoading || !address.trim()}
+            disabled={isLoading || !selectedPlace}
             className={styles.button}
           >
             {isLoading ? 'Validating...' : 'Validate'}
