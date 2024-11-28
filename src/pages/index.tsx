@@ -18,9 +18,11 @@ export default function Home() {
   };
 
   const handleValidate = async (e?: FormEvent) => {
+    console.log('handleValidate called');
     e?.preventDefault();
     
     if (!selectedPlace?.formatted_address) {
+      console.log('No selected place');
       setError('Please select an address from the suggestions');
       return;
     }
@@ -78,12 +80,24 @@ export default function Home() {
           Enter an address to validate and contribute information
         </p>
         
-        <form onSubmit={handleValidate} className={styles.formContainer}>
+        <form 
+          onSubmit={(e) => {
+            console.log('Form submitted');
+            handleValidate(e);
+          }} 
+          className={styles.formContainer}
+        >
           <div className={styles.inputWrapper}>
             <AddressAutocomplete
               value={address}
-              onChange={setAddress}
-              onSelect={handleAddressSelect}
+              onChange={(val) => {
+                console.log('Address changed:', val);
+                setAddress(val);
+              }}
+              onSelect={(place) => {
+                console.log('Place selected:', place);
+                handleAddressSelect(place);
+              }}
               disabled={isLoading}
             />
           </div>
@@ -91,6 +105,7 @@ export default function Home() {
             type="submit"
             disabled={isLoading || !selectedPlace}
             className={styles.validateButton}
+            onClick={() => console.log('Button clicked')}
           >
             {isLoading ? 'Validating...' : 'Validate'}
           </button>

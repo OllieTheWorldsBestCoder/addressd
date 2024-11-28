@@ -41,10 +41,14 @@
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
 }
 
 .inputWrapper {
   flex: 1;
+  position: relative;
+  z-index: 1;
 }
 
 .validateButton {
@@ -56,6 +60,10 @@
   border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.2s;
+  position: relative;
+  z-index: 2;
+  min-width: 100px;
+  height: 44px;
 }
 
 .validateButton:hover:not(:disabled) {
