@@ -69,7 +69,13 @@ export class AddressService {
       const { formatted_address, geometry } = geocodeResult;
 
       // Check for existing address with same formatted address
-      const existingAddress = await this.findExistingAddress(formatted_address, geometry.location);
+      const existingAddress = await this.findExistingAddressInternal(
+        formatted_address,
+        {
+          lat: geometry.location.lat,
+          lng: geometry.location.lng
+        }
+      );
       
       if (existingAddress) {
         // Update existing address with new raw address variant
@@ -89,7 +95,7 @@ export class AddressService {
         return updatedAddress;
       }
 
-      // Create new address
+      // Create new address with all fields properly initialized
       const newAddress: Address = {
         id: crypto.randomUUID(),
         rawAddress: address,
@@ -101,7 +107,8 @@ export class AddressService {
           rawAddress: address,
           matchedAt: new Date()
         }],
-        descriptions: [],
+        descriptions: [],  // Initialize as empty array
+        summary: '',      // Initialize summary field
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -114,7 +121,26 @@ export class AddressService {
     }
   }
 
-  private async findExistingAddress(formattedAddress: string, location: { lat: number, lng: number }): Promise<Address | null> {
+  async findExistingAddress(address: string): Promise<Address | null> {
+    const geocodeResult = await this.validateAndFormatAddress(address);
+    
+    if (!geocodeResult) {
+      return null;
+    }
+
+    return this.findExistingAddressInternal(
+      geocodeResult.formatted_address,
+      {
+        lat: geocodeResult.geometry.location.lat,
+        lng: geocodeResult.geometry.location.lng
+      }
+    );
+  }
+
+  private async findExistingAddressInternal(
+    formattedAddress: string,
+    location: { lat: number, lng: number }
+  ): Promise<Address | null> {
     try {
       // First try exact formatted address match
       const exactMatchQuery = query(

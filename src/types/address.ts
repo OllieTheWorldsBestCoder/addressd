@@ -3,6 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 export interface Contribution {
   content: string;
   createdAt: Date | Timestamp;
+  userId?: string | null;
 }
 
 export interface Address {
