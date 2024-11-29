@@ -18,6 +18,8 @@ export default async function handler(
 
     console.log('Validating address:', address);
     const addressService = new AddressService();
+
+    // First try to find existing address
     const existingAddress = await addressService.findExistingAddress(address);
 
     if (existingAddress) {
@@ -29,12 +31,20 @@ export default async function handler(
       });
     }
 
-    // Create new address if it doesn't exist
+    // If no existing address, validate and create new one
+    const validatedAddress = await addressService.validateAndFormatAddress(address);
+    
+    if (!validatedAddress) {
+      console.error('Invalid address format:', address);
+      return res.status(400).json({ error: 'Invalid address format' });
+    }
+
+    // Create new address
     const newAddress = await addressService.createOrUpdateAddress(address);
     
     if (!newAddress) {
-      console.error('Failed to validate/create address:', address);
-      return res.status(400).json({ error: 'Invalid address format' });
+      console.error('Failed to create address:', address);
+      return res.status(500).json({ error: 'Failed to create address' });
     }
 
     console.log('Created new address:', newAddress);
