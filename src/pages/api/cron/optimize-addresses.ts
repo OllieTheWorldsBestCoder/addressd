@@ -1,3 +1,7 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
+import { AddressOptimizationService } from '../../../services/optimization.service';
+
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -8,7 +12,7 @@ export default async function handler(
   await optimizer.optimizeDatabase();
 
   // Update search indices
-  await updateSearchIndices();
+  await optimizer.updateSearchIndices();
 
   // Generate address statistics
   await generateAddressStats();

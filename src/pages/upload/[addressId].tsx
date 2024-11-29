@@ -1,12 +1,12 @@
 import { useRouter } from 'next/router';
 import { useState } from 'react';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, FieldValue } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import styles from '../../styles/Upload.module.css';
 
 interface Contribution {
   content: string;
-  createdAt: Date;
+  createdAt: Date | Timestamp;
 }
 
 export default function UploadPage() {

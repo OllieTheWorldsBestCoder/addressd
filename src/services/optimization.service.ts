@@ -209,4 +209,8 @@ export class AddressOptimizationService {
       timestamp: new Date()
     });
   }
+
+  async updateSearchIndices(): Promise<void> {
+    // Implement search index update logic here
+  }
 } 

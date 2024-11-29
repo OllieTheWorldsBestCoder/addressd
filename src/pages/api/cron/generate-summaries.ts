@@ -33,7 +33,7 @@ async function generateSummary(address: Address): Promise<string> {
           },
           {
             role: "user",
-            content: `Please create a concise summary of this location (${address.formattedAddress}) based on the following descriptions:\n\n${address.descriptions.map(d => d.content).join('\n\n')}`
+            content: `Please create a concise summary of this location (${address.formattedAddress}) based on the following descriptions:\n\n${address.descriptions?.map(d => d.content).join('\n\n') || 'No descriptions available'}`
           }
         ],
         temperature: 0.7,
@@ -121,13 +121,13 @@ export default async function handler(
       
       try {
         // Check if there are any new descriptions in the last 24 hours
-        const hasNewDescriptions = address.descriptions.some(
+        const hasNewDescriptions = address.descriptions?.some(
           desc => isWithin24Hours(desc.createdAt instanceof Timestamp ? 
             desc.createdAt.toDate() : 
             new Date(desc.createdAt))
         );
 
-        if (!hasNewDescriptions) {
+        if (!hasNewDescriptions || !address.descriptions) {
           results.skipped.push(address.id);
           continue;
         }

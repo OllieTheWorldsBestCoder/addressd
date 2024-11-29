@@ -19,8 +19,8 @@ export interface Address {
   }>;
   summary?: string;
   descriptions?: Contribution[];
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | Timestamp;
+  updatedAt: Date | Timestamp;
 }
 
 export interface AddressResponse {

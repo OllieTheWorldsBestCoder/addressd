@@ -200,7 +200,7 @@ export class AddressService {
           // If we have a postcode, verify it matches
           if (postcode) {
             const resultPostcode = result.address_components
-              .find(comp => comp.types.includes('postal_code'))
+              .find(comp => comp.types.includes(GoogleAddressType.postal_code))
               ?.long_name;
             
             if (resultPostcode && this.normalizePostcode(resultPostcode) !== this.normalizePostcode(postcode)) {

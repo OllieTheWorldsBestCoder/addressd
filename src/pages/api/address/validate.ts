@@ -5,9 +5,15 @@ import { authenticateRequest } from '../../../middleware/auth';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 
+// Update the error response type to include optional details
+interface ErrorResponse {
+  error: string;
+  details?: unknown;
+}
+
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<AddressResponse | { error: string }>
+  res: NextApiResponse<AddressResponse | ErrorResponse>
 ) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
