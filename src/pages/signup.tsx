@@ -101,6 +101,7 @@ export default function Signup() {
               <br />
               Example usage:
             </p>
+            <h3>1. Validate Address</h3>
             <pre className={styles.code}>
               {`curl -X POST \\
   -H "Content-Type: application/json" \\
@@ -108,6 +109,24 @@ export default function Signup() {
   -d '{"address": "Your Address"}' \\
   ${process.env.NEXT_PUBLIC_BASE_URL}/api/address/validate`}
             </pre>
+            <h3>2. Contribute Description</h3>
+            <pre className={styles.code}>
+              {`curl -X POST \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${success.token}" \\
+  -d '{
+    "address": "Your Address",
+    "description": "Your description of this location"
+  }' \\
+  ${process.env.NEXT_PUBLIC_BASE_URL}/api/address/contribute`}
+            </pre>
+            <p className={styles.points}>
+              Earn points for your contributions:
+              <br />
+              • New address: 0.05 points
+              <br />
+              • Additional description: 0.0125 points
+            </p>
           </div>
         )}
       </main>

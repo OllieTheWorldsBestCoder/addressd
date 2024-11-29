@@ -95,4 +95,21 @@
   overflow-x: auto;
   font-family: monospace;
   white-space: pre;
+}
+
+.points {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background-color: #f7fafc;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  color: #4a5568;
+  line-height: 1.5;
+}
+
+.success h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: #2d3748;
+  font-size: 1.1rem;
 } 
