@@ -11,8 +11,10 @@ export default function UploadPage() {
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [summaryStatus, setSummaryStatus] = useState<'idle' | 'generating' | 'done'>('idle');
 
   const generateSummary = async (addressId: string) => {
+    setSummaryStatus('generating');
     try {
       const response = await fetch('/api/address/generate-summary', {
         method: 'POST',
@@ -26,9 +28,11 @@ export default function UploadPage() {
         throw new Error('Failed to generate summary');
       }
 
+      setSummaryStatus('done');
       return await response.json();
     } catch (error) {
       console.error('Error generating summary:', error);
+      setSummaryStatus('idle');
       return null;
     }
   };
@@ -91,7 +95,19 @@ export default function UploadPage() {
           {status === 'loading' ? 'Contributing...' : 'Contribute'}
         </button>
         {status === 'success' && (
-          <p className={styles.successMessage}>Thank you for your contribution!</p>
+          <div className={styles.successMessage}>
+            <p>Thank you for your contribution!</p>
+            {summaryStatus === 'generating' && (
+              <p className={styles.summaryStatus}>
+                Generating summary... (this may take a few seconds)
+              </p>
+            )}
+            {summaryStatus === 'done' && (
+              <p className={styles.summaryStatus}>
+                Summary has been generated!
+              </p>
+            )}
+          </div>
         )}
         {status === 'error' && (
           <p className={styles.errorMessage}>{errorMessage}</p>

@@ -66,4 +66,11 @@
   color: #e53e3e;
   text-align: center;
   font-weight: 500;
+}
+
+.summaryStatus {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.5rem;
+  font-style: italic;
 } 
