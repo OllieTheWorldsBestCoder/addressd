@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { User } from '../types/user';
 import styles from '../styles/Profile.module.css';
 import { useRouter } from 'next/router';
-import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { Timestamp } from 'firebase/firestore';
 
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
@@ -18,7 +19,21 @@ export default function Profile() {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
-            setUser(userDoc.data() as User);
+            const userData = userDoc.data();
+            // Convert Timestamp to Date if necessary
+            const createdAt = userData.createdAt instanceof Timestamp ? 
+              userData.createdAt.toDate() : 
+              userData.createdAt;
+            const updatedAt = userData.updatedAt instanceof Timestamp ? 
+              userData.updatedAt.toDate() : 
+              userData.updatedAt;
+            
+            setUser({
+              ...userData,
+              createdAt,
+              updatedAt,
+              id: userDoc.id
+            } as User);
           }
         } catch (err) {
           console.error('Error fetching user data:', err);
@@ -74,6 +89,14 @@ export default function Profile() {
     );
   }
 
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -88,7 +111,7 @@ export default function Profile() {
           <h2>Account Information</h2>
           <p><strong>Name:</strong> {user.name}</p>
           <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>Member since:</strong> {user.createdAt.toLocaleDateString()}</p>
+          <p><strong>Member since:</strong> {formatDate(user.createdAt)}</p>
         </div>
 
         <div className={styles.section}>
@@ -122,7 +145,7 @@ export default function Profile() {
         <div className={styles.section}>
           <h2>API Documentation</h2>
           <div className={styles.docs}>
-            <h3>Validate Address</h3>
+            <h3>1. Validate Address</h3>
             <pre className={styles.code}>
               {`curl -X POST \\
   -H "Content-Type: application/json" \\
@@ -131,7 +154,7 @@ export default function Profile() {
   ${process.env.NEXT_PUBLIC_BASE_URL}/api/address/validate`}
             </pre>
 
-            <h3>Contribute Description</h3>
+            <h3>2. Contribute Description</h3>
             <pre className={styles.code}>
               {`curl -X POST \\
   -H "Content-Type: application/json" \\
