@@ -1,8 +1,60 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() && isOwner(userId);
+      allow update: if isAuthenticated() && isOwner(userId);
+      allow delete: if false; // Don't allow user deletion
+    }
+
+    // Addresses collection
     match /addresses/{addressId} {
-      allow read, write: if true;  // For testing only - we'll make this more secure later
+      // Anyone can read addresses
+      allow read: if true;
+      
+      // Only authenticated users can create addresses
+      allow create: if isAuthenticated();
+      
+      // Updates allowed if:
+      // 1. User is authenticated AND
+      // 2. Only adding to descriptions array OR updating summary
+      allow update: if isAuthenticated() && 
+        (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['descriptions', 'summary', 'updatedAt', 'matchedAddresses'])
+        );
+      
+      // No direct deletion of addresses
+      allow delete: if false;
+    }
+
+    // Address merges collection (for tracking merges)
+    match /addressMerges/{mergeId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only through admin functions
+    }
+
+    // Backups collection
+    match /backups/{backupId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Only through admin functions
+    }
+
+    // Magic links collection
+    match /magicLinks/{linkId} {
+      allow read: if false;
+      allow write: if false; // Only through server functions
     }
   }
 }
