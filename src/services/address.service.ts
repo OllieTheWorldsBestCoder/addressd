@@ -1,4 +1,4 @@
-import { Client, GeocodeResult } from "@googlemaps/google-maps-services-js";
+import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
 import { Configuration, OpenAIApi } from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
@@ -37,7 +37,8 @@ export class AddressService {
         
         // Check if we have enough address components for a valid address
         const hasStreetLevel = result.address_components.some(
-          comp => comp.types.includes('street_number') || comp.types.includes('route')
+          comp => comp.types.includes(AddressType.street_number) || 
+                 comp.types.includes(AddressType.route)
         );
 
         if (hasStreetLevel) {
