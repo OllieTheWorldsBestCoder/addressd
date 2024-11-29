@@ -4,6 +4,7 @@ export interface User {
   email: string;
   authToken: string;
   summaryCount: number;
+  contributionPoints: number;
   createdAt: Date;
   updatedAt: Date;
 } 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { db } from '../config/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { User } from '../types/user';
 import styles from '../styles/Signup.module.css';
 import crypto from 'crypto';
@@ -10,19 +10,21 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState<{token: string} | null>(null);
+  const [success, setSuccess] = useState<{ token: string } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!name || !email) return;
+
     setLoading(true);
     setError('');
     setSuccess(null);
 
     try {
-      // Generate a secure random token for auth
+      // Generate a secure random token
       const authToken = crypto.randomBytes(32).toString('hex');
       
-      // Generate a random user ID (16 characters hex)
+      // Generate a unique user ID
       const userId = crypto.randomBytes(8).toString('hex');
       
       const newUser: User = {
@@ -31,16 +33,17 @@ export default function Signup() {
         email,
         authToken,
         summaryCount: 0,
+        contributionPoints: 0,  // Initialize contribution points
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      // Add to Firestore
       await setDoc(doc(db, 'users', userId), newUser);
-      
       setSuccess({ token: authToken });
-    } catch (error) {
-      console.error('Error creating user:', error);
+      setName('');
+      setEmail('');
+    } catch (err) {
+      console.error('Error creating user:', err);
       setError('Failed to create user. Please try again.');
     } finally {
       setLoading(false);

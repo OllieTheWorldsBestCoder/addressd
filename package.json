@@ -14,7 +14,9 @@
     "check-token": "ts-node src/scripts/check-admin-token.ts",
     "test-cron": "ts-node src/scripts/test-cron.ts",
     "test-feedback": "ts-node src/scripts/test-feedback.ts",
-    "test-cases": "ts-node src/scripts/test-address-cases.ts"
+    "test-cases": "ts-node src/scripts/test-address-cases.ts",
+    "test-flow": "ts-node src/scripts/test-address-flow.ts",
+    "test-contribution": "ts-node src/scripts/test-contribution.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",

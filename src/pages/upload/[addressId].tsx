@@ -16,7 +16,7 @@ export default function UploadPage() {
   const generateSummary = async (addressId: string) => {
     setSummaryStatus('generating');
     try {
-      console.log('Calling summary generation API...');
+      console.log('Starting summary generation for address:', addressId);
       const response = await fetch('/api/address/generate-summary', {
         method: 'POST',
         headers: {
@@ -26,6 +26,7 @@ export default function UploadPage() {
       });
 
       const data = await response.json();
+      console.log('Summary generation response:', data);
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to generate summary');
@@ -37,6 +38,7 @@ export default function UploadPage() {
     } catch (error) {
       console.error('Error generating summary:', error);
       setSummaryStatus('idle');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to generate summary');
       return null;
     }
   };
@@ -57,19 +59,25 @@ export default function UploadPage() {
       }
 
       const address = addressDoc.data() as Address;
+      console.log('Current address data:', address);
+      
       const isFirstDescription = !address.descriptions || address.descriptions.length === 0;
+      console.log('Is first description:', isFirstDescription);
 
       const contribution: Contribution = {
         content: content.trim(),
         createdAt: new Date(),
       };
 
+      // First update the descriptions
       await updateDoc(addressRef, {
         descriptions: arrayUnion(contribution)
       });
+      console.log('Added contribution to address');
 
+      // If this is the first description, generate summary
       if (isFirstDescription) {
-        console.log('Generating first summary for address:', addressId);
+        console.log('Attempting to generate first summary');
         const summaryResult = await generateSummary(addressId);
         
         if (!summaryResult) {
@@ -78,12 +86,13 @@ export default function UploadPage() {
           setStatus('error');
           return;
         }
+        console.log('Successfully generated first summary:', summaryResult);
       }
 
       setStatus('success');
       setContent('');
     } catch (error) {
-      console.error('Error adding contribution:', error);
+      console.error('Error in handleContribute:', error);
       setStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to add contribution');
     }
