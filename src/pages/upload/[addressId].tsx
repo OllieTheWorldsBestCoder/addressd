@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router';
 import { useState } from 'react';
-import { doc, updateDoc, arrayUnion, getDoc, FieldValue } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import styles from '../../styles/Upload.module.css';
-import { Contribution } from '../../types/address';
+import { Contribution, Address } from '../../types/address';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -11,6 +11,27 @@ export default function UploadPage() {
   const [content, setContent] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
+  const generateSummary = async (addressId: string) => {
+    try {
+      const response = await fetch('/api/address/generate-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ addressId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate summary');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      return null;
+    }
+  };
 
   const handleContribute = async () => {
     if (!content.trim() || !addressId || typeof addressId !== 'string') {
@@ -27,6 +48,9 @@ export default function UploadPage() {
         throw new Error('Address not found');
       }
 
+      const address = addressDoc.data() as Address;
+      const isFirstDescription = !address.descriptions || address.descriptions.length === 0;
+
       const contribution: Contribution = {
         content: content.trim(),
         createdAt: new Date(),
@@ -35,6 +59,10 @@ export default function UploadPage() {
       await updateDoc(addressRef, {
         descriptions: arrayUnion(contribution)
       });
+
+      if (isFirstDescription) {
+        await generateSummary(addressId);
+      }
 
       setStatus('success');
       setContent('');
