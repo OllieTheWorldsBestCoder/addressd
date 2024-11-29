@@ -28,30 +28,19 @@ export class AddressService {
       const response = await this.googleMapsClient.geocode({
         params: {
           address: address,
-          components: { country: 'GB' },
-          key: process.env.GOOGLE_MAPS_API_KEY ?? '',
-          bounds: {
-            northeast: { lat: 58.6350001, lng: 1.7627 },  // UK bounds
-            southwest: { lat: 49.8915993, lng: -8.6493573 }
-          },
-          location_type: ['ROOFTOP', 'RANGE_INTERPOLATED'],  // Prefer precise locations
+          key: process.env.GOOGLE_MAPS_API_KEY ?? ''
         }
       });
 
       if (response.data.results && response.data.results.length > 0) {
         const result = response.data.results[0];
         
-        const hasStreetNumber = result.address_components.some(
-          comp => comp.types.includes('street_number')
-        );
-        const hasRoute = result.address_components.some(
-          comp => comp.types.includes('route')
-        );
-        const hasPostcode = result.address_components.some(
-          comp => comp.types.includes('postal_code')
+        // Check if we have enough address components for a valid address
+        const hasStreetLevel = result.address_components.some(
+          comp => comp.types.includes('street_number') || comp.types.includes('route')
         );
 
-        if ((hasStreetNumber || hasRoute) && hasPostcode) {
+        if (hasStreetLevel) {
           return result;
         }
       }
@@ -79,7 +68,7 @@ export class AddressService {
         formattedAddress: formatted_address,
         latitude: geometry.location.lat,
         longitude: geometry.location.lng,
-        geohash: '', // You'll need to generate this
+        geohash: '', // Will be added by optimization service
         descriptions: [],
         createdAt: new Date(),
         updatedAt: new Date()
