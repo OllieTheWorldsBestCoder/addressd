@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import styles from '../styles/Home.module.css';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
@@ -93,6 +94,10 @@ export default function Home() {
             {isLoading ? 'Validating...' : 'Validate'}
           </button>
         </form>
+
+        <Link href="/signup" className={styles.apiLink}>
+          Get API Access →
+        </Link>
 
         {error && <p className={styles.error}>{error}</p>}
         

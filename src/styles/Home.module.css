@@ -33,7 +33,7 @@
   max-width: 600px;
   display: flex;
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   position: relative;
   z-index: 1;
 }
@@ -115,4 +115,20 @@
 
 .link:hover {
   text-decoration: underline;
+}
+
+.apiLink {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background-color: #2d3748;
+  color: white;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  display: inline-block;
+}
+
+.apiLink:hover {
+  background-color: #1a202c;
 } 
