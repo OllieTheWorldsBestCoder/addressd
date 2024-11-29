@@ -25,5 +25,54 @@ export class AddressService {
     this.learningService = new LearningService();
   }
 
-  // ... rest of the file remains unchanged ...
+  async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
+    try {
+      const response = await this.googleMapsClient.geocode({
+        params: {
+          address: address,
+          components: { country: 'GB' },
+          apiKey: process.env.GOOGLE_MAPS_API_KEY ?? ''
+        }
+      });
+
+      if (response.data.results && response.data.results.length > 0) {
+        return response.data.results[0];
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error validating address:', error);
+      return null;
+    }
+  }
+
+  async createOrUpdateAddress(address: string): Promise<Address | null> {
+    try {
+      const geocodeResult = await this.validateAndFormatAddress(address);
+      
+      if (!geocodeResult) {
+        return null;
+      }
+
+      const { formatted_address, geometry } = geocodeResult;
+      
+      const newAddress: Address = {
+        id: crypto.randomUUID(),
+        rawAddress: address,
+        formattedAddress: formatted_address,
+        latitude: geometry.location.lat,
+        longitude: geometry.location.lng,
+        geohash: '', // You'll need to generate this
+        descriptions: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      await setDoc(doc(db, this.addressCollection, newAddress.id), newAddress);
+      return newAddress;
+    } catch (error) {
+      console.error('Error creating/updating address:', error);
+      return null;
+    }
+  }
 } 
