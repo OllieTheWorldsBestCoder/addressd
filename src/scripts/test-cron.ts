@@ -9,9 +9,10 @@ const CRON_SECRET_KEY = process.env.CRON_SECRET_KEY;
 
 async function testCron() {
   try {
-    console.log('Testing cron job for generating summaries...\n');
+    console.log('Testing address optimization cron job...\n');
 
-    const response = await axios.post(
+    // Test address optimization
+    const optimizeResponse = await axios.post(
       `${API_URL}/api/cron/optimize-addresses`,
       {},
       {
@@ -21,16 +22,23 @@ async function testCron() {
       }
     );
 
-    console.log('Cron Job Response:', JSON.stringify(response.data, null, 2));
+    console.log('Address Optimization Results:', JSON.stringify(optimizeResponse.data, null, 2));
 
-    // Test optimization results
-    if (response.data.results) {
-      console.log('\nOptimization Results:');
-      console.log(`Total addresses processed: ${response.data.results.total}`);
-      console.log(`Updated addresses: ${response.data.results.updated.length}`);
-      console.log(`Skipped addresses: ${response.data.results.skipped.length}`);
-      console.log(`Errors: ${response.data.results.errors.length}`);
-    }
+    // Test summary generation
+    console.log('\nTesting summary generation cron job...\n');
+    
+    const summaryResponse = await axios.post(
+      `${API_URL}/api/cron/generate-summaries`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${CRON_SECRET_KEY}`
+        }
+      }
+    );
+
+    console.log('Summary Generation Results:', JSON.stringify(summaryResponse.data, null, 2));
+
   } catch (error: any) {
     console.error('Error:', {
       status: error.response?.status,
@@ -40,4 +48,5 @@ async function testCron() {
   }
 }
 
+// Run the test
 testCron(); 
