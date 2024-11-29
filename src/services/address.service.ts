@@ -1,7 +1,7 @@
 import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
 import { Configuration, OpenAIApi } from "openai";
 import { db } from '../config/firebase';
-import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { Address } from '../types/address';
 import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
@@ -35,13 +35,18 @@ export class AddressService {
       if (response.data.results && response.data.results.length > 0) {
         const result = response.data.results[0];
         
-        // Check if we have enough address components for a valid address
-        const hasStreetLevel = result.address_components.some(
-          comp => comp.types.includes(AddressType.street_number) || 
-                 comp.types.includes(AddressType.route)
+        // Ensure we have a proper street address
+        const hasStreetNumber = result.address_components.some(
+          comp => comp.types.includes(AddressType.street_number)
+        );
+        const hasRoute = result.address_components.some(
+          comp => comp.types.includes(AddressType.route)
+        );
+        const hasPostcode = result.address_components.some(
+          comp => comp.types.includes(AddressType.postal_code)
         );
 
-        if (hasStreetLevel) {
+        if ((hasStreetNumber || hasRoute) && hasPostcode) {
           return result;
         }
       }
@@ -62,7 +67,29 @@ export class AddressService {
       }
 
       const { formatted_address, geometry } = geocodeResult;
+
+      // Check for existing address with same formatted address
+      const existingAddress = await this.findExistingAddress(formatted_address, geometry.location);
       
+      if (existingAddress) {
+        // Update existing address with new raw address variant
+        const updatedAddress = {
+          ...existingAddress,
+          matchedAddresses: [
+            ...(existingAddress.matchedAddresses || []),
+            {
+              rawAddress: address,
+              matchedAt: new Date()
+            }
+          ],
+          updatedAt: new Date()
+        };
+
+        await setDoc(doc(db, this.addressCollection, existingAddress.id), updatedAddress);
+        return updatedAddress;
+      }
+
+      // Create new address
       const newAddress: Address = {
         id: crypto.randomUUID(),
         rawAddress: address,
@@ -70,6 +97,10 @@ export class AddressService {
         latitude: geometry.location.lat,
         longitude: geometry.location.lng,
         geohash: '', // Will be added by optimization service
+        matchedAddresses: [{
+          rawAddress: address,
+          matchedAt: new Date()
+        }],
         descriptions: [],
         createdAt: new Date(),
         updatedAt: new Date()
@@ -81,5 +112,59 @@ export class AddressService {
       console.error('Error creating/updating address:', error);
       return null;
     }
+  }
+
+  private async findExistingAddress(formattedAddress: string, location: { lat: number, lng: number }): Promise<Address | null> {
+    try {
+      // First try exact formatted address match
+      const exactMatchQuery = query(
+        collection(db, this.addressCollection),
+        where('formattedAddress', '==', formattedAddress)
+      );
+      const exactMatches = await getDocs(exactMatchQuery);
+
+      if (!exactMatches.empty) {
+        return {
+          ...exactMatches.docs[0].data(),
+          id: exactMatches.docs[0].id
+        } as Address;
+      }
+
+      // If no exact match, try proximity-based match
+      const allAddresses = await getDocs(collection(db, this.addressCollection));
+      const DISTANCE_THRESHOLD = 10; // 10 meters
+
+      for (const doc of allAddresses.docs) {
+        const addr = doc.data() as Address;
+        const distance = this.calculateDistance(
+          { lat: location.lat, lng: location.lng },
+          { lat: addr.latitude, lng: addr.longitude }
+        );
+
+        if (distance <= DISTANCE_THRESHOLD) {
+          return { ...addr, id: doc.id };
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error finding existing address:', error);
+      return null;
+    }
+  }
+
+  private calculateDistance(p1: {lat: number, lng: number}, p2: {lat: number, lng: number}): number {
+    const R = 6371e3; // Earth's radius in meters
+    const φ1 = p1.lat * Math.PI/180;
+    const φ2 = p2.lat * Math.PI/180;
+    const Δφ = (p2.lat-p1.lat) * Math.PI/180;
+    const Δλ = (p2.lng-p1.lng) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
   }
 } 
