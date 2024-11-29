@@ -1,30 +1,25 @@
-import { useState, FormEvent } from 'react';
+import { useState } from 'react';
+import Head from 'next/head';
 import styles from '../styles/Home.module.css';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
-import { AddressResponse } from '../types/address';
+
+interface AddressResult {
+  summary: string;
+  uploadLink: string;
+  addressId: string;
+}
 
 export default function Home() {
   const [address, setAddress] = useState('');
-  const [result, setResult] = useState<AddressResponse | null>(null);
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<AddressResult | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
 
-  const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
-    if (!place.formatted_address) return;
-    setAddress(place.formatted_address);
-    setSelectedPlace(place);
-    setError('');
-    setResult(null);
-  };
-
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address.trim()) {
-      setError('Please enter an address');
-      return;
-    }
+    if (!address.trim()) return;
 
     setIsLoading(true);
     setError('');
@@ -36,34 +31,39 @@ export default function Home() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          address: selectedPlace?.formatted_address || address,
-          ...(selectedPlace && {
-            placeId: selectedPlace.place_id,
-            coordinates: {
-              lat: selectedPlace.geometry?.location?.lat(),
-              lng: selectedPlace.geometry?.location?.lng()
-            }
-          })
-        }),
+        body: JSON.stringify({ address }),
       });
 
       const data = await response.json();
-      
-      if (response.ok) {
-        setResult(data);
-      } else {
-        setError(data.error || 'Something went wrong');
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to validate address');
       }
+
+      setResult(data);
     } catch (err) {
-      setError('Failed to process address');
+      console.error('Error validating address:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
+    setSelectedPlace(place);
+    if (place.formatted_address) {
+      setAddress(place.formatted_address);
+    }
+  };
+
   return (
     <div className={styles.container}>
+      <Head>
+        <title>addressd - Address Validation</title>
+        <meta name="description" content="Validate and contribute to address information" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
       <main className={styles.main}>
         <h1 className={styles.title}>addressd</h1>
         
