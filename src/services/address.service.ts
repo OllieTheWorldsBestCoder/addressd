@@ -5,6 +5,7 @@ import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { Address } from '../types/address';
 import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
+import crypto from 'crypto';
 
 export class AddressService {
   private googleMapsClient: Client;
@@ -13,10 +14,7 @@ export class AddressService {
   private learningService: LearningService;
 
   constructor() {
-    this.googleMapsClient = new Client({
-      apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
-      timeout: 10000 // 10 seconds
-    });
+    this.googleMapsClient = new Client({});
     
     const configuration = new Configuration({
       apiKey: process.env.OPENAI_API_KEY,
@@ -31,7 +29,7 @@ export class AddressService {
         params: {
           address: address,
           components: { country: 'GB' },
-          apiKey: process.env.GOOGLE_MAPS_API_KEY ?? ''
+          key: process.env.GOOGLE_MAPS_API_KEY ?? ''
         }
       });
 

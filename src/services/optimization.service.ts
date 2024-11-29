@@ -1,6 +1,6 @@
 import { db } from '../config/firebase';
 import { collection, getDocs, query, where, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { Address } from '../types/address';
+import { Address, Contribution } from '../types/address';
 import { geohashForLocation } from 'geofire-common';
 
 export class AddressOptimizationService {
@@ -44,7 +44,10 @@ export class AddressOptimizationService {
   private async findPotentialDuplicates(): Promise<Address[][]> {
     const addressesRef = collection(db, this.addressCollection);
     const snapshot = await getDocs(addressesRef);
-    const addresses = snapshot.docs.map(doc => doc.data() as Address);
+    const addresses = snapshot.docs.map(doc => ({
+      ...doc.data(),
+      id: doc.id
+    } as Address));
     const clusters: Address[][] = [];
 
     // Group by geographic proximity
@@ -212,5 +215,70 @@ export class AddressOptimizationService {
 
   async updateSearchIndices(): Promise<void> {
     // Implement search index update logic here
+  }
+
+  private mergeMatchedAddresses(cluster: Address[]): Array<{rawAddress: string, matchedAt: Date}> {
+    const allMatches = new Set<string>();
+    const merged: Array<{rawAddress: string, matchedAt: Date}> = [];
+    
+    cluster.forEach(address => {
+      address.matchedAddresses?.forEach(match => {
+        if (!allMatches.has(match.rawAddress)) {
+          allMatches.add(match.rawAddress);
+          merged.push(match);
+        }
+      });
+    });
+    
+    return merged;
+  }
+
+  private mergeDescriptions(cluster: Address[]): Contribution[] {
+    const allDescriptions = new Set<string>();
+    const merged: Contribution[] = [];
+    
+    cluster.forEach(address => {
+      address.descriptions?.forEach(desc => {
+        if (!allDescriptions.has(desc.content)) {
+          allDescriptions.add(desc.content);
+          merged.push({
+            content: desc.content,
+            createdAt: desc.createdAt instanceof Date ? desc.createdAt : desc.createdAt.toDate()
+          });
+        }
+      });
+    });
+    
+    return merged;
+  }
+
+  private calculateMergedConfidence(cluster: Address[]): number {
+    // Start with the highest individual confidence
+    let confidence = Math.max(...cluster.map(addr => this.calculateAddressConfidence(addr)));
+    
+    // Boost confidence based on cluster size
+    confidence += Math.min((cluster.length - 1) * 0.1, 0.3);
+    
+    // Cap at 1.0
+    return Math.min(confidence, 1);
+  }
+
+  private async updateMergedAddress(merged: Address, cluster: Address[]): Promise<void> {
+    // Update the primary address document
+    await setDoc(doc(db, this.addressCollection, merged.id), {
+      ...merged,
+      updatedAt: new Date()
+    });
+
+    // Create a record of the merge
+    await setDoc(doc(db, 'addressMerges', new Date().toISOString()), {
+      mergedId: merged.id,
+      mergedAddresses: cluster.map(addr => ({
+        id: addr.id,
+        rawAddress: addr.rawAddress,
+        formattedAddress: addr.formattedAddress
+      })),
+      timestamp: new Date()
+    });
   }
 } 
