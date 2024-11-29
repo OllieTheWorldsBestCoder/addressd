@@ -14,6 +14,7 @@ async function createAdminUser() {
       email: 'admin@addressd.app',
       authToken: authToken,
       summaryCount: 0,
+      contributionPoints: 0,
       createdAt: new Date(),
       updatedAt: new Date()
     };
