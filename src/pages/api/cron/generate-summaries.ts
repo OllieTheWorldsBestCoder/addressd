@@ -62,14 +62,23 @@ export default async function handler(
           address.descriptions.map(d => d.content).join('\n\n')
         }`;
 
-        const completion = await openai.createCompletion({
-          model: "text-davinci-003",
-          prompt,
-          max_tokens: 200,
+        const completion = await openai.createChatCompletion({
+          model: "gpt-3.5-turbo",
+          messages: [
+            {
+              role: "system",
+              content: "You are a helpful assistant that summarizes location descriptions."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
+          ],
           temperature: 0.3,
+          max_tokens: 200
         });
 
-        const summary = completion.data.choices[0]?.text?.trim();
+        const summary = completion.data.choices[0]?.message?.content?.trim();
 
         if (!summary) {
           throw new Error('Failed to generate summary');
