@@ -1,52 +1,82 @@
-import { useState } from 'react';
-import { db } from '../config/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { auth, db } from '../config/firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { User } from '../types/user';
 import styles from '../styles/Signup.module.css';
 import crypto from 'crypto';
 
 export default function Signup() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ token: string } | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name || !email) return;
+  useEffect(() => {
+    // Listen for auth state changes
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        // Check if user exists in our database
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          setUser(userDoc.data() as User);
+          setSuccess({ token: userDoc.data().authToken });
+        } else {
+          // Create new user
+          createAccount(firebaseUser);
+        }
+      } else {
+        setUser(null);
+        setSuccess(null);
+      }
+    });
 
+    return () => unsubscribe();
+  }, []);
+
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setError('');
-    setSuccess(null);
-
     try {
-      // Generate a secure random token
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      console.error('Error signing in with Google:', err);
+      setError('Failed to sign in with Google. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createAccount = async (firebaseUser: any) => {
+    try {
       const authToken = crypto.randomBytes(32).toString('hex');
       
-      // Generate a unique user ID
-      const userId = crypto.randomBytes(8).toString('hex');
-      
       const newUser: User = {
-        id: userId,
-        name,
-        email,
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || '',
+        email: firebaseUser.email || '',
         authToken,
         summaryCount: 0,
-        contributionPoints: 0,  // Initialize contribution points
+        contributionPoints: 0,
         createdAt: new Date(),
         updatedAt: new Date()
       };
 
-      await setDoc(doc(db, 'users', userId), newUser);
+      await setDoc(doc(db, 'users', newUser.id), newUser);
+      setUser(newUser);
       setSuccess({ token: authToken });
-      setName('');
-      setEmail('');
     } catch (err) {
       console.error('Error creating user:', err);
       setError('Failed to create user. Please try again.');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error('Error signing out:', err);
     }
   };
 
@@ -55,45 +85,27 @@ export default function Signup() {
       <main className={styles.main}>
         <h1 className={styles.title}>Sign Up for API Access</h1>
         
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.formGroup}>
-            <label htmlFor="name">Name</label>
-            <input
-              id="name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className={styles.input}
-            />
-          </div>
-
+        {!user && !success && (
           <button 
-            type="submit" 
-            className={styles.button}
-            disabled={loading || !name || !email}
+            onClick={handleGoogleSignIn}
+            className={styles.googleButton}
+            disabled={loading}
           >
-            {loading ? 'Creating...' : 'Get API Token'}
+            <img src="/google-icon.svg" alt="Google" />
+            {loading ? 'Signing in...' : 'Sign in with Google'}
           </button>
-        </form>
+        )}
 
         {error && <p className={styles.error}>{error}</p>}
         
         {success && (
           <div className={styles.success}>
-            <h2>🎉 Account Created Successfully!</h2>
+            <div className={styles.userInfo}>
+              <h2>🎉 Welcome {user?.name}!</h2>
+              <button onClick={handleSignOut} className={styles.signOutButton}>
+                Sign Out
+              </button>
+            </div>
             <p>Your API Token:</p>
             <code className={styles.token}>{success.token}</code>
             <p className={styles.instructions}>
@@ -123,9 +135,9 @@ export default function Signup() {
             <p className={styles.points}>
               Earn points for your contributions:
               <br />
-              • New address: 0.05 points
+              • New address: £0.05
               <br />
-              • Additional description: 0.0125 points
+              • Additional description: £0.0125
             </p>
           </div>
         )}
