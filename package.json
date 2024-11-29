@@ -16,7 +16,8 @@
     "test-feedback": "ts-node src/scripts/test-feedback.ts",
     "test-cases": "ts-node src/scripts/test-address-cases.ts",
     "test-flow": "ts-node src/scripts/test-address-flow.ts",
-    "test-contribution": "ts-node src/scripts/test-contribution.ts"
+    "test-contribution": "ts-node src/scripts/test-contribution.ts",
+    "test-auth": "ts-node src/scripts/test-auth-flow.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",
@@ -27,10 +28,7 @@
     "next": "^14.0.3",
     "openai": "^3.3.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "next-auth": "^4.24.5",
-    "@auth/firebase-adapter": "^1.0.0",
-    "nodemailer": "^6.9.7"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.3",
