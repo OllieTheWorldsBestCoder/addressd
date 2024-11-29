@@ -16,6 +16,7 @@ export default function UploadPage() {
   const generateSummary = async (addressId: string) => {
     setSummaryStatus('generating');
     try {
+      console.log('Calling summary generation API...');
       const response = await fetch('/api/address/generate-summary', {
         method: 'POST',
         headers: {
@@ -24,12 +25,15 @@ export default function UploadPage() {
         body: JSON.stringify({ addressId }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to generate summary');
+        throw new Error(data.error || 'Failed to generate summary');
       }
 
+      console.log('Summary generated successfully:', data);
       setSummaryStatus('done');
-      return await response.json();
+      return data;
     } catch (error) {
       console.error('Error generating summary:', error);
       setSummaryStatus('idle');
@@ -65,7 +69,15 @@ export default function UploadPage() {
       });
 
       if (isFirstDescription) {
-        await generateSummary(addressId);
+        console.log('Generating first summary for address:', addressId);
+        const summaryResult = await generateSummary(addressId);
+        
+        if (!summaryResult) {
+          console.error('Failed to generate initial summary');
+          setErrorMessage('Contribution added but summary generation failed');
+          setStatus('error');
+          return;
+        }
       }
 
       setStatus('success');
@@ -73,7 +85,7 @@ export default function UploadPage() {
     } catch (error) {
       console.error('Error adding contribution:', error);
       setStatus('error');
-      setErrorMessage('Failed to add contribution');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to add contribution');
     }
   };
 
