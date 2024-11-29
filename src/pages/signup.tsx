@@ -5,12 +5,14 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase
 import { User } from '../types/user';
 import styles from '../styles/Signup.module.css';
 import crypto from 'crypto';
+import { useRouter } from 'next/router';
 
 export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ token: string } | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // Listen for auth state changes
@@ -19,8 +21,8 @@ export default function Signup() {
         // Check if user exists in our database
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
-          setSuccess({ token: userDoc.data().authToken });
+          // If user exists, redirect to profile page
+          router.push('/profile');
         } else {
           // Create new user
           createAccount(firebaseUser);
@@ -32,7 +34,7 @@ export default function Signup() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [router]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
