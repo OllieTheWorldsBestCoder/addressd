@@ -93,24 +93,27 @@
 }
 
 .result {
-  width: 100%;
-  max-width: 600px;
-  padding: 2rem;
-  background: white;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background-color: rgba(110, 129, 177, 0.4);
   border-radius: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.result h2 {
-  margin-top: 0;
-  color: #2d3748;
+.result p {
+  margin: 1rem 0;
+}
+
+.result strong {
+  font-weight: 600;
+  color: #374151;
 }
 
 .link {
   display: inline-block;
   margin-top: 1rem;
-  color: #4a90e2;
+  color: #4a5568;
   text-decoration: none;
+  font-weight: 500;
 }
 
 .link:hover {

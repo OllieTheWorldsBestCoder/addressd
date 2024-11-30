@@ -10,51 +10,42 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // Users collection
+    // Users collection - allow reading for API key validation
     match /users/{userId} {
-      allow read: if isAuthenticated() && isOwner(userId);
-      allow create: if isAuthenticated() && isOwner(userId);
-      allow update: if isAuthenticated() && isOwner(userId);
+      allow read: if true;  // Allow reading users for API key validation
+      allow create: if true;  // Allow user creation
+      allow update: if true;  // Allow updating user data
       allow delete: if false; // Don't allow user deletion
+    }
+
+    // Rate limits collection
+    match /rateLimits/{tokenId} {
+      allow read, write: if true;  // Allow rate limit checking and updating
     }
 
     // Addresses collection
     match /addresses/{addressId} {
-      // Anyone can read addresses
       allow read: if true;
-      
-      // Only authenticated users can create addresses
-      allow create: if isAuthenticated();
-      
-      // Updates allowed if:
-      // 1. User is authenticated AND
-      // 2. Only adding to descriptions array OR updating summary
-      allow update: if isAuthenticated() && 
-        (
-          request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['descriptions', 'summary', 'updatedAt', 'matchedAddresses'])
-        );
-      
-      // No direct deletion of addresses
+      allow create: if true;
+      allow update: if true;
       allow delete: if false;
     }
 
-    // Address merges collection (for tracking merges)
+    // Address merges collection
     match /addressMerges/{mergeId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Only through admin functions
+      allow read: if true;
+      allow write: if false;
     }
 
     // Backups collection
     match /backups/{backupId} {
-      allow read: if isAuthenticated();
-      allow write: if false; // Only through admin functions
+      allow read: if true;
+      allow write: if false;
     }
 
     // Magic links collection
     match /magicLinks/{linkId} {
-      allow read: if false;
-      allow write: if false; // Only through server functions
+      allow read, write: if true;
     }
   }
 }

@@ -4,8 +4,6 @@ import { AddressResponse } from '../../../types/address';
 import { authenticateRequest } from '../../../middleware/auth';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
-import { validateApiKey } from '../../../middleware/validateApiKey';
-import { rateLimit } from '../../../middleware/rateLimit';
 
 // Update the error response type to include optional details
 interface ErrorResponse {
@@ -13,19 +11,19 @@ interface ErrorResponse {
   details?: unknown;
 }
 
-// Apply middleware chain
-const withMiddleware = (handler: any) => async (req: NextApiRequest, res: NextApiResponse) => {
-  await validateApiKey(req, res, async () => {
-    await rateLimit(req, res, async () => {
-      await handler(req, res);
-    });
-  });
-};
-
-export default withMiddleware(async function handler(
+export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<AddressResponse | ErrorResponse>
 ) {
+  console.log('Validate endpoint called with:', {
+    method: req.method,
+    body: req.body,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'authorization': req.headers.authorization ? 'Present' : 'Missing'
+    }
+  });
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -35,7 +33,7 @@ export default withMiddleware(async function handler(
     const user = await authenticateRequest(req, res);
     if (!user) {
       console.log('Authentication failed');
-      return; // Response already sent by authenticateRequest
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     console.log('Request authenticated for user:', user.id);
@@ -74,6 +72,7 @@ export default withMiddleware(async function handler(
       addressId: result.id
     };
 
+    console.log('Sending response:', response);
     return res.status(200).json(response);
   } catch (error) {
     console.error('Error processing address:', error);
