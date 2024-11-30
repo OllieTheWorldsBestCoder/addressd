@@ -1,11 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { AddressService } from '../../../services/address.service';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Set CORS headers for this specific endpoint
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -22,9 +24,21 @@ export default async function handler(
 
   try {
     const { address } = req.body;
+    const authToken = req.headers.authorization?.replace('Bearer ', '');
 
     if (!address) {
       return res.status(400).json({ error: 'Address is required' });
+    }
+
+    // Validate API token if provided
+    if (authToken) {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('authToken', '==', authToken));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        return res.status(401).json({ error: 'Invalid API token' });
+      }
     }
 
     console.log('Validating address:', address);
@@ -38,7 +52,8 @@ export default async function handler(
       return res.status(200).json({
         summary: existingAddress.summary || 'No description available yet.',
         uploadLink: `/upload/${existingAddress.id}`,
-        addressId: existingAddress.id
+        addressId: existingAddress.id,
+        formattedAddress: existingAddress.formattedAddress
       });
     }
 
@@ -62,7 +77,8 @@ export default async function handler(
     return res.status(200).json({
       summary: 'No description available yet.',
       uploadLink: `/upload/${newAddress.id}`,
-      addressId: newAddress.id
+      addressId: newAddress.id,
+      formattedAddress: newAddress.formattedAddress
     });
 
   } catch (error) {

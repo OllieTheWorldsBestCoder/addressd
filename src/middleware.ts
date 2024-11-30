@@ -1,24 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Get allowed origins from environment variable
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-  'https://addressd.webflow.io',
-  'https://addressd.vercel.app',
-  'http://localhost:3000'
+// Public endpoints that don't require API token
+const PUBLIC_ENDPOINTS = [
+  '/api/address/validate-frontend',
+  '/api/auth/callback',
 ];
 
 export function middleware(request: NextRequest) {
   const response = NextResponse.next();
-  const origin = request.headers.get('origin');
 
-  // Always allow the API request if it's from an allowed origin
-  if (origin && allowedOrigins.includes(origin)) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key');
-    response.headers.set('Access-Control-Max-Age', '86400'); // 24 hours
-  }
+  // Set CORS headers for all requests
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  response.headers.set('Access-Control-Max-Age', '86400');
 
   // Handle preflight requests
   if (request.method === 'OPTIONS') {
