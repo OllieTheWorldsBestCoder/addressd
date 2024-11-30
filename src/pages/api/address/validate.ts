@@ -4,6 +4,8 @@ import { AddressResponse } from '../../../types/address';
 import { authenticateRequest } from '../../../middleware/auth';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
+import { validateApiKey } from '../../../middleware/validateApiKey';
+import { rateLimit } from '../../../middleware/rateLimit';
 
 // Update the error response type to include optional details
 interface ErrorResponse {
@@ -11,7 +13,16 @@ interface ErrorResponse {
   details?: unknown;
 }
 
-export default async function handler(
+// Apply middleware chain
+const withMiddleware = (handler: any) => async (req: NextApiRequest, res: NextApiResponse) => {
+  await validateApiKey(req, res, async () => {
+    await rateLimit(req, res, async () => {
+      await handler(req, res);
+    });
+  });
+};
+
+export default withMiddleware(async function handler(
   req: NextApiRequest,
   res: NextApiResponse<AddressResponse | ErrorResponse>
 ) {
@@ -74,4 +85,4 @@ export default async function handler(
       details: process.env.NODE_ENV === 'development' ? error : undefined
     });
   }
-} 
+}); 
