@@ -105,6 +105,7 @@ export default function EmbedPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.authToken}`
         },
         body: JSON.stringify({ address }),
       });
@@ -117,15 +118,24 @@ export default function EmbedPage() {
       const validationResult = await validationResponse.json();
       console.log('Address validated:', validationResult);
 
-      // Add initial description
+      // Add initial description with auth token
       console.log('Adding description to address...');
-      await updateDoc(doc(db, 'addresses', validationResult.addressId), {
-        descriptions: [{
-          content: description,
-          createdAt: new Date(),
-          userId: user.id
-        }]
+      const descriptionResponse = await fetch('/api/address/contribute', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.authToken}`
+        },
+        body: JSON.stringify({
+          address: validationResult.addressId,
+          description
+        })
       });
+
+      if (!descriptionResponse.ok) {
+        const error = await descriptionResponse.json();
+        throw new Error(error.error || 'Failed to add description');
+      }
 
       console.log('Description added successfully');
 
