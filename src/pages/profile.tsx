@@ -16,6 +16,11 @@ interface ActiveEmbed {
   viewCount: number;
 }
 
+interface AddressDetails {
+  formattedAddress: string;
+  id: string;
+}
+
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -188,19 +193,23 @@ export default function Profile() {
 
           {user.embedAccess?.activeEmbeds && user.embedAccess.activeEmbeds.length > 0 ? (
             <div className={styles.embedsList}>
-              {user.embedAccess.activeEmbeds.map((embed: ActiveEmbed) => (
-                <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
-                  <div className={styles.embedInfo}>
-                    <p><strong>Domain:</strong> {embed.domain}</p>
-                    <p><strong>Address ID:</strong> {embed.addressId}</p>
-                    <p><strong>Last Used:</strong> {new Date(embed.lastUsed).toLocaleDateString()}</p>
-                    <p><strong>Views:</strong> {embed.viewCount}</p>
-                  </div>
-                  <div className={styles.embedActions}>
-                    <button
-                      onClick={() => {
-                        // Copy embed code to clipboard
-                        const embedCode = `
+              {user.embedAccess.activeEmbeds.map(async (embed: ActiveEmbed) => {
+                const addressDoc = await getDoc(doc(db, 'addresses', embed.addressId));
+                const address = addressDoc.data() as AddressDetails;
+                
+                return (
+                  <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
+                    <div className={styles.embedInfo}>
+                      <p><strong>Address:</strong> {address?.formattedAddress || 'Loading...'}</p>
+                      <p><strong>Domain:</strong> {embed.domain}</p>
+                      <p><strong>Created:</strong> {new Date(embed.createdAt).toLocaleDateString()}</p>
+                      <p><strong>Last Used:</strong> {new Date(embed.lastUsed).toLocaleDateString()}</p>
+                      <p><strong>Views:</strong> {embed.viewCount}</p>
+                    </div>
+                    <div className={styles.embedActions}>
+                      <button
+                        onClick={() => {
+                          const embedCode = `
 <div id="addressd-embed"></div>
 <script>
   (function() {
@@ -212,40 +221,39 @@ export default function Profile() {
     document.head.appendChild(script);
   })();
 </script>`;
-                        navigator.clipboard.writeText(embedCode);
-                        alert('Embed code copied to clipboard!');
-                      }}
-                      className={styles.copyButton}
-                    >
-                      Copy Code
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (confirm('Are you sure you want to delete this embed?')) {
-                          try {
-                            // Remove from user's activeEmbeds array
-                            const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
-                              (e: ActiveEmbed) => 
-                                !(e.addressId === embed.addressId && e.domain === embed.domain)
-                            );
-                            await updateDoc(doc(db, 'users', user.id), {
-                              'embedAccess.activeEmbeds': updatedEmbeds
-                            });
-                            // Refresh the page or update state
-                            window.location.reload();
-                          } catch (error) {
-                            console.error('Error deleting embed:', error);
-                            alert('Failed to delete embed');
+                          navigator.clipboard.writeText(embedCode);
+                          alert('Embed code copied to clipboard!');
+                        }}
+                        className={styles.copyButton}
+                      >
+                        Copy Code
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (confirm('Are you sure you want to delete this embed?')) {
+                            try {
+                              const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+                                (e: ActiveEmbed) => 
+                                  !(e.addressId === embed.addressId && e.domain === embed.domain)
+                              );
+                              await updateDoc(doc(db, 'users', user.id), {
+                                'embedAccess.activeEmbeds': updatedEmbeds
+                              });
+                              window.location.reload();
+                            } catch (error) {
+                              console.error('Error deleting embed:', error);
+                              alert('Failed to delete embed');
+                            }
                           }
-                        }
-                      }}
-                      className={styles.deleteButton}
-                    >
-                      Delete
-                    </button>
+                        }}
+                        className={styles.deleteButton}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className={styles.noEmbeds}>
