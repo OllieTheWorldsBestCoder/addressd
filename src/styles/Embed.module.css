@@ -1,0 +1,110 @@
+.container {
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.signInButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 300px;
+  margin: 2rem auto;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.signInButton:hover {
+  background: #f9fafb;
+}
+
+.embedForm {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.input {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+}
+
+.textarea {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  min-height: 150px;
+  resize: vertical;
+}
+
+.createButton {
+  padding: 0.75rem;
+  background: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.createButton:hover:not(:disabled) {
+  background: #357abd;
+}
+
+.createButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.embedCode {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+}
+
+.embedCode pre {
+  padding: 1rem;
+  background: #1a202c;
+  color: #e2e8f0;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.copyButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copyButton:hover {
+  background: #2d3748;
+}
+
+.error {
+  padding: 1rem;
+  background: #fff5f5;
+  color: #e53e3e;
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+} 
