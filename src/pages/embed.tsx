@@ -100,11 +100,12 @@ export default function EmbedPage() {
       console.log('User:', user.id);
       console.log('Address:', address);
       
-      // First validate the address
+      // First validate the address using the frontend validation endpoint
       const validationResponse = await fetch('/api/address/validate-frontend', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${user.authToken}`
         },
         body: JSON.stringify({ address }),
       });
@@ -123,7 +124,7 @@ export default function EmbedPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.embedAccess?.embedToken}`
+          'Authorization': `Bearer ${user.authToken}`
         },
         body: JSON.stringify({
           address: validationResult.addressId,
@@ -151,7 +152,7 @@ export default function EmbedPage() {
 
       console.log('User managed addresses updated');
 
-      // Generate embed code
+      // Generate embed code with embed token
       console.log('Generating embed code...');
       const embedCode = `
 <div id="addressd-embed"></div>
