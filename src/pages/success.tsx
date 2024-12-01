@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
-import { PlanType } from '../../types/billing';
-import styles from '../../styles/Success.module.css';
+import { db } from '../config/firebase';
+import { PlanType } from '../types/billing';
+import styles from '../styles/Success.module.css';
 
 export default function Success() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
