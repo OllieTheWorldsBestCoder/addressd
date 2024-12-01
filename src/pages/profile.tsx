@@ -3,6 +3,7 @@ import { auth, db } from '../config/firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { User } from '../types/user';
+import { PlanType } from '../types/billing';
 import styles from '../styles/Profile.module.css';
 import { useRouter } from 'next/router';
 import { Timestamp } from 'firebase/firestore';
