@@ -236,7 +236,7 @@ export default function EmbedPage() {
         // Step 3: Show pricing table
         <div>
           <stripe-pricing-table 
-            pricing-table-id="prctbl_1QRHELLAQAcRVIdeK90CfxM3"
+            pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID!}
             publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
             client-reference-id={user.id}
             customer-email={user.email}
