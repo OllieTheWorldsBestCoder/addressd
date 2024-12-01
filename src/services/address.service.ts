@@ -33,25 +33,26 @@ export class AddressService {
 
   async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
     try {
-      const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
-        params: {
-          address: address,
-          key: process.env.GOOGLE_MAPS_API_KEY
-        }
-      });
+      const response = await this.googleMapsClient
+        .geocode({
+          params: {
+            address: address,
+            key: process.env.GOOGLE_MAPS_API_KEY || ''
+          }
+        });
 
       if (response.data.results && response.data.results.length > 0) {
         const result = response.data.results[0];
         
         // Ensure we have a proper street address
         const hasStreetNumber = result.address_components.some(
-          (comp: AddressComponent) => comp.types.includes(AddressType.street_number)
+          comp => comp.types.includes(AddressType.street_number)
         );
         const hasRoute = result.address_components.some(
-          (comp: AddressComponent) => comp.types.includes(AddressType.route)
+          comp => comp.types.includes(AddressType.route)
         );
         const hasPostcode = result.address_components.some(
-          (comp: AddressComponent) => comp.types.includes(AddressType.postal_code)
+          comp => comp.types.includes(AddressType.postal_code)
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
