@@ -99,19 +99,12 @@ export default function EmbedPage() {
       console.log('Starting embed creation process...');
       console.log('User:', user.id);
       console.log('Address:', address);
-
-      // Check if user already has an embed for this address
-      if (user.embedAccess?.managedAddresses.includes(address)) {
-        setError('You already have an embed for this address');
-        return;
-      }
       
-      // First validate the address using the frontend validation endpoint
+      // First validate the address
       const validationResponse = await fetch('/api/address/validate-frontend', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.authToken}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ address }),
       });
@@ -124,19 +117,13 @@ export default function EmbedPage() {
       const validationResult = await validationResponse.json();
       console.log('Address validated:', validationResult);
 
-      // Check if user already has an embed for this validated address
-      if (user.embedAccess?.managedAddresses.includes(validationResult.addressId)) {
-        setError('You already have an embed for this address');
-        return;
-      }
-
-      // Add initial description with auth token
+      // Add initial description
       console.log('Adding description to address...');
       const descriptionResponse = await fetch('/api/address/contribute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.authToken}`
+          'Authorization': `Bearer ${user.embedAccess?.embedToken}`
         },
         body: JSON.stringify({
           address: validationResult.addressId,
