@@ -1,4 +1,4 @@
-import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
+import { Client, GeocodeResult } from "@googlemaps/google-maps-services-js";
 import { Configuration, OpenAIApi } from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
@@ -6,6 +6,48 @@ import { Address } from '../types/address';
 import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
 import crypto from 'crypto';
+
+interface AddressValidationResponse {
+  result: {
+    verdict: {
+      validationGranularity: string;
+      addressComplete: boolean;
+      hasInferredComponents: boolean;
+      hasReplacedComponents: boolean;
+    };
+    address: {
+      formattedAddress: string;
+      postalAddress: {
+        regionCode: string;
+        languageCode: string;
+        postalCode: string;
+        administrativeArea: string;
+        locality: string;
+        addressLines: string[];
+      };
+      addressComponents: Array<{
+        componentType: string;
+        componentName: {
+          text: string;
+          languageCode: string;
+        };
+      }>;
+    };
+    geocode: {
+      location: {
+        latitude: number;
+        longitude: number;
+      };
+      plusCode: {
+        globalCode: string;
+      };
+      bounds: {
+        low: { latitude: number; longitude: number };
+        high: { latitude: number; longitude: number };
+      };
+    };
+  };
+}
 
 export class AddressService {
   private googleMapsClient: Client;
@@ -25,25 +67,70 @@ export class AddressService {
 
   async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
     try {
-      // Use node-fetch instead of Axios
-      const response = await fetch(
+      // First try Google Address Validation API
+      const validationResponse = await fetch(
+        'https://addressvalidation.googleapis.com/v1:validateAddress',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY || ''
+          },
+          body: JSON.stringify({
+            address: {
+              addressLines: [address]
+            }
+          })
+        }
+      );
+
+      const validationData: AddressValidationResponse = await validationResponse.json();
+      
+      // If address validation succeeds with high confidence
+      if (validationData.result.verdict.addressComplete && 
+          validationData.result.verdict.validationGranularity !== 'OTHER') {
+        return {
+          formatted_address: validationData.result.address.formattedAddress,
+          geometry: {
+            location: {
+              lat: validationData.result.geocode.location.latitude,
+              lng: validationData.result.geocode.location.longitude
+            },
+            location_type: 'ROOFTOP',
+            viewport: {
+              northeast: validationData.result.geocode.bounds.high,
+              southwest: validationData.result.geocode.bounds.low
+            }
+          },
+          place_id: '', // Not provided by validation API
+          types: ['street_address'],
+          address_components: validationData.result.address.addressComponents.map(comp => ({
+            long_name: comp.componentName.text,
+            short_name: comp.componentName.text,
+            types: [comp.componentType]
+          }))
+        };
+      }
+
+      // Fallback to Geocoding API if validation fails or has low confidence
+      const geocodeResponse = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
       );
       
-      const data = await response.json();
+      const geocodeData = await geocodeResponse.json();
 
-      if (data.results && data.results.length > 0) {
-        const result = data.results[0];
+      if (geocodeData.results && geocodeData.results.length > 0) {
+        const result = geocodeData.results[0];
         
         // Ensure we have a proper street address
         const hasStreetNumber = result.address_components.some(
-          comp => comp.types.includes('street_number')
+          (comp: any) => comp.types.includes('street_number')
         );
         const hasRoute = result.address_components.some(
-          comp => comp.types.includes('route')
+          (comp: any) => comp.types.includes('route')
         );
         const hasPostcode = result.address_components.some(
-          comp => comp.types.includes('postal_code')
+          (comp: any) => comp.types.includes('postal_code')
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
