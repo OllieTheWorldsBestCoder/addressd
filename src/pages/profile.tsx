@@ -26,6 +26,7 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
+  const [addressDetails, setAddressDetails] = useState<{[key: string]: AddressDetails}>({});
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -61,6 +62,29 @@ export default function Profile() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const fetchAddressDetails = async () => {
+      if (!user?.embedAccess?.activeEmbeds) return;
+      
+      const details: {[key: string]: AddressDetails} = {};
+      
+      for (const embed of user.embedAccess.activeEmbeds) {
+        try {
+          const addressDoc = await getDoc(doc(db, 'addresses', embed.addressId));
+          if (addressDoc.exists()) {
+            details[embed.addressId] = addressDoc.data() as AddressDetails;
+          }
+        } catch (error) {
+          console.error('Error fetching address details:', error);
+        }
+      }
+      
+      setAddressDetails(details);
+    };
+
+    fetchAddressDetails();
+  }, [user?.embedAccess?.activeEmbeds]);
 
   const handleSignIn = async () => {
     try {
@@ -193,23 +217,19 @@ export default function Profile() {
 
           {user.embedAccess?.activeEmbeds && user.embedAccess.activeEmbeds.length > 0 ? (
             <div className={styles.embedsList}>
-              {user.embedAccess.activeEmbeds.map(async (embed: ActiveEmbed) => {
-                const addressDoc = await getDoc(doc(db, 'addresses', embed.addressId));
-                const address = addressDoc.data() as AddressDetails;
-                
-                return (
-                  <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
-                    <div className={styles.embedInfo}>
-                      <p><strong>Address:</strong> {address?.formattedAddress || 'Loading...'}</p>
-                      <p><strong>Domain:</strong> {embed.domain}</p>
-                      <p><strong>Created:</strong> {new Date(embed.createdAt).toLocaleDateString()}</p>
-                      <p><strong>Last Used:</strong> {new Date(embed.lastUsed).toLocaleDateString()}</p>
-                      <p><strong>Views:</strong> {embed.viewCount}</p>
-                    </div>
-                    <div className={styles.embedActions}>
-                      <button
-                        onClick={() => {
-                          const embedCode = `
+              {user.embedAccess.activeEmbeds.map((embed: ActiveEmbed) => (
+                <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
+                  <div className={styles.embedInfo}>
+                    <p><strong>Address:</strong> {addressDetails[embed.addressId]?.formattedAddress || 'Loading...'}</p>
+                    <p><strong>Domain:</strong> {embed.domain}</p>
+                    <p><strong>Created:</strong> {new Date(embed.createdAt).toLocaleDateString()}</p>
+                    <p><strong>Last Used:</strong> {new Date(embed.lastUsed).toLocaleDateString()}</p>
+                    <p><strong>Views:</strong> {embed.viewCount}</p>
+                  </div>
+                  <div className={styles.embedActions}>
+                    <button
+                      onClick={() => {
+                        const embedCode = `
 <div id="addressd-embed"></div>
 <script>
   (function() {
@@ -221,39 +241,38 @@ export default function Profile() {
     document.head.appendChild(script);
   })();
 </script>`;
-                          navigator.clipboard.writeText(embedCode);
-                          alert('Embed code copied to clipboard!');
-                        }}
-                        className={styles.copyButton}
-                      >
-                        Copy Code
-                      </button>
-                      <button
-                        onClick={async () => {
-                          if (confirm('Are you sure you want to delete this embed?')) {
-                            try {
-                              const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
-                                (e: ActiveEmbed) => 
-                                  !(e.addressId === embed.addressId && e.domain === embed.domain)
-                              );
-                              await updateDoc(doc(db, 'users', user.id), {
-                                'embedAccess.activeEmbeds': updatedEmbeds
-                              });
-                              window.location.reload();
-                            } catch (error) {
-                              console.error('Error deleting embed:', error);
-                              alert('Failed to delete embed');
-                            }
+                        navigator.clipboard.writeText(embedCode);
+                        alert('Embed code copied to clipboard!');
+                      }}
+                      className={styles.copyButton}
+                    >
+                      Copy Code
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to delete this embed?')) {
+                          try {
+                            const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+                              (e: ActiveEmbed) => 
+                                !(e.addressId === embed.addressId && e.domain === embed.domain)
+                            );
+                            await updateDoc(doc(db, 'users', user.id), {
+                              'embedAccess.activeEmbeds': updatedEmbeds
+                            });
+                            window.location.reload();
+                          } catch (error) {
+                            console.error('Error deleting embed:', error);
+                            alert('Failed to delete embed');
                           }
-                        }}
-                        className={styles.deleteButton}
-                      >
-                        Delete
-                      </button>
-                    </div>
+                        }
+                      }}
+                      className={styles.deleteButton}
+                    >
+                      Delete
+                    </button>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className={styles.noEmbeds}>
