@@ -219,13 +219,9 @@ export default function Profile() {
             <div className={styles.embedsList}>
               {user.embedAccess.activeEmbeds.map((embed: ActiveEmbed) => (
                 <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
-                  <div className={styles.embedInfo}>
-                    <p><strong>Address:</strong> {addressDetails[embed.addressId]?.formattedAddress || 'Loading...'}</p>
-                    <p><strong>Domain:</strong> {embed.domain}</p>
-                    <p><strong>Created:</strong> {new Date(embed.createdAt).toLocaleDateString()}</p>
-                    <p><strong>Last Used:</strong> {new Date(embed.lastUsed).toLocaleDateString()}</p>
-                    <p><strong>Views:</strong> {embed.viewCount}</p>
-                  </div>
+                  <p className={styles.embedAddress}>
+                    {addressDetails[embed.addressId]?.formattedAddress || 'Loading...'}
+                  </p>
                   <div className={styles.embedActions}>
                     <button
                       onClick={() => {
