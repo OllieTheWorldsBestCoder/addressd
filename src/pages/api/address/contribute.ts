@@ -55,8 +55,10 @@ export default async function handler(
       const contribution = {
         content: description.trim(),
         createdAt: new Date(),
-        userId: user?.id  // Optional user attribution
+        userId: user?.id || null
       };
+
+      console.log('Contribution object:', contribution);
 
       await updateDoc(doc(db, 'addresses', existingAddress.id), {
         descriptions: arrayUnion(contribution),
@@ -87,8 +89,10 @@ export default async function handler(
       const contribution = {
         content: description.trim(),
         createdAt: new Date(),
-        userId: user?.id  // Optional user attribution
+        userId: user?.id || null
       };
+
+      console.log('Contribution object for new address:', contribution);
 
       await updateDoc(doc(db, 'addresses', newAddress.id), {
         descriptions: arrayUnion(contribution),
