@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import styles from '../styles/Home.module.css';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
+import { auth } from '../config/firebase';
+import { User } from 'firebase/auth';
 
 interface AddressResult {
   summary: string;
@@ -17,6 +19,14 @@ export default function Home() {
   const [error, setError] = useState('');
   const [result, setResult] = useState<AddressResult | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +74,20 @@ export default function Home() {
         <meta name="description" content="Validate and contribute to address information" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
+
+      <header className={styles.header}>
+        <div className={styles.headerContent}>
+          {user ? (
+            <Link href="/profile" className={styles.profileLink}>
+              Profile
+            </Link>
+          ) : (
+            <Link href="/signup" className={styles.signupLink}>
+              Sign Up
+            </Link>
+          )}
+        </div>
+      </header>
 
       <main className={styles.main}>
         <h1 className={styles.title}>addressd</h1>
