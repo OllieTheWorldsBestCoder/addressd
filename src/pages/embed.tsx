@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { AddressService } from '../services/address.service';
 import styles from '../styles/Embed.module.css';
 import crypto from 'crypto';
@@ -174,14 +174,22 @@ export default function EmbedPage() {
               throw new Error('Failed to add description');
             }
 
-            // Update managed addresses
+            // Update managed addresses and mark as active
             const updatedManagedAddresses = [
               ...(user.embedAccess?.managedAddresses || []),
               addressId
             ];
 
             await updateDoc(doc(db, 'users', user.id), {
-              'embedAccess.managedAddresses': updatedManagedAddresses
+              'embedAccess.managedAddresses': updatedManagedAddresses,
+              'embedAccess.activeEmbeds': arrayUnion({
+                addressId,
+                domain: window.location.hostname,
+                createdAt: new Date(),
+                lastUsed: new Date(),
+                viewCount: 0,
+                status: 'active'
+              })
             });
 
             // Generate embed code
@@ -275,12 +283,20 @@ export default function EmbedPage() {
             <div className={styles.embedCode}>
               <h3>Your Embed Code:</h3>
               <pre>{embedCode}</pre>
-              <button
-                onClick={() => navigator.clipboard.writeText(embedCode)}
-                className={styles.copyButton}
-              >
-                Copy Code
-              </button>
+              <div className={styles.buttonGroup}>
+                <button
+                  onClick={() => navigator.clipboard.writeText(embedCode)}
+                  className={styles.copyButton}
+                >
+                  Copy Code
+                </button>
+                <button
+                  onClick={() => router.push('/profile')}
+                  className={styles.profileButton}
+                >
+                  Go to Profile
+                </button>
+              </div>
             </div>
           )}
           

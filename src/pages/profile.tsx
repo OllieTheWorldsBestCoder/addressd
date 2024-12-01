@@ -246,16 +246,42 @@ export default function Profile() {
                     </button>
                     <button
                       onClick={async () => {
-                        if (confirm('Are you sure you want to delete this embed?')) {
+                        const confirmed = window.confirm(
+                          'Warning: Deleting this embed will cancel your subscription at the end of the current billing period. You will continue to be charged until the end of the period. Do you want to proceed?'
+                        );
+                        
+                        if (confirmed) {
                           try {
-                            const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
-                              (e: ActiveEmbed) => 
-                                !(e.addressId === embed.addressId && e.domain === embed.domain)
+                            // Find the embed subscription
+                            const embedPlan = user.billing?.plans.find(
+                              plan => plan.type === PlanType.EMBED
                             );
-                            await updateDoc(doc(db, 'users', user.id), {
-                              'embedAccess.activeEmbeds': updatedEmbeds
-                            });
-                            window.location.reload();
+
+                            if (embedPlan?.stripeSubscriptionId) {
+                              // Cancel the subscription in Stripe
+                              const response = await fetch('/api/create-billing-portal-session', {
+                                method: 'POST',
+                              });
+                              const { url } = await response.json();
+
+                              // Remove the embed from active embeds
+                              const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+                                (e: ActiveEmbed) => 
+                                  !(e.addressId === embed.addressId && e.domain === embed.domain)
+                              );
+                              
+                              await updateDoc(doc(db, 'users', user.id), {
+                                'embedAccess.activeEmbeds': updatedEmbeds,
+                                'billing.plans': user.billing?.plans.map(plan => 
+                                  plan.type === PlanType.EMBED 
+                                    ? { ...plan, status: 'cancelling' }
+                                    : plan
+                                )
+                              });
+
+                              // Redirect to billing portal to confirm cancellation
+                              window.location.href = url;
+                            }
                           } catch (error) {
                             console.error('Error deleting embed:', error);
                             alert('Failed to delete embed');
