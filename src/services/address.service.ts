@@ -1,4 +1,4 @@
-import { Client, GeocodeResult, AddressType, GeocodingAddressComponentType } from "@googlemaps/google-maps-services-js";
+import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
 import { Configuration, OpenAIApi } from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
@@ -6,14 +6,6 @@ import { Address } from '../types/address';
 import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
 import crypto from 'crypto';
-import axios from 'axios';
-
-// Add interface for Google Maps address component
-interface AddressComponent {
-  long_name: string;
-  short_name: string;
-  types: string[];
-}
 
 export class AddressService {
   private googleMapsClient: Client;
@@ -33,26 +25,25 @@ export class AddressService {
 
   async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
     try {
-      const response = await this.googleMapsClient
-        .geocode({
-          params: {
-            address: address,
-            key: process.env.GOOGLE_MAPS_API_KEY || ''
-          }
-        });
+      // Use node-fetch instead of Axios
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+      );
+      
+      const data = await response.json();
 
-      if (response.data.results && response.data.results.length > 0) {
-        const result = response.data.results[0];
+      if (data.results && data.results.length > 0) {
+        const result = data.results[0];
         
         // Ensure we have a proper street address
         const hasStreetNumber = result.address_components.some(
-          comp => comp.types.includes(AddressType.street_number)
+          comp => comp.types.includes('street_number')
         );
         const hasRoute = result.address_components.some(
-          comp => comp.types.includes(AddressType.route)
+          comp => comp.types.includes('route')
         );
         const hasPostcode = result.address_components.some(
-          comp => comp.types.includes(AddressType.postal_code)
+          comp => comp.types.includes('postal_code')
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
