@@ -1,4 +1,4 @@
-import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
+import { Client, GeocodeResult, AddressType, GeocodingAddressComponentType } from "@googlemaps/google-maps-services-js";
 import { Configuration, OpenAIApi } from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
@@ -46,13 +46,13 @@ export class AddressService {
         
         // Ensure we have a proper street address
         const hasStreetNumber = result.address_components.some(
-          comp => comp.types.includes('street_number')
+          comp => comp.types.includes(AddressType.street_number)
         );
         const hasRoute = result.address_components.some(
-          comp => comp.types.includes('route')
+          comp => comp.types.includes(AddressType.route)
         );
         const hasPostcode = result.address_components.some(
-          comp => comp.types.includes('postal_code')
+          comp => comp.types.includes(AddressType.postal_code)
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
