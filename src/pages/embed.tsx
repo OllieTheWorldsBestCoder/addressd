@@ -128,7 +128,7 @@ export default function EmbedPage() {
         },
         body: JSON.stringify({
           address: address,
-          description: description
+          description: description.trim()
         })
       });
 
