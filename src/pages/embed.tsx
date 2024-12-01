@@ -127,8 +127,8 @@ export default function EmbedPage() {
           'Authorization': `Bearer ${user.authToken}`
         },
         body: JSON.stringify({
-          address: validationResult.addressId,
-          description
+          address: address,
+          description: description
         })
       });
 
