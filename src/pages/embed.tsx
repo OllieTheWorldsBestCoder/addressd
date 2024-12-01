@@ -100,20 +100,26 @@ export default function EmbedPage() {
       console.log('User:', user.id);
       console.log('Address:', address);
       
-      const addressService = new AddressService();
-      console.log('Validating address...');
-      const addressResult = await addressService.createOrUpdateAddress(address);
+      // First validate the address using the frontend validation endpoint
+      const validationResponse = await fetch('/api/address/validate-frontend', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ address }),
+      });
 
-      if (!addressResult) {
-        console.error('Failed to validate/create address');
-        throw new Error('Failed to validate address');
+      if (!validationResponse.ok) {
+        const error = await validationResponse.json();
+        throw new Error(error.error || 'Failed to validate address');
       }
 
-      console.log('Address validated:', addressResult);
+      const validationResult = await validationResponse.json();
+      console.log('Address validated:', validationResult);
 
       // Add initial description
       console.log('Adding description to address...');
-      await updateDoc(doc(db, 'addresses', addressResult.id), {
+      await updateDoc(doc(db, 'addresses', validationResult.addressId), {
         descriptions: [{
           content: description,
           createdAt: new Date(),
@@ -127,7 +133,7 @@ export default function EmbedPage() {
       console.log('Updating user managed addresses...');
       const updatedManagedAddresses = [
         ...(user.embedAccess?.managedAddresses || []),
-        addressResult.id
+        validationResult.addressId
       ];
 
       await updateDoc(doc(db, 'users', user.id), {
@@ -146,7 +152,7 @@ export default function EmbedPage() {
     script.src = '${process.env.NEXT_PUBLIC_BASE_URL}/embed.js';
     script.async = true;
     script.dataset.token = '${user.embedAccess?.embedToken}';
-    script.dataset.address = '${addressResult.id}';
+    script.dataset.address = '${validationResult.addressId}';
     document.head.appendChild(script);
   })();
 </script>`;
