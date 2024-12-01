@@ -1,3 +1,5 @@
+import { BillingPlan } from './billing';
+
 export interface User {
   id: string;
   name: string;
@@ -18,5 +20,11 @@ export interface User {
       lastUsed: Date;
       viewCount: number;
     }[];
+  };
+  billing?: {
+    plans: BillingPlan[];
+    stripeCustomerId?: string;
+    apiSubscriptionItemId?: string;
+    defaultPaymentMethodId?: string;
   };
 } 

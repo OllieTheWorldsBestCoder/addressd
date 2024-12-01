@@ -7,6 +7,10 @@ import styles from '../styles/Embed.module.css';
 import crypto from 'crypto';
 import { User } from '../types/user';
 import { useRouter } from 'next/router';
+import { loadStripe } from '@stripe/stripe-js';
+import { PlanType } from '../types/billing';
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export default function EmbedPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -15,6 +19,7 @@ export default function EmbedPage() {
   const [embedCode, setEmbedCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -117,6 +122,36 @@ export default function EmbedPage() {
 
       const validationResult = await validationResponse.json();
       console.log('Address validated:', validationResult);
+
+      // Check if user has active subscription
+      if (!user.billing?.plans.some(plan => 
+        plan.type === PlanType.EMBED && plan.status === 'active'
+      )) {
+        // Create Stripe Checkout Session
+        const response = await fetch('/api/create-embed-checkout-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            addressId: validationResult.addressId,
+            description
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create checkout session');
+        }
+
+        const { sessionId } = await response.json();
+        const stripe = await stripePromise;
+        
+        // Redirect to Stripe Checkout
+        const { error } = await stripe!.redirectToCheckout({ sessionId });
+        if (error) {
+          throw error;
+        }
+        return;
+      }
 
       // Add initial description
       console.log('Adding description to address...');

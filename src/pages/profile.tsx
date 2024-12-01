@@ -279,6 +279,22 @@ export default function Profile() {
             </div>
           )}
         </div>
+
+        <div className={styles.section}>
+          <h2>Billing</h2>
+          <button
+            onClick={async () => {
+              const response = await fetch('/api/create-billing-portal-session', {
+                method: 'POST',
+              });
+              const { url } = await response.json();
+              window.location.href = url;
+            }}
+            className={styles.billingButton}
+          >
+            Manage Billing
+          </button>
+        </div>
       </div>
     </div>
   );

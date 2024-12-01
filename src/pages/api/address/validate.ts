@@ -4,6 +4,7 @@ import { AddressResponse } from '../../../types/address';
 import { authenticateRequest } from '../../../middleware/auth';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
+import { BillingService } from '../../../services/billing.service';
 
 // Update the error response type to include optional details
 interface ErrorResponse {
@@ -65,6 +66,9 @@ export default async function handler(
         updatedAt: new Date()
       });
     }
+
+    const billingService = new BillingService();
+    await billingService.trackApiUsage(user.id);
 
     const response: AddressResponse = {
       summary: result.summary || 'Address validated successfully',

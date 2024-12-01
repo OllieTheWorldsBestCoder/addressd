@@ -3,8 +3,10 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '../../../config/firebase';
 import { User } from '../../../types/user';
 import { EmbedTrackingService } from '../../../services/embedTracking.service';
+import { BillingService } from '../../../services/billing.service';
 
 const embedTracking = new EmbedTrackingService();
+const billingService = new BillingService();
 
 export default async function handler(
   req: NextApiRequest,
@@ -43,6 +45,15 @@ export default async function handler(
 
     const user = userSnapshot.docs[0].data() as User;
     const userId = userSnapshot.docs[0].id;
+
+    // Check if embed access is valid
+    const hasValidSubscription = await billingService.validateEmbedAccess(user);
+    if (!hasValidSubscription) {
+      return res.status(402).json({ 
+        error: 'Subscription required',
+        message: 'Please update your subscription to continue using embeds'
+      });
+    }
 
     // Extract domain from origin
     let domain = 'unknown';
