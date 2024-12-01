@@ -26,7 +26,7 @@ export default async function handler(
   try {
     const { addressId } = req.query;
     const token = req.headers.authorization?.replace('Bearer ', '');
-    const origin = req.headers.origin || 'unknown';
+    const origin = req.headers.origin || req.headers.referer || 'unknown';
 
     if (!addressId || !token) {
       return res.status(400).json({ error: 'Address ID and token are required' });
@@ -44,11 +44,23 @@ export default async function handler(
     const user = userSnapshot.docs[0].data() as User;
     const userId = userSnapshot.docs[0].id;
 
+    // Extract domain from origin
+    let domain = 'unknown';
+    try {
+      if (origin !== 'unknown') {
+        const url = new URL(origin);
+        domain = url.hostname;
+      }
+    } catch (error) {
+      console.warn('Failed to parse origin:', origin);
+      domain = 'unknown';
+    }
+
     // Track the embed view
     await embedTracking.trackEmbedView(
       userId,
       addressId as string,
-      new URL(origin).hostname
+      domain
     );
 
     // Get address data
