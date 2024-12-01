@@ -32,10 +32,11 @@ export default function EmbedPage() {
                 embedAccess: {
                   isEmbedUser: true,
                   managedAddresses: [],
-                  embedToken
+                  embedToken,
+                  activeEmbeds: []
                 }
               });
-              setUser({ ...userData, embedAccess: { isEmbedUser: true, managedAddresses: [], embedToken } });
+              setUser({ ...userData, embedAccess: { isEmbedUser: true, managedAddresses: [], embedToken, activeEmbeds: [] } });
             } else {
               setUser(userData);
             }
@@ -75,7 +76,8 @@ export default function EmbedPage() {
           embedAccess: {
             isEmbedUser: true,
             managedAddresses: [],
-            embedToken
+            embedToken,
+            activeEmbeds: []
           }
         };
         await setDoc(doc(db, 'users', userData.id), userData);
