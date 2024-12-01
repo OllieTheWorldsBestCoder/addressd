@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../config/firebase';
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { User } from '../types/user';
 import styles from '../styles/Profile.module.css';
 import { useRouter } from 'next/router';
 import { Timestamp } from 'firebase/firestore';
+import Link from 'next/link';
+
+interface ActiveEmbed {
+  addressId: string;
+  domain: string;
+  createdAt: Date;
+  lastUsed: Date;
+  viewCount: number;
+}
 
 export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
@@ -166,6 +175,86 @@ export default function Profile() {
   ${process.env.NEXT_PUBLIC_BASE_URL}/api/address/contribute`}
             </pre>
           </div>
+        </div>
+
+        <div className={styles.section}>
+          <h2>Active Embeds</h2>
+          <div className={styles.embedsHeader}>
+            <h3>Your Active Embeds</h3>
+            <Link href="/embed" className={styles.createEmbedButton}>
+              Create New Embed
+            </Link>
+          </div>
+
+          {user.embedAccess?.activeEmbeds && user.embedAccess.activeEmbeds.length > 0 ? (
+            <div className={styles.embedsList}>
+              {user.embedAccess.activeEmbeds.map((embed: ActiveEmbed) => (
+                <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
+                  <div className={styles.embedInfo}>
+                    <p><strong>Domain:</strong> {embed.domain}</p>
+                    <p><strong>Address ID:</strong> {embed.addressId}</p>
+                    <p><strong>Last Used:</strong> {new Date(embed.lastUsed).toLocaleDateString()}</p>
+                    <p><strong>Views:</strong> {embed.viewCount}</p>
+                  </div>
+                  <div className={styles.embedActions}>
+                    <button
+                      onClick={() => {
+                        // Copy embed code to clipboard
+                        const embedCode = `
+<div id="addressd-embed"></div>
+<script>
+  (function() {
+    var script = document.createElement('script');
+    script.src = '${process.env.NEXT_PUBLIC_BASE_URL}/embed.js';
+    script.async = true;
+    script.dataset.token = '${user.embedAccess?.embedToken}';
+    script.dataset.address = '${embed.addressId}';
+    document.head.appendChild(script);
+  })();
+</script>`;
+                        navigator.clipboard.writeText(embedCode);
+                        alert('Embed code copied to clipboard!');
+                      }}
+                      className={styles.copyButton}
+                    >
+                      Copy Code
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Are you sure you want to delete this embed?')) {
+                          try {
+                            // Remove from user's activeEmbeds array
+                            const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+                              (e: ActiveEmbed) => 
+                                !(e.addressId === embed.addressId && e.domain === embed.domain)
+                            );
+                            await updateDoc(doc(db, 'users', user.id), {
+                              'embedAccess.activeEmbeds': updatedEmbeds
+                            });
+                            // Refresh the page or update state
+                            window.location.reload();
+                          } catch (error) {
+                            console.error('Error deleting embed:', error);
+                            alert('Failed to delete embed');
+                          }
+                        }
+                      }}
+                      className={styles.deleteButton}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.noEmbeds}>
+              <p>You don't have any active embeds yet.</p>
+              <Link href="/embed" className={styles.createFirstEmbedButton}>
+                Create Your First Embed
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>
