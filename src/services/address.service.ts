@@ -6,6 +6,7 @@ import { Address } from '../types/address';
 import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
 import crypto from 'crypto';
+import axios from 'axios';
 
 export class AddressService {
   private googleMapsClient: Client;
@@ -25,10 +26,10 @@ export class AddressService {
 
   async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
     try {
-      const response = await this.googleMapsClient.geocode({
+      const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
         params: {
           address: address,
-          key: process.env.GOOGLE_MAPS_API_KEY ?? ''
+          key: process.env.GOOGLE_MAPS_API_KEY
         }
       });
 
@@ -123,7 +124,9 @@ export class AddressService {
 
   async findExistingAddress(address: string): Promise<Address | null> {
     try {
-      console.log('[AddressService] Finding existing address:', address);
+      console.log('\n=== Starting Address Search ===');
+      console.log('Input address:', address);
+      console.log('Timestamp:', new Date().toISOString());
 
       // First try exact string match
       const exactMatchQuery = query(
@@ -191,10 +194,10 @@ export class AddressService {
       return null;
 
     } catch (error) {
-      console.error('[AddressService] Error finding existing address:', error);
-      if (error instanceof Error) {
-        console.error('[AddressService] Error stack:', error.stack);
-      }
+      console.error('\n=== Error in findExistingAddress ===');
+      console.error('Input address:', address);
+      console.error('Error details:', error);
+      console.error('Stack:', error instanceof Error ? error.stack : 'No stack available');
       throw error;
     }
   }
