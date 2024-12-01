@@ -93,15 +93,26 @@ export default function EmbedPage() {
     if (!user || !address || !description) return;
     
     setLoading(true);
+    setError('');
+    
     try {
+      console.log('Starting embed creation process...');
+      console.log('User:', user.id);
+      console.log('Address:', address);
+      
       const addressService = new AddressService();
+      console.log('Validating address...');
       const addressResult = await addressService.createOrUpdateAddress(address);
 
       if (!addressResult) {
+        console.error('Failed to validate/create address');
         throw new Error('Failed to validate address');
       }
 
+      console.log('Address validated:', addressResult);
+
       // Add initial description
+      console.log('Adding description to address...');
       await updateDoc(doc(db, 'addresses', addressResult.id), {
         descriptions: [{
           content: description,
@@ -110,7 +121,10 @@ export default function EmbedPage() {
         }]
       });
 
+      console.log('Description added successfully');
+
       // Update user's managed addresses
+      console.log('Updating user managed addresses...');
       const updatedManagedAddresses = [
         ...(user.embedAccess?.managedAddresses || []),
         addressResult.id
@@ -120,7 +134,10 @@ export default function EmbedPage() {
         'embedAccess.managedAddresses': updatedManagedAddresses
       });
 
+      console.log('User managed addresses updated');
+
       // Generate embed code
+      console.log('Generating embed code...');
       const embedCode = `
 <div id="addressd-embed"></div>
 <script>
@@ -134,10 +151,12 @@ export default function EmbedPage() {
   })();
 </script>`;
 
+      console.log('Embed code generated successfully');
       setEmbedCode(embedCode);
+      
     } catch (err) {
       console.error('Error creating embed:', err);
-      setError('Failed to create embed code');
+      setError(err instanceof Error ? err.message : 'Failed to create embed code');
     } finally {
       setLoading(false);
     }
