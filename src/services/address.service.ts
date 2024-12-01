@@ -8,6 +8,13 @@ import { getVectorDistance } from '../utils/vector';
 import crypto from 'crypto';
 import axios from 'axios';
 
+// Add interface for Google Maps address component
+interface AddressComponent {
+  long_name: string;
+  short_name: string;
+  types: string[];
+}
+
 export class AddressService {
   private googleMapsClient: Client;
   private openai: OpenAIApi;
@@ -38,13 +45,13 @@ export class AddressService {
         
         // Ensure we have a proper street address
         const hasStreetNumber = result.address_components.some(
-          comp => comp.types.includes(AddressType.street_number)
+          (comp: AddressComponent) => comp.types.includes(AddressType.street_number)
         );
         const hasRoute = result.address_components.some(
-          comp => comp.types.includes(AddressType.route)
+          (comp: AddressComponent) => comp.types.includes(AddressType.route)
         );
         const hasPostcode = result.address_components.some(
-          comp => comp.types.includes(AddressType.postal_code)
+          (comp: AddressComponent) => comp.types.includes(AddressType.postal_code)
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
