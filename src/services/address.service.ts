@@ -1,4 +1,4 @@
-import { Client, GeocodeResult } from "@googlemaps/google-maps-services-js";
+import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
 import { Configuration, OpenAIApi } from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
@@ -10,10 +10,11 @@ import crypto from 'crypto';
 interface AddressValidationResponse {
   result: {
     verdict: {
-      validationGranularity: string;
+      validationGranularity: 'PREMISE' | 'SUB_PREMISE' | 'ROUTE' | 'OTHER';
       addressComplete: boolean;
       hasInferredComponents: boolean;
       hasReplacedComponents: boolean;
+      hasUnconfirmedComponents: boolean;
     };
     address: {
       formattedAddress: string;
@@ -31,6 +32,7 @@ interface AddressValidationResponse {
           text: string;
           languageCode: string;
         };
+        confirmationLevel: 'CONFIRMED' | 'UNCONFIRMED' | 'UNCONFIRMED_AND_SUSPICIOUS';
       }>;
     };
     geocode: {
@@ -45,6 +47,11 @@ interface AddressValidationResponse {
         low: { latitude: number; longitude: number };
         high: { latitude: number; longitude: number };
       };
+    };
+    metadata?: {
+      business: boolean;
+      residence: boolean;
+      poBox: boolean;
     };
   };
 }
@@ -67,7 +74,6 @@ export class AddressService {
 
   async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
     try {
-      // First try Google Address Validation API
       const validationResponse = await fetch(
         'https://addressvalidation.googleapis.com/v1:validateAddress',
         {
@@ -85,10 +91,22 @@ export class AddressService {
       );
 
       const validationData: AddressValidationResponse = await validationResponse.json();
+      const verdict = validationData.result.verdict;
       
-      // If address validation succeeds with high confidence
-      if (validationData.result.verdict.addressComplete && 
-          validationData.result.verdict.validationGranularity !== 'OTHER') {
+      const bounds = {
+        northeast: {
+          lat: validationData.result.geocode.bounds.high.latitude,
+          lng: validationData.result.geocode.bounds.high.longitude
+        },
+        southwest: {
+          lat: validationData.result.geocode.bounds.low.latitude,
+          lng: validationData.result.geocode.bounds.low.longitude
+        }
+      };
+
+      if ((verdict.validationGranularity === 'PREMISE' || 
+           verdict.validationGranularity === 'SUB_PREMISE') && 
+          verdict.addressComplete) {
         return {
           formatted_address: validationData.result.address.formattedAddress,
           geometry: {
@@ -96,23 +114,53 @@ export class AddressService {
               lat: validationData.result.geocode.location.latitude,
               lng: validationData.result.geocode.location.longitude
             },
-            location_type: 'ROOFTOP',
-            viewport: {
-              northeast: validationData.result.geocode.bounds.high,
-              southwest: validationData.result.geocode.bounds.low
-            }
+            viewport: bounds
           },
-          place_id: '', // Not provided by validation API
-          types: ['street_address'],
           address_components: validationData.result.address.addressComponents.map(comp => ({
             long_name: comp.componentName.text,
             short_name: comp.componentName.text,
             types: [comp.componentType]
-          }))
-        };
+          })),
+          types: ['street_address'],
+          postcode_localities: [],
+          plus_code: {
+            compound_code: '',
+            global_code: validationData.result.geocode.plusCode?.globalCode || ''
+          },
+          partial_match: false,
+          place_id: crypto.randomUUID()
+        } as GeocodeResult;
+      }
+      
+      if (verdict.validationGranularity === 'ROUTE' && 
+          verdict.addressComplete && 
+          !verdict.hasUnconfirmedComponents) {
+        return {
+          formatted_address: validationData.result.address.formattedAddress,
+          geometry: {
+            location: {
+              lat: validationData.result.geocode.location.latitude,
+              lng: validationData.result.geocode.location.longitude
+            },
+            viewport: bounds
+          },
+          address_components: validationData.result.address.addressComponents.map(comp => ({
+            long_name: comp.componentName.text,
+            short_name: comp.componentName.text,
+            types: [comp.componentType]
+          })),
+          types: ['route'],
+          postcode_localities: [],
+          plus_code: {
+            compound_code: '',
+            global_code: validationData.result.geocode.plusCode?.globalCode || ''
+          },
+          partial_match: false,
+          place_id: crypto.randomUUID()
+        } as GeocodeResult;
       }
 
-      // Fallback to Geocoding API if validation fails or has low confidence
+      console.log('Falling back to Geocoding API');
       const geocodeResponse = await fetch(
         `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${process.env.GOOGLE_MAPS_API_KEY}`
       );
@@ -122,7 +170,6 @@ export class AddressService {
       if (geocodeData.results && geocodeData.results.length > 0) {
         const result = geocodeData.results[0];
         
-        // Ensure we have a proper street address
         const hasStreetNumber = result.address_components.some(
           (comp: any) => comp.types.includes('street_number')
         );
@@ -155,7 +202,6 @@ export class AddressService {
 
       const { formatted_address, geometry } = geocodeResult;
 
-      // Check for existing address with same formatted address
       const existingAddress = await this.findExistingAddressInternal(
         formatted_address,
         {
@@ -165,7 +211,6 @@ export class AddressService {
       );
       
       if (existingAddress) {
-        // Update existing address with new raw address variant
         const updatedAddress = {
           ...existingAddress,
           matchedAddresses: [
@@ -182,20 +227,19 @@ export class AddressService {
         return updatedAddress;
       }
 
-      // Create new address with all fields properly initialized
       const newAddress: Address = {
         id: crypto.randomUUID(),
         rawAddress: address,
         formattedAddress: formatted_address,
         latitude: geometry.location.lat,
         longitude: geometry.location.lng,
-        geohash: '', // Will be added by optimization service
+        geohash: '',
         matchedAddresses: [{
           rawAddress: address,
           matchedAt: new Date()
         }],
-        descriptions: [],  // Initialize as empty array
-        summary: '',      // Initialize summary field
+        descriptions: [],
+        summary: '',
         createdAt: new Date(),
         updatedAt: new Date()
       };
@@ -214,7 +258,6 @@ export class AddressService {
       console.log('Input address:', address);
       console.log('Timestamp:', new Date().toISOString());
 
-      // First try exact string match
       const exactMatchQuery = query(
         collection(db, this.addressCollection),
         where('formattedAddress', '==', address)
@@ -230,7 +273,6 @@ export class AddressService {
         } as Address;
       }
 
-      // Try matching raw addresses
       const rawMatchQuery = query(
         collection(db, this.addressCollection),
         where('matchedAddresses', 'array-contains', { rawAddress: address })
@@ -246,7 +288,6 @@ export class AddressService {
         } as Address;
       }
 
-      // If no matches found, try geocoding and proximity match
       console.log('[AddressService] No direct matches found, trying geocoding...');
       const geocodeResult = await this.validateAndFormatAddress(address);
       
@@ -255,10 +296,9 @@ export class AddressService {
         return null;
       }
 
-      // Try proximity-based match
       console.log('[AddressService] Checking proximity matches...');
       const allAddresses = await getDocs(collection(db, this.addressCollection));
-      const DISTANCE_THRESHOLD = 10; // 10 meters
+      const DISTANCE_THRESHOLD = 10;
 
       for (const doc of allAddresses.docs) {
         const addr = doc.data() as Address;
@@ -293,7 +333,6 @@ export class AddressService {
     location: { lat: number, lng: number }
   ): Promise<Address | null> {
     try {
-      // First try exact formatted address match
       const exactMatchQuery = query(
         collection(db, this.addressCollection),
         where('formattedAddress', '==', formattedAddress)
@@ -307,9 +346,8 @@ export class AddressService {
         } as Address;
       }
 
-      // If no exact match, try proximity-based match
       const allAddresses = await getDocs(collection(db, this.addressCollection));
-      const DISTANCE_THRESHOLD = 10; // 10 meters
+      const DISTANCE_THRESHOLD = 10;
 
       for (const doc of allAddresses.docs) {
         const addr = doc.data() as Address;
@@ -331,7 +369,7 @@ export class AddressService {
   }
 
   private calculateDistance(p1: {lat: number, lng: number}, p2: {lat: number, lng: number}): number {
-    const R = 6371e3; // Earth's radius in meters
+    const R = 6371e3;
     const φ1 = p1.lat * Math.PI/180;
     const φ2 = p2.lat * Math.PI/180;
     const Δφ = (p2.lat-p1.lat) * Math.PI/180;
