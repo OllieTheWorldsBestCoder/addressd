@@ -2,6 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { User } from '../../../types/user';
+import { EmbedTrackingService } from '../../../services/embedTracking.service';
+
+const embedTracking = new EmbedTrackingService();
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,6 +26,7 @@ export default async function handler(
   try {
     const { addressId } = req.query;
     const token = req.headers.authorization?.replace('Bearer ', '');
+    const origin = req.headers.origin || 'unknown';
 
     if (!addressId || !token) {
       return res.status(400).json({ error: 'Address ID and token are required' });
@@ -38,11 +42,14 @@ export default async function handler(
     }
 
     const user = userSnapshot.docs[0].data() as User;
+    const userId = userSnapshot.docs[0].id;
 
-    // Verify user has access to this address
-    if (!user.embedAccess?.managedAddresses.includes(addressId as string)) {
-      return res.status(403).json({ error: 'Unauthorized access to this address' });
-    }
+    // Track the embed view
+    await embedTracking.trackEmbedView(
+      userId,
+      addressId as string,
+      new URL(origin).hostname
+    );
 
     // Get address data
     const addressDoc = await getDoc(doc(db, 'addresses', addressId as string));

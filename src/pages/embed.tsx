@@ -6,6 +6,7 @@ import { AddressService } from '../services/address.service';
 import styles from '../styles/Embed.module.css';
 import crypto from 'crypto';
 import { User } from '../types/user';
+import { useRouter } from 'next/router';
 
 export default function EmbedPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -14,13 +15,34 @@ export default function EmbedPage() {
   const [embedCode, setEmbedCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            // Check if user already has embed access
+            if (!userData.embedAccess) {
+              // Update existing user with embed access
+              const embedToken = crypto.randomBytes(32).toString('hex');
+              await updateDoc(doc(db, 'users', firebaseUser.uid), {
+                embedAccess: {
+                  isEmbedUser: true,
+                  managedAddresses: [],
+                  embedToken
+                }
+              });
+              setUser({ ...userData, embedAccess: { isEmbedUser: true, managedAddresses: [], embedToken } });
+            } else {
+              setUser(userData);
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching user data:', err);
+          setError('Failed to load user data');
         }
       } else {
         setUser(null);
@@ -35,26 +57,30 @@ export default function EmbedPage() {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       
-      // Create or update user with embed access
-      const embedToken = crypto.randomBytes(32).toString('hex');
-      const userData: User = {
-        id: result.user.uid,
-        name: result.user.displayName || '',
-        email: result.user.email || '',
-        authToken: crypto.randomBytes(32).toString('hex'),
-        summaryCount: 0,
-        contributionPoints: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        embedAccess: {
-          isEmbedUser: true,
-          managedAddresses: [],
-          embedToken
-        }
-      };
-
-      await setDoc(doc(db, 'users', userData.id), userData);
-      setUser(userData);
+      // Check if user exists
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      
+      if (!userDoc.exists()) {
+        // Create new user with embed access
+        const embedToken = crypto.randomBytes(32).toString('hex');
+        const userData: User = {
+          id: result.user.uid,
+          name: result.user.displayName || '',
+          email: result.user.email || '',
+          authToken: crypto.randomBytes(32).toString('hex'),
+          summaryCount: 0,
+          contributionPoints: 0,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          embedAccess: {
+            isEmbedUser: true,
+            managedAddresses: [],
+            embedToken
+          }
+        };
+        await setDoc(doc(db, 'users', userData.id), userData);
+        setUser(userData);
+      }
     } catch (err) {
       console.error('Error signing in:', err);
       setError('Failed to sign in');
