@@ -16,9 +16,16 @@
       
       if (response.ok) {
         container.innerHTML = `
-          <div class="addressd-content">
-            <p>${data.description}</p>
-            <small>Powered by <a href="${baseUrl}" target="_blank">addressd</a></small>
+          <div class="addressd-content" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 1rem;">
+            <p style="margin: 0 0 1rem 0;">${data.description}</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.875rem;">
+              <a href="${baseUrl}/upload/${addressId}" target="_blank" style="color: #4a90e2; text-decoration: none;">
+                Add Description →
+              </a>
+              <small style="color: #666;">
+                Powered by <a href="${baseUrl}" target="_blank" style="color: #4a90e2; text-decoration: none;">addressd</a>
+              </small>
+            </div>
           </div>
         `;
       } else {
