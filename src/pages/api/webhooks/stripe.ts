@@ -68,29 +68,32 @@ export default async function handler(
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  console.log('Processing checkout completion:', session);
+
   if (!session.client_reference_id) {
+    console.error('No client_reference_id found in session');
     throw new Error('No client_reference_id found in session');
   }
 
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  console.log('Retrieved subscription:', subscription);
+
   const userRef = doc(db, 'users', session.client_reference_id);
   
-  const priceId = subscription.items.data[0].price.id;
-  const isYearly = priceId === process.env.STRIPE_EMBED_YEARLY_PRICE_ID;
-
+  // Store both subscription and payment details
   await updateDoc(userRef, {
     'billing.stripeCustomerId': session.customer as string,
     'billing.plans': arrayUnion({
       type: PlanType.EMBED,
       status: 'active',
-      priceMonthly: 300, // £3
-      priceYearly: 2000, // £20
       startDate: new Date(),
       stripeSubscriptionId: subscription.id,
       currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      isYearly
+      metadata: session.metadata // Store any additional metadata
     })
   });
+
+  console.log('Updated user billing info');
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {

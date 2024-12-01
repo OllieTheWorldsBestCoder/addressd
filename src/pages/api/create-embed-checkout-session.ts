@@ -31,6 +31,14 @@ export default async function handler(
   try {
     const { userId, addressId, description } = req.body;
 
+    // Add logging to debug the request
+    console.log('Creating checkout session with:', {
+      userId,
+      addressId,
+      description,
+      priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -40,19 +48,29 @@ export default async function handler(
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed/success?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed`,
       client_reference_id: userId,
       metadata: {
-        userId,
-        addressId,
-        description,
+        addressId: addressId,
+        description: description
       },
     });
 
-    res.status(200).json({ sessionId: session.id });
-  } catch (error) {
-    console.error('Error creating checkout session:', error);
-    res.status(500).json({ error: 'Failed to create checkout session' });
+    return res.status(200).json({ sessionId: session.id });
+  } catch (error: any) {
+    // Enhanced error logging
+    console.error('Stripe Error:', {
+      type: error.type,
+      message: error.message,
+      code: error.code,
+      param: error.param,
+      raw: error.raw
+    });
+    
+    return res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      details: error.message 
+    });
   }
 } 

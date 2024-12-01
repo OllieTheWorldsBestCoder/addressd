@@ -19,7 +19,8 @@ export default function EmbedPage() {
   const [embedCode, setEmbedCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [validatedAddressId, setValidatedAddressId] = useState<string | null>(null);
+  const [showPricingTable, setShowPricingTable] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -101,11 +102,6 @@ export default function EmbedPage() {
     setError('');
     
     try {
-      console.log('Starting embed creation process...');
-      console.log('User:', user.id);
-      console.log('Address:', address);
-      
-      // First validate the address using the frontend validation endpoint
       const validationResponse = await fetch('/api/address/validate-frontend', {
         method: 'POST',
         headers: {
@@ -121,75 +117,75 @@ export default function EmbedPage() {
       }
 
       const validationResult = await validationResponse.json();
-      console.log('Address validated:', validationResult);
+      
+      // Store data in session storage before showing pricing table
+      sessionStorage.setItem('pendingEmbed', JSON.stringify({
+        addressId: validationResult.addressId,
+        address: address,
+        description: description
+      }));
+      
+      setValidatedAddressId(validationResult.addressId);
+      setShowPricingTable(true);
+      
+    } catch (err) {
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to validate address');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // Check if user has active subscription
-      if (!user.billing?.plans.some(plan => 
-        plan.type === PlanType.EMBED && plan.status === 'active'
-      )) {
-        // Create Stripe Checkout Session
-        const response = await fetch('/api/create-embed-checkout-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: user.id,
-            addressId: validationResult.addressId,
-            description
-          }),
+  // Check for successful payment and create embed
+  useEffect(() => {
+    const session_id = router.query.session_id;
+    const pendingData = sessionStorage.getItem('pendingEmbed');
+
+    // Wait for user authentication before proceeding
+    if (session_id && pendingData && user) {
+      try {
+        console.log('Processing successful checkout...', {
+          session_id,
+          pendingData,
+          user
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to create checkout session');
-        }
-
-        const { sessionId } = await response.json();
-        const stripe = await stripePromise;
         
-        // Redirect to Stripe Checkout
-        const { error } = await stripe!.redirectToCheckout({ sessionId });
-        if (error) {
-          throw error;
-        }
-        return;
-      }
+        const { addressId, address: storedAddress, description: storedDescription } = JSON.parse(pendingData);
 
-      // Add initial description
-      console.log('Adding description to address...');
-      const descriptionResponse = await fetch('/api/address/contribute', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.authToken}`
-        },
-        body: JSON.stringify({
-          address: address,
-          description: description.trim()
-        })
-      });
+        // Create the embed immediately
+        (async () => {
+          try {
+            setLoading(true);
+            
+            // Add description
+            const descriptionResponse = await fetch('/api/address/contribute', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${user.authToken}`
+              },
+              body: JSON.stringify({
+                address: storedAddress,
+                description: storedDescription.trim()
+              })
+            });
 
-      if (!descriptionResponse.ok) {
-        const error = await descriptionResponse.json();
-        throw new Error(error.error || 'Failed to add description');
-      }
+            if (!descriptionResponse.ok) {
+              throw new Error('Failed to add description');
+            }
 
-      console.log('Description added successfully');
+            // Update managed addresses
+            const updatedManagedAddresses = [
+              ...(user.embedAccess?.managedAddresses || []),
+              addressId
+            ];
 
-      // Update user's managed addresses
-      console.log('Updating user managed addresses...');
-      const updatedManagedAddresses = [
-        ...(user.embedAccess?.managedAddresses || []),
-        validationResult.addressId
-      ];
+            await updateDoc(doc(db, 'users', user.id), {
+              'embedAccess.managedAddresses': updatedManagedAddresses
+            });
 
-      await updateDoc(doc(db, 'users', user.id), {
-        'embedAccess.managedAddresses': updatedManagedAddresses
-      });
-
-      console.log('User managed addresses updated');
-
-      // Generate embed code with embed token
-      console.log('Generating embed code...');
-      const embedCode = `
+            // Generate embed code
+            const embedCode = `
 <div id="addressd-embed"></div>
 <script>
   (function() {
@@ -197,54 +193,85 @@ export default function EmbedPage() {
     script.src = '${process.env.NEXT_PUBLIC_BASE_URL}/embed.js';
     script.async = true;
     script.dataset.token = '${user.embedAccess?.embedToken}';
-    script.dataset.address = '${validationResult.addressId}';
+    script.dataset.address = '${addressId}';
     document.head.appendChild(script);
   })();
 </script>`;
 
-      console.log('Embed code generated successfully');
-      setEmbedCode(embedCode);
-      
-    } catch (err) {
-      console.error('Error creating embed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to create embed code');
-    } finally {
-      setLoading(false);
+            // Update state
+            setAddress(storedAddress);
+            setDescription(storedDescription);
+            setValidatedAddressId(addressId);
+            setEmbedCode(embedCode);
+            setShowPricingTable(false);
+            
+            // Clear storage
+            sessionStorage.removeItem('pendingEmbed');
+            
+          } catch (err) {
+            console.error('Error creating embed:', err);
+            setError(err instanceof Error ? err.message : 'Failed to create embed');
+          } finally {
+            setLoading(false);
+          }
+        })();
+
+      } catch (error) {
+        console.error('Error processing checkout:', error);
+        setError('Failed to process checkout');
+      }
     }
-  };
+  }, [router.query.session_id, user]);
 
   return (
     <div className={styles.container}>
       <h1>Create Embeddable Address Description</h1>
       
       {!user ? (
+        // Step 1: Sign in
         <button onClick={handleSignIn} className={styles.signInButton}>
           Sign in with Google to Create Embed
         </button>
-      ) : (
-        <div className={styles.embedForm}>
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter address"
-            className={styles.input}
-          />
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Enter initial description"
-            className={styles.textarea}
-          />
-          <button
-            onClick={handleCreateEmbed}
-            disabled={loading || !address || !description}
-            className={styles.createButton}
+      ) : showPricingTable ? (
+        // Step 3: Show pricing table
+        <div>
+          <stripe-pricing-table 
+            pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID!}
+            publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
+            client-reference-id={user.id}
+            customer-email={user.email}
           >
-            {loading ? 'Creating...' : 'Create Embed Code'}
-          </button>
-          
-          {embedCode && (
+          </stripe-pricing-table>
+        </div>
+      ) : (
+        // Step 2: Show form or Step 4: Show embed code
+        <div className={styles.embedForm}>
+          {!embedCode ? (
+            // Step 2: Input form
+            <>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Enter address"
+                className={styles.input}
+              />
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter initial description"
+                className={styles.textarea}
+              />
+              <button
+                onClick={handleCreateEmbed}
+                disabled={loading || !address || !description}
+                className={styles.createButton}
+              >
+                {loading ? 'Creating...' : 'Create Embed Code'}
+              </button>
+            </>
+          ) : (
+            // Step 4: Show embed code
             <div className={styles.embedCode}>
               <h3>Your Embed Code:</h3>
               <pre>{embedCode}</pre>

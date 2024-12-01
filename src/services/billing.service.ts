@@ -27,19 +27,19 @@ export class BillingService {
     const userRef = doc(db, 'users', userId);
     const userData = (await getDoc(userRef)).data() as User;
     
-    if (!userData?.billing?.stripeCustomerId || !userData?.billing?.apiSubscriptionItemId) {
-      console.warn('No Stripe customer ID or subscription item ID found for user:', userId);
+    if (!userData?.billing?.stripeCustomerId) {
+      console.warn('No Stripe customer ID found for user:', userId);
       return;
     }
 
     try {
-      // Create usage record for the API metering
+      // Create usage record using the correct endpoint
       await stripe.subscriptionItems.createUsageRecord(
-        userData.billing.apiSubscriptionItemId,
+        userData.billing.apiSubscriptionItemId!,
         {
           quantity: callCount,
           timestamp: Math.floor(Date.now() / 1000),
-          action: 'increment',
+          action: 'increment'
         }
       );
 

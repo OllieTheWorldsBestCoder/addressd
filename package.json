@@ -18,7 +18,8 @@
     "test-flow": "ts-node src/scripts/test-address-flow.ts",
     "test-contribution": "ts-node src/scripts/test-contribution.ts",
     "test-auth": "ts-node src/scripts/test-auth-flow.ts",
-    "test-stripe": "ts-node src/scripts/test-stripe-integration.ts"
+    "test-stripe": "ts-node src/scripts/test-stripe-integration.ts",
+    "test-api-flow": "ts-node src/scripts/test-api-flow.ts"
   },
   "dependencies": {
     "@auth/firebase-adapter": "^1.0.0",
