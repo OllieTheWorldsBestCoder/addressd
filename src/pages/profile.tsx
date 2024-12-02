@@ -243,9 +243,113 @@ export default function Profile() {
               </button>
             </motion.div>
 
-            {/* Rest of the profile content */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* ... existing content ... */}
+            {/* Profile Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Personal Information */}
+              <motion.section variants={itemVariants} className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-2xl font-semibold mb-6">Personal Information</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                    <p className="mt-1 text-lg">{user.name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Email</label>
+                    <p className="mt-1 text-lg">{user.email}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Member Since</label>
+                    <p className="mt-1 text-lg">{formatDate(user.createdAt)}</p>
+                  </div>
+                </div>
+              </motion.section>
+
+              {/* API Token */}
+              <motion.section variants={itemVariants} className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-2xl font-semibold mb-6">API Token</h2>
+                <div className="space-y-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Your API Token</p>
+                    <div className="flex items-center space-x-4">
+                      <code className="flex-1 bg-gray-100 p-3 rounded text-sm font-mono break-all">
+                        {user.authToken}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(user.authToken);
+                          setCopied('token');
+                          setTimeout(() => setCopied(null), 2000);
+                        }}
+                        className="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all"
+                      >
+                        {copied === 'token' ? <FiCheck className="w-5 h-5" /> : <FiCopy className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Keep this token secure. You'll need it to authenticate your API requests.
+                  </p>
+                </div>
+              </motion.section>
+
+              {/* Billing */}
+              <motion.section variants={itemVariants} className="bg-white rounded-xl shadow-sm p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-semibold">Billing</h2>
+                  <a
+                    href="https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                  >
+                    <FiExternalLink className="w-4 h-4 mr-2" />
+                    Manage Billing
+                  </a>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-500 mb-1">Current Plan</p>
+                    <p className="text-lg font-semibold">
+                      {user.billing?.plans[0]?.type === PlanType.API ? 'API Plan' : 'Embed Plan'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-500 mb-1">Usage This Month</p>
+                    <p className="text-lg font-semibold">
+                      {user.billing?.plans[0] ? getCurrentUsage(user.billing.plans[0]) : 0} calls
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-500 mb-1">Next Billing Date</p>
+                    <p className="text-lg font-semibold">
+                      {formatDate(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000))}
+                    </p>
+                  </div>
+                </div>
+              </motion.section>
+
+              {/* Account Security */}
+              <motion.section variants={itemVariants} className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="text-2xl font-semibold mb-6">Account Security</h2>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Two-Factor Authentication</h3>
+                    <p className="text-gray-600 mb-4">Add an extra layer of security to your account.</p>
+                    <button className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:shadow-md transition-all">
+                      <FiKey className="inline-block w-4 h-4 mr-2" />
+                      Enable 2FA
+                    </button>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Password</h3>
+                    <p className="text-gray-600 mb-4">Update your password regularly to keep your account secure.</p>
+                    <button className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:shadow-md transition-all">
+                      <FiUser className="inline-block w-4 h-4 mr-2" />
+                      Change Password
+                    </button>
+                  </div>
+                </div>
+              </motion.section>
             </div>
           </motion.div>
         </div>
