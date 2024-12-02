@@ -1,15 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Brand Colors */
+  --color-primary: #1a1f36;    /* Dark navy blue */
+  --color-primary-light: #2a3655;
+  --color-primary-dark: #0f1220;
+  --color-secondary: #4a90e2;  /* Complementary blue */
+  --color-secondary-light: #6ba5e7;
+  --color-secondary-dark: #357abd;
+  --color-accent: #10b981;     /* Success green */
+  --color-accent-light: #34d399;
+  --color-accent-dark: #059669;
+  --color-danger: #e53e3e;     /* Error red */
+  --color-warning: #f6ad55;    /* Warning orange */
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold;
+  }
+}
+
+@layer components {
+  .button {
+    @apply inline-flex items-center justify-center px-6 py-2 rounded-full font-medium transition-all duration-200;
+  }
+
+  .button-primary {
+    @apply bg-primary text-white hover:bg-primary-light hover:-translate-y-0.5;
+  }
+
+  .button-secondary {
+    @apply bg-secondary text-white hover:bg-secondary-light hover:-translate-y-0.5;
+  }
+
+  .button-outline {
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-white hover:-translate-y-0.5;
+  }
+
+  .card {
+    @apply bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-200;
+  }
+
+  .input {
+    @apply w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all;
+  }
+}
+
+/* Custom Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 animate-fade-in;
+}
+
+.modal {
+  @apply bg-white rounded-xl shadow-xl p-6 max-w-lg w-11/12 animate-scale-in;
+}
+
 /* Google Places Autocomplete custom styles */
 .pac-container {
-  border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  @apply rounded-lg shadow-lg border border-gray-200 mt-1;
 }
 
 .pac-item {
-  padding: 0.5rem;
-  cursor: pointer;
+  @apply px-4 py-2 cursor-pointer hover:bg-gray-50;
 }
 
-.pac-item:hover {
-  background-color: #f7fafc;
+.pac-item-selected {
+  @apply bg-gray-100;
+}
+
+.pac-matched {
+  @apply font-medium text-primary;
+}
+
+/* Form Styles */
+.form-group {
+  @apply mb-4;
+}
+
+.form-label {
+  @apply block mb-2 text-sm font-medium text-gray-700;
+}
+
+.form-input {
+  @apply input;
+}
+
+.form-error {
+  @apply mt-1 text-sm text-red-600;
+}
+
+/* Loading States */
+.loading {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.loading-text {
+  @apply h-4 w-3/4 loading;
+}
+
+.loading-button {
+  @apply h-10 w-32 loading;
 } 
