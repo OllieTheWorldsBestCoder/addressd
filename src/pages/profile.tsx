@@ -259,12 +259,6 @@ export default function Profile() {
                             );
 
                             if (embedPlan?.stripeSubscriptionId) {
-                              // Cancel the subscription in Stripe
-                              const response = await fetch('/api/create-billing-portal-session', {
-                                method: 'POST',
-                              });
-                              const { url } = await response.json();
-
                               // Remove the embed from active embeds
                               const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
                                 (e: ActiveEmbed) => 
@@ -280,8 +274,8 @@ export default function Profile() {
                                 )
                               });
 
-                              // Redirect to billing portal to confirm cancellation
-                              window.location.href = url;
+                              // Redirect to Stripe billing portal
+                              window.location.href = 'https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA';
                             }
                           } catch (error) {
                             console.error('Error deleting embed:', error);
@@ -309,31 +303,14 @@ export default function Profile() {
 
         <div className={styles.section}>
           <h2>Billing</h2>
-          <button
-            onClick={async () => {
-              try {
-                const response = await fetch('/api/create-billing-portal-session', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json'
-                  }
-                });
-                
-                if (!response.ok) {
-                  throw new Error('Failed to create billing portal session');
-                }
-                
-                const { url } = await response.json();
-                window.location.href = url;
-              } catch (error) {
-                console.error('Error accessing billing portal:', error);
-                alert('Failed to access billing portal. Please try again.');
-              }
-            }}
+          <a
+            href="https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA"
+            target="_blank"
+            rel="noopener noreferrer"
             className={styles.billingButton}
           >
             Manage Billing
-          </button>
+          </a>
         </div>
       </div>
     </div>
