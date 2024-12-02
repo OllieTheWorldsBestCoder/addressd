@@ -4,6 +4,7 @@ import Stripe from 'stripe';
 import { doc, updateDoc, arrayUnion, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { PlanType, BillingPlan } from '../../../types/billing';
+import { User } from '../../../types/user';
 
 type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
 
@@ -18,7 +19,7 @@ export const config = {
 };
 
 // Helper function to find user by Stripe customer ID
-async function findUserByCustomerId(customerId: string) {
+async function findUserByCustomerId(customerId: string): Promise<User> {
   const usersRef = collection(db, 'users');
   const q = query(usersRef, where('billing.stripeCustomerId', '==', customerId));
   const snapshot = await getDocs(q);
@@ -27,7 +28,7 @@ async function findUserByCustomerId(customerId: string) {
     throw new Error('User not found for customer: ' + customerId);
   }
 
-  const userData = snapshot.docs[0].data();
+  const userData = snapshot.docs[0].data() as Omit<User, 'id'>;
   return {
     id: snapshot.docs[0].id,
     ...userData
