@@ -118,11 +118,81 @@ export default function Docs() {
                   section="response"
                   language="json"
                   code={`{
+  "formattedAddress": "123 Main St, City, Country",
   "summary": "The entrance is on the north side of Main St...",
-  "uploadLink": "https://addressd.app/upload/abc123",
+  "uploadLink": "/upload/abc123",
   "addressId": "abc123"
 }`}
                 />
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Error Handling</h3>
+              <div className="space-y-4">
+                <p className="text-gray-600">All endpoints return consistent error responses:</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-900 mb-2">Error Response Format</h4>
+                  <CodeBlock
+                    section="error"
+                    language="json"
+                    code={`{
+  "error": "Error message here",
+  "details": "Additional error details (in development)"
+}`}
+                  />
+                </div>
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-orange-900 mb-2">Common Error Codes</h4>
+                  <ul className="list-disc list-inside text-orange-800 space-y-2">
+                    <li>400 - Invalid request (missing fields, invalid format)</li>
+                    <li>401 - Unauthorized (missing or invalid API key)</li>
+                    <li>405 - Method not allowed</li>
+                    <li>500 - Internal server error</li>
+                  </ul>
+                </div>
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">CORS Support</h3>
+              <p className="text-gray-600">
+                All API endpoints support CORS and handle preflight requests automatically.
+                The following headers are included in responses:
+              </p>
+              <CodeBlock
+                section="cors"
+                language="text"
+                code={`Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET, POST, OPTIONS
+Access-Control-Allow-Headers: Content-Type, Authorization
+Access-Control-Max-Age: 86400`}
+              />
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Rate Limiting</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <table className="min-w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-left text-gray-600 font-semibold">Plan</th>
+                      <th className="text-left text-gray-600 font-semibold">Rate Limit</th>
+                      <th className="text-left text-gray-600 font-semibold">Burst Limit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="py-2">API Basic</td>
+                      <td>1,000 requests/day</td>
+                      <td>50 requests/minute</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2">API Pro</td>
+                      <td>10,000 requests/day</td>
+                      <td>100 requests/minute</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2">Enterprise</td>
+                      <td>Custom</td>
+                      <td>Custom</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
               <h3 className="text-lg font-semibold text-gray-800 mt-8">Contribute Directions</h3>
@@ -160,18 +230,6 @@ export default function Docs() {
                   <li>New location description: {NEW_ADDRESS_POINTS} credits</li>
                   <li>Improving existing description: {EXISTING_ADDRESS_POINTS} credits</li>
                 </ul>
-              </div>
-
-              <h3 className="text-lg font-semibold text-gray-800 mt-8">Error Responses</h3>
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-                <CodeBlock
-                  section="error"
-                  language="json"
-                  code={`{
-  "error": "Error message here",
-  "details": "Additional error details (in development)"
-}`}
-                />
               </div>
             </motion.section>
 
