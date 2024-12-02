@@ -8,7 +8,6 @@ import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
-import '../types/google.d';
 
 interface AddressResult {
   summary: string;
