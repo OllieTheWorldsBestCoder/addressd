@@ -11,8 +11,8 @@ export function DeleteEmbedModal({ isOpen, onClose, onConfirm }: DeleteEmbedModa
   if (!isOpen) return null;
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modal}>
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <h2>Cancel Subscription</h2>
         <p>
           Warning: Deleting this embed will cancel your subscription at the end of the current billing period. 
@@ -23,7 +23,7 @@ export function DeleteEmbedModal({ isOpen, onClose, onConfirm }: DeleteEmbedModa
             Keep Subscription
           </button>
           <button onClick={onConfirm} className={styles.deleteButton}>
-            Cancel Subscription
+            Proceed with Deletion
           </button>
         </div>
       </div>

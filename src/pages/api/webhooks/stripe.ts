@@ -5,6 +5,8 @@ import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { PlanType, BillingPlan } from '../../../types/billing';
 
+type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia'
 });
@@ -72,8 +74,6 @@ export default async function handler(
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  console.log('Processing checkout completion:', session);
-
   if (!session.client_reference_id) {
     console.error('No client_reference_id found in session');
     throw new Error('No client_reference_id found in session');
@@ -95,9 +95,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const addressId = subscription.metadata.addressId;
 
   // Create the base plan object
+  const status: SubscriptionStatus = 'active';
   let plan: Partial<BillingPlan> = {
     type: planType,
-    status: 'active',
+    status,
     startDate: new Date(),
     stripeSubscriptionId: subscription.id,
   };
@@ -141,7 +142,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   await updateDoc(userRef, updates);
-  console.log('Updated user billing info');
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
@@ -161,14 +161,16 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   const updatedPlans = userData.billing.plans.map((plan: BillingPlan) => {
     if (plan.stripeSubscriptionId === subscription.id) {
+      // Determine the correct status based on subscription state
       let status = plan.status;
+      
       if (subscription.cancel_at_period_end) {
         status = 'cancelling';
       } else if (subscription.status === 'active') {
         status = 'active';
       } else if (subscription.status === 'past_due') {
         status = 'past_due';
-      } else {
+      } else if (subscription.status === 'canceled') {
         status = 'cancelled';
       }
 

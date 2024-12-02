@@ -116,33 +116,37 @@ export default function Profile() {
     try {
       // Find the embed subscription
       const embedPlan = user.billing?.plans.find(
-        plan => plan.type === PlanType.EMBED
+        plan => 
+          plan.type === PlanType.EMBED && 
+          (plan.addressId === selectedEmbed.addressId || !plan.addressId) // Handle both new and old subscriptions
       );
 
-      if (embedPlan?.stripeSubscriptionId) {
-        // Remove the embed from active embeds
-        const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
-          (e: ActiveEmbed) => 
-            !(e.addressId === selectedEmbed.addressId && e.domain === selectedEmbed.domain)
-        );
-        
-        // Update Firebase first
-        await updateDoc(doc(db, 'users', user.id), {
-          'embedAccess.activeEmbeds': updatedEmbeds,
-          'billing.plans': user.billing?.plans.map(plan => 
-            plan.type === PlanType.EMBED 
-              ? { ...plan, status: 'cancelling' }
-              : plan
-          )
-        });
-
-        // Close the modal
-        setIsDeleteModalOpen(false);
-        setSelectedEmbed(null);
-
-        // Redirect to Stripe billing portal for subscription cancellation
-        window.location.href = 'https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA';
+      if (!embedPlan?.stripeSubscriptionId) {
+        throw new Error('No subscription found for this embed');
       }
+
+      // Remove the embed from active embeds
+      const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+        (e: ActiveEmbed) => 
+          !(e.addressId === selectedEmbed.addressId && e.domain === selectedEmbed.domain)
+      );
+      
+      // Update Firebase first
+      await updateDoc(doc(db, 'users', user.id), {
+        'embedAccess.activeEmbeds': updatedEmbeds,
+        'billing.plans': user.billing?.plans.map(plan => 
+          plan.stripeSubscriptionId === embedPlan.stripeSubscriptionId
+            ? { ...plan, status: 'cancelling', addressId: selectedEmbed.addressId }
+            : plan
+        )
+      });
+
+      // Close the modal
+      setIsDeleteModalOpen(false);
+      setSelectedEmbed(null);
+
+      // Redirect to Stripe billing portal
+      window.location.href = 'https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA';
     } catch (error) {
       console.error('Error deleting embed:', error);
       setError('Failed to delete embed. Please try again.');
