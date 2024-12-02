@@ -51,9 +51,17 @@ export default async function handler(
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed`,
       client_reference_id: userId,
+      subscription_data: {
+        metadata: {
+          userId: userId,
+          addressId: addressId,
+          plan_type: 'embed'
+        }
+      },
       metadata: {
         addressId: addressId,
-        description: description
+        description: description,
+        plan_type: 'embed'
       },
     });
 

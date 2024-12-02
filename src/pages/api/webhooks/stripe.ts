@@ -43,6 +43,12 @@ export default async function handler(
   res.status(200).end();
 
   try {
+    console.log(`Processing webhook event: ${event.type}`, {
+      id: event.id,
+      type: event.type,
+      object: event.data.object
+    });
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -79,34 +85,98 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log('Retrieved subscription:', subscription);
 
   const userRef = doc(db, 'users', session.client_reference_id);
+  const userData = await getDoc(userRef);
   
-  // Store both subscription and payment details
-  await updateDoc(userRef, {
-    'billing.stripeCustomerId': session.customer as string,
-    'billing.plans': arrayUnion({
-      type: PlanType.EMBED,
-      status: 'active',
-      startDate: new Date(),
-      stripeSubscriptionId: subscription.id,
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-      metadata: session.metadata // Store any additional metadata
-    })
-  });
+  if (!userData.exists()) {
+    console.error('User not found:', session.client_reference_id);
+    return;
+  }
 
+  // Determine plan type from metadata
+  const planType = subscription.metadata.plan_type as PlanType;
+  const addressId = subscription.metadata.addressId;
+
+  // Create the base plan object
+  let plan: Partial<BillingPlan> = {
+    type: planType,
+    status: 'active',
+    startDate: new Date(),
+    stripeSubscriptionId: subscription.id,
+  };
+
+  // Add plan-specific fields
+  if (planType === PlanType.EMBED && addressId) {
+    plan = {
+      ...plan,
+      type: PlanType.EMBED,
+      priceMonthly: 300, // £3
+      priceYearly: 2000, // £20
+      addressId: addressId
+    };
+  } else if (planType === PlanType.API) {
+    plan = {
+      ...plan,
+      type: PlanType.API,
+      minimumSpend: 5000, // £50
+      ratePerCall: 0.5, // £0.005
+      currentUsage: 0,
+      billingStartDate: new Date(),
+      contributionPoints: 0
+    };
+  }
+
+  // Update user with subscription details
+  const updates: any = {
+    'billing.stripeCustomerId': session.customer as string,
+    'billing.plans': arrayUnion(plan)
+  };
+
+  // For embed subscriptions, also update the activeEmbeds array
+  if (planType === PlanType.EMBED && addressId) {
+    updates['embedAccess.activeEmbeds'] = arrayUnion({
+      addressId: addressId,
+      domain: 'pending', // Will be updated on first embed view
+      createdAt: new Date(),
+      lastUsed: new Date(),
+      viewCount: 0
+    });
+  }
+
+  await updateDoc(userRef, updates);
   console.log('Updated user billing info');
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const userRef = doc(db, 'users', subscription.metadata.userId);
-  const userData = (await getDoc(userRef)).data();
+  const userId = subscription.metadata.userId;
+  if (!userId) {
+    console.error('No user ID found in subscription metadata');
+    return;
+  }
 
-  if (!userData) return;
+  const userRef = doc(db, 'users', userId);
+  const userData = (await getDoc(userRef)).data();
+  
+  if (!userData) {
+    console.error('User not found:', userId);
+    return;
+  }
 
   const updatedPlans = userData.billing.plans.map((plan: BillingPlan) => {
     if (plan.stripeSubscriptionId === subscription.id) {
+      let status = plan.status;
+      if (subscription.cancel_at_period_end) {
+        status = 'cancelling';
+      } else if (subscription.status === 'active') {
+        status = 'active';
+      } else if (subscription.status === 'past_due') {
+        status = 'past_due';
+      } else {
+        status = 'cancelled';
+      }
+
       return {
         ...plan,
-        status: subscription.status,
+        status,
         currentPeriodEnd: new Date(subscription.current_period_end * 1000)
       };
     }
@@ -119,28 +189,41 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
-  const userRef = doc(db, 'users', subscription.metadata.userId);
-  const userData = (await getDoc(userRef)).data();
+  const userId = subscription.metadata.userId;
+  if (!userId) {
+    console.error('No user ID found in subscription metadata');
+    return;
+  }
 
-  if (!userData) return;
+  const userRef = doc(db, 'users', userId);
+  const userData = (await getDoc(userRef)).data();
+  
+  if (!userData) {
+    console.error('User not found:', userId);
+    return;
+  }
 
   const updatedPlans = userData.billing.plans.map((plan: BillingPlan) => {
     if (plan.stripeSubscriptionId === subscription.id) {
       return {
         ...plan,
         status: 'cancelled',
-        canceledAt: new Date(),
-        endDate: new Date(subscription.current_period_end * 1000)
+        endDate: new Date(subscription.ended_at ? subscription.ended_at * 1000 : Date.now())
       };
     }
     return plan;
   });
 
-  if (subscription.metadata.plan_type === 'embed') {
+  // If this was an embed subscription, also update the activeEmbeds array
+  if (subscription.metadata.plan_type === 'embed' && subscription.metadata.addressId) {
+    const activeEmbeds = userData.embedAccess?.activeEmbeds || [];
+    const updatedEmbeds = activeEmbeds.filter(
+      (embed: any) => embed.addressId !== subscription.metadata.addressId
+    );
+
     await updateDoc(userRef, {
       'billing.plans': updatedPlans,
-      'embedAccess.activeEmbeds': [],
-      'embedAccess.isEmbedUser': false
+      'embedAccess.activeEmbeds': updatedEmbeds
     });
   } else {
     await updateDoc(userRef, {

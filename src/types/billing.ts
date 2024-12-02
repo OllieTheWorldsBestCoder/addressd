@@ -9,8 +9,9 @@ export interface EmbedPlan {
   priceMonthly: number;  // £3
   priceYearly: number;   // £20
   startDate: Date;
-  status: 'active' | 'cancelled' | 'past_due';
+  status: 'active' | 'cancelled' | 'past_due' | 'cancelling';
   stripeSubscriptionId?: string;
+  addressId: string;  // Link to the specific embed address
 }
 
 export interface ApiPlan {
@@ -20,7 +21,7 @@ export interface ApiPlan {
   currentUsage: number;
   billingStartDate: Date;
   contributionPoints: number;
-  status: 'active' | 'cancelled' | 'past_due';
+  status: 'active' | 'cancelled' | 'past_due' | 'cancelling';
   stripeSubscriptionId?: string;
 }
 
@@ -30,7 +31,7 @@ export interface EnterprisePlan {
   customMinimumSpend?: number;
   customEmbedPrice?: number;
   startDate: Date;
-  status: 'active' | 'cancelled' | 'past_due';
+  status: 'active' | 'cancelled' | 'past_due' | 'cancelling';
   stripeSubscriptionId?: string;
 }
 
