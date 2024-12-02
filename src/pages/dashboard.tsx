@@ -63,12 +63,13 @@ export default function Dashboard() {
   }, []);
 
   const getUsagePercentage = (plan: BillingPlan) => {
+    if (!plan) return 0;
+    
     try {
-      if (!plan) return 0;
-      
       switch (plan.type) {
         case PlanType.API:
-          return Math.min(((plan as ApiPlan).currentUsage / 1000) * 100, 100);
+          const apiPlan = plan as ApiPlan;
+          return Math.min(((apiPlan.currentUsage || 0) / 1000) * 100, 100);
         case PlanType.EMBED:
           return plan.status === 'active' ? 100 : 0;
         case PlanType.ENTERPRISE:
@@ -83,10 +84,13 @@ export default function Dashboard() {
   };
 
   const getUsageDisplay = (plan: BillingPlan) => {
+    if (!plan) return 'N/A';
+    
     try {
       switch (plan.type) {
         case PlanType.API:
-          return `${formatNumber((plan as ApiPlan).currentUsage)} / 1,000 deliveries`;
+          const apiPlan = plan as ApiPlan;
+          return `${formatNumber(apiPlan.currentUsage || 0)} / 1,000 deliveries`;
         case PlanType.EMBED:
           return plan.status === 'active' ? 'Active' : 'Inactive';
         case PlanType.ENTERPRISE:
@@ -129,14 +133,18 @@ export default function Dashboard() {
 
   const handleCopyApiKey = async () => {
     try {
-      if (user?.apiKey) {
-        await navigator.clipboard.writeText(user.apiKey);
-        setCopySuccess(true);
-        setTimeout(() => setCopySuccess(false), 2000);
+      if (!user?.authToken) {
+        setError('No API token available');
+        return;
       }
-    } catch (err) {
-      console.error('Failed to copy API key:', err);
-      setError('Failed to copy API key to clipboard');
+      
+      await navigator.clipboard.writeText(user.authToken);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy API token:', error);
+      setError('Failed to copy API token to clipboard');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
@@ -288,6 +296,7 @@ export default function Dashboard() {
                   <button 
                     onClick={handleCopyApiKey}
                     className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors flex items-center"
+                    disabled={!user?.authToken}
                   >
                     {copySuccess ? (
                       <>
@@ -297,7 +306,7 @@ export default function Dashboard() {
                     ) : (
                       <>
                         <FiCode className="mr-2" />
-                        Copy API Key
+                        Copy API Token
                       </>
                     )}
                   </button>
