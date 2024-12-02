@@ -6,9 +6,10 @@ interface Props {
   onSelect: (place: google.maps.places.PlaceResult) => void;
   disabled?: boolean;
   className?: string;
+  placeholder?: string;
 }
 
-export default function AddressAutocomplete({ value, onChange, onSelect, disabled, className }: Props) {
+export default function AddressAutocomplete({ value, onChange, onSelect, disabled, className, placeholder }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -42,7 +43,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       className={className}
-      placeholder="Enter an address..."
+      placeholder={placeholder}
     />
   );
 } 
