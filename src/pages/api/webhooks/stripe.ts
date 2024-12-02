@@ -65,8 +65,6 @@ export default async function handler(
         await handleSubscriptionCanceled(subscription);
         break;
       }
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
     }
   } catch (error) {
     console.error('Error processing webhook:', error);
