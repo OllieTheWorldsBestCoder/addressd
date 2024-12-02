@@ -2,14 +2,15 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 
 // Add detailed debug logging
+const stripeKey = process.env.STRIPE_SECRET_KEY || '';
 console.log('Environment Check:', {
-  keyType: process.env.STRIPE_SECRET_KEY?.substring(0, 7), // Just show "sk_live" or "sk_test"
+  keyType: stripeKey.substring(0, 7), // Just show "sk_live" or "sk_test"
   priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
   nodeEnv: process.env.NODE_ENV
 });
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(stripeKey, {
   apiVersion: '2024-11-20.acacia',
   typescript: true,
   appInfo: {
@@ -35,11 +36,11 @@ export default async function handler(
   try {
     const { userId, addressId, description } = req.body;
 
-    // Log the actual key being used (first 7 chars only for security)
+    // Log the configuration being used
     console.log('Stripe Configuration:', {
-      keyPrefix: stripe.getApiField('key')?.substring(0, 7),
+      keyType: stripeKey.substring(0, 7),
       priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
-      isTestMode: !stripe.getApiField('key')?.startsWith('sk_live_')
+      isLiveMode: stripeKey.startsWith('sk_live_')
     });
 
     const session = await stripe.checkout.sessions.create({
