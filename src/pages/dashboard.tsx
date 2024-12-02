@@ -85,7 +85,7 @@ export default function Dashboard() {
     try {
       switch (plan.type) {
         case PlanType.API:
-          return `${formatNumber((plan as ApiPlan).currentUsage)} / 1,000 calls`;
+          return `${formatNumber((plan as ApiPlan).currentUsage)} / 1,000 deliveries`;
         case PlanType.EMBED:
           return plan.status === 'active' ? 'Active' : 'Inactive';
         case PlanType.ENTERPRISE:
@@ -103,9 +103,9 @@ export default function Dashboard() {
     try {
       switch (plan.type) {
         case PlanType.API:
-          return '1,000 calls included';
+          return '1,000 deliveries included';
         case PlanType.EMBED:
-          return 'Unlimited calls';
+          return 'Unlimited directions';
         case PlanType.ENTERPRISE:
           return 'Custom limit';
         default:
@@ -211,8 +211,8 @@ export default function Dashboard() {
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                          {plan?.type === PlanType.API ? 'API Usage' : 
-                           plan?.type === PlanType.EMBED ? 'Embed Status' : 
+                          {plan?.type === PlanType.API ? 'Delivery Optimizations' : 
+                           plan?.type === PlanType.EMBED ? 'Location Directions' : 
                            'Enterprise Usage'}
                         </h3>
                         <p className="text-sm text-gray-500">
@@ -246,7 +246,7 @@ export default function Dashboard() {
                       </div>
                       {plan?.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
                         <p className="mt-2 text-sm text-orange-600">
-                          Approaching limit. Consider upgrading your plan.
+                          Approaching limit. Consider upgrading your plan to optimize more deliveries.
                         </p>
                       )}
                     </div>
@@ -255,7 +255,7 @@ export default function Dashboard() {
               ) : (
                 <div className="col-span-3 text-center p-8 bg-white rounded-xl shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active Plans</h3>
-                  <p className="text-gray-600 mb-4">You don't have any active plans yet.</p>
+                  <p className="text-gray-600 mb-4">Start optimizing your deliveries with our plans.</p>
                   <Link
                     href="/pricing"
                     className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
