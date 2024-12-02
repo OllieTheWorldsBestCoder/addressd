@@ -20,30 +20,11 @@ export default async function handler(
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    // Create a portal session with the custom configuration
     const session = await stripe.billingPortal.sessions.create({
       customer: user.billing.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/profile`,
-      configuration: {
-        features: {
-          subscription_cancel: {
-            enabled: true,
-            mode: 'at_period_end',
-            proration_behavior: 'create_prorations'
-          },
-          subscription_pause: {
-            enabled: true
-          },
-          payment_method_update: {
-            enabled: true
-          },
-          invoice_history: {
-            enabled: true
-          }
-        },
-        business_information: {
-          headline: 'Manage your Addressd subscription'
-        }
-      }
+      configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID
     });
 
     res.status(200).json({ url: session.url });
