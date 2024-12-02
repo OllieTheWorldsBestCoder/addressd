@@ -72,8 +72,8 @@ export default function Home() {
   return (
     <Layout>
       <Head>
-        <title>Addressd - Modern Address Validation</title>
-        <meta name="description" content="Validate and standardize addresses instantly with our powerful API" />
+        <title>Addressd - Natural Language Directions for Better Deliveries</title>
+        <meta name="description" content="Help delivery drivers and customers find exact locations with natural language directions. Save time and improve delivery success rates." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -87,11 +87,11 @@ export default function Home() {
             className="text-center max-w-3xl mx-auto"
           >
             <h1 className="text-5xl font-bold text-primary mb-6">
-              Validate Addresses with Confidence
+              Beyond Just Addresses
             </h1>
             <p className="text-xl text-gray-600 mb-12">
-              Instant address validation and standardization for your applications.
-              Simple, reliable, and ready to scale.
+              Help delivery drivers and customers find your exact location with natural language directions.
+              Reduce failed deliveries and improve customer experience.
             </p>
 
             {/* Main Input Form */}
@@ -108,13 +108,14 @@ export default function Home() {
                   onSelect={handleAddressSelect}
                   disabled={isLoading}
                   className="w-full px-6 py-4 text-lg border-2 border-gray-200 rounded-full shadow-md focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
+                  placeholder="Enter an address to add directions..."
                 />
                 <button
                   type="submit"
                   disabled={isLoading || !address.trim()}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white px-6 py-2 rounded-full hover:bg-primary-light transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>{isLoading ? 'Validating...' : 'Validate'}</span>
+                  <span>{isLoading ? 'Validating...' : 'Add Directions'}</span>
                   <FiArrowRight className="ml-2" />
                 </button>
               </div>
@@ -175,10 +176,10 @@ export default function Home() {
                   <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
                     <FiCheck className="text-2xl text-secondary" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Instant Validation</h3>
+                  <h3 className="text-xl font-semibold ml-3">Natural Language</h3>
                 </div>
                 <p className="text-gray-600">
-                  Real-time address verification against authoritative sources
+                  Clear, human-friendly directions that guide people to the exact location
                 </p>
               </motion.div>
 
@@ -192,10 +193,10 @@ export default function Home() {
                   <div className="p-2 bg-accent bg-opacity-10 rounded-lg">
                     <FiShield className="text-2xl text-accent" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Enterprise Ready</h3>
+                  <h3 className="text-xl font-semibold ml-3">Earn Credits</h3>
                 </div>
                 <p className="text-gray-600">
-                  Built for scale with enterprise-grade security and reliability
+                  Contribute descriptions to earn free API credits and reduce your costs
                 </p>
               </motion.div>
 
@@ -209,10 +210,10 @@ export default function Home() {
                   <div className="p-2 bg-primary bg-opacity-10 rounded-lg">
                     <FiSearch className="text-2xl text-primary" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Global Coverage</h3>
+                  <h3 className="text-xl font-semibold ml-3">Delivery Focused</h3>
                 </div>
                 <p className="text-gray-600">
-                  Comprehensive address validation across multiple countries
+                  Save time and reduce failed deliveries with precise location guidance
                 </p>
               </motion.div>
             </div>
@@ -223,10 +224,10 @@ export default function Home() {
         <div className="bg-primary text-white py-20">
           <div className="container mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-6">
-              Ready to Get Started?
+              Ready to Improve Delivery Success?
             </h2>
             <p className="text-xl mb-8 text-gray-300">
-              Join thousands of companies using Addressd for reliable address validation.
+              Join delivery companies and businesses using Addressd to provide better location guidance.
             </p>
             <Link
               href={user ? '/profile' : '/signup'}

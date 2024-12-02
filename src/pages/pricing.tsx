@@ -15,9 +15,9 @@ interface PricingFeature {
 }
 
 const features: PricingFeature[] = [
-  { name: 'Address Validation', embed: true, api: true, enterprise: true },
-  { name: 'Real-time Updates', embed: true, api: true, enterprise: true },
-  { name: 'Custom Branding', embed: true, api: false, enterprise: true },
+  { name: 'Natural Language Directions', embed: true, api: true, enterprise: true },
+  { name: 'Delivery Optimization', embed: true, api: true, enterprise: true },
+  { name: 'Contribution Credits', embed: true, api: true, enterprise: true },
   { name: 'API Access', embed: false, api: true, enterprise: true },
   { name: 'Usage Analytics', embed: false, api: true, enterprise: true },
   { name: 'Priority Support', embed: false, api: false, enterprise: true },
@@ -61,7 +61,7 @@ export default function Pricing() {
     <Layout>
       <Head>
         <title>Pricing - Addressd</title>
-        <meta name="description" content="Simple, transparent pricing for businesses of all sizes" />
+        <meta name="description" content="Choose the right plan for better delivery experiences" />
       </Head>
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
@@ -81,7 +81,7 @@ export default function Pricing() {
               transition={{ delay: 0.1 }}
               className="text-xl text-gray-600"
             >
-              Choose the plan that's right for your business
+              Choose the plan that fits your delivery needs, and earn credits by contributing descriptions
             </motion.p>
           </div>
 
@@ -128,7 +128,7 @@ export default function Pricing() {
             <motion.div variants={itemVariants} className="card relative overflow-hidden">
               <div className="px-6 py-8">
                 <h3 className="text-2xl font-bold text-primary mb-4">Embed</h3>
-                <p className="text-gray-600 mb-6">Perfect for websites and landing pages</p>
+                <p className="text-gray-600 mb-6">Help customers find your business location</p>
                 <div className="mb-6">
                   <span className="text-4xl font-bold">{getEmbedPrice()}</span>
                   <span className="text-gray-600">{getEmbedPeriod()}</span>
@@ -161,11 +161,12 @@ export default function Pricing() {
               </div>
               <div className="px-6 py-8">
                 <h3 className="text-2xl font-bold text-primary mb-4">API</h3>
-                <p className="text-gray-600 mb-6">For applications and services</p>
+                <p className="text-gray-600 mb-6">Perfect for delivery companies and logistics</p>
                 <div className="mb-6">
                   <span className="text-4xl font-bold">£50</span>
                   <span className="text-gray-600">/month</span>
                   <p className="text-sm text-gray-500 mt-1">+ £0.005 per API call</p>
+                  <p className="text-sm text-green-600 mt-1">Earn credits by contributing descriptions</p>
                 </div>
                 <Link
                   href="/api"
@@ -192,10 +193,10 @@ export default function Pricing() {
             <motion.div variants={itemVariants} className="card relative overflow-hidden">
               <div className="px-6 py-8">
                 <h3 className="text-2xl font-bold text-primary mb-4">Enterprise</h3>
-                <p className="text-gray-600 mb-6">Custom solutions for large teams</p>
+                <p className="text-gray-600 mb-6">Custom solutions for large delivery fleets</p>
                 <div className="mb-6">
                   <span className="text-2xl font-bold">Custom Pricing</span>
-                  <p className="text-sm text-gray-500 mt-1">Tailored to your needs</p>
+                  <p className="text-sm text-gray-500 mt-1">Tailored to your delivery volume</p>
                 </div>
                 <Link
                   href="/contact"
@@ -231,22 +232,22 @@ export default function Pricing() {
               <div>
                 <h3 className="text-xl font-semibold mb-2">What's included in the Embed plan?</h3>
                 <p className="text-gray-600">
-                  The Embed plan includes everything you need to add address validation to your website.
-                  You can customize the appearance and receive real-time updates.
+                  The Embed plan helps businesses provide clear directions to their location. Add it to your website
+                  to help customers find your front door easily.
                 </p>
               </div>
               <div>
                 <h3 className="text-xl font-semibold mb-2">How does API pricing work?</h3>
                 <p className="text-gray-600">
                   API pricing starts at £50/month which includes your first 10,000 API calls.
-                  Additional calls are charged at £0.005 per call.
+                  Additional calls are charged at £0.005 per call. Contribute descriptions to earn free credits!
                 </p>
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-2">Can I switch plans later?</h3>
+                <h3 className="text-xl font-semibold mb-2">How do contribution credits work?</h3>
                 <p className="text-gray-600">
-                  Yes, you can upgrade, downgrade, or cancel your plan at any time.
-                  Changes take effect at the start of your next billing cycle.
+                  Add detailed location descriptions to earn credits. Each approved contribution reduces your API costs,
+                  helping you save while improving the service for everyone.
                 </p>
               </div>
             </div>

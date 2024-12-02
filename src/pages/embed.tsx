@@ -79,7 +79,7 @@ export default function Embed() {
     <Layout>
       <Head>
         <title>Create Your Address Embed - Addressd</title>
-        <meta name="description" content="Add address validation to your website in minutes" />
+        <meta name="description" content="Help customers find your business with clear, natural language directions" />
         <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
       </Head>
 
@@ -102,7 +102,7 @@ export default function Embed() {
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl md:text-5xl font-bold text-primary mb-6"
             >
-              Create Your Address Embed
+              Help Customers Find You
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -110,7 +110,7 @@ export default function Embed() {
               transition={{ delay: 0.1 }}
               className="text-xl text-gray-600"
             >
-              Add address validation to your website in minutes
+              Add clear, natural language directions to your website and help customers get right to your front door
             </motion.p>
           </div>
 
@@ -218,22 +218,28 @@ export default function Embed() {
                 <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
                   3
                 </div>
-                <h2 className="text-2xl font-bold ml-4">Add Description</h2>
+                <h2 className="text-2xl font-bold ml-4">Add Location Details</h2>
               </div>
 
               <div className="bg-white rounded-lg p-6 mb-6">
                 <label className="block text-gray-700 mb-2">
-                  Description <span className="text-red-500">*</span>
+                  Location Description <span className="text-red-500">*</span>
                 </label>
                 <p className="text-sm text-gray-600 mb-4">
-                  Add a description to help identify this embed in your dashboard
+                  Provide clear directions to help people find your exact location. Include details like:
+                  <ul className="list-disc ml-4 mt-2 space-y-1">
+                    <li>Which entrance to use</li>
+                    <li>Nearby landmarks or reference points</li>
+                    <li>Parking instructions</li>
+                    <li>Any tricky parts of finding the location</li>
+                  </ul>
                 </p>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="e.g., Contact form address validation"
+                  placeholder="e.g., We're located on the ground floor, blue door. The entrance is on the side street, not the main road. Look for the coffee shop next door."
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
-                  rows={4}
+                  rows={6}
                 />
               </div>
 
