@@ -3,6 +3,7 @@ import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { User as FirebaseUser } from 'firebase/auth';
 import { User } from '../types/user';
 import { PlanType, BillingPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
@@ -37,7 +38,7 @@ export default function Dashboard() {
   const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
