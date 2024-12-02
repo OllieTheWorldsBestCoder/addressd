@@ -41,7 +41,15 @@ export default function Dashboard() {
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
-            setUser(userDoc.data() as User);
+            const userData = userDoc.data() as User;
+            // Ensure billing and plans exist
+            if (!userData.billing) {
+              userData.billing = { plans: [] };
+            }
+            if (!userData.billing.plans) {
+              userData.billing.plans = [];
+            }
+            setUser(userData);
           }
         } catch (err) {
           console.error('Error fetching user data:', err);
@@ -55,6 +63,71 @@ export default function Dashboard() {
 
     return () => unsubscribe();
   }, []);
+
+  const getUsagePercentage = (plan: BillingPlan) => {
+    try {
+      if (!plan) return 0;
+      
+      switch (plan.type) {
+        case PlanType.API:
+          return Math.min(((plan as ApiPlan).currentUsage / 1000) * 100, 100);
+        case PlanType.EMBED:
+          return plan.status === 'active' ? 100 : 0;
+        case PlanType.ENTERPRISE:
+          return 50;
+        default:
+          return 0;
+      }
+    } catch (err) {
+      console.error('Error calculating usage percentage:', err);
+      return 0;
+    }
+  };
+
+  const getUsageDisplay = (plan: BillingPlan) => {
+    try {
+      switch (plan.type) {
+        case PlanType.API:
+          return `${formatNumber((plan as ApiPlan).currentUsage)} / 1,000 calls`;
+        case PlanType.EMBED:
+          return plan.status === 'active' ? 'Active' : 'Inactive';
+        case PlanType.ENTERPRISE:
+          return 'Custom Usage';
+        default:
+          return 'N/A';
+      }
+    } catch (err) {
+      console.error('Error getting usage display:', err);
+      return 'N/A';
+    }
+  };
+
+  const getPlanLimit = (plan: BillingPlan) => {
+    try {
+      switch (plan.type) {
+        case PlanType.API:
+          return '1,000 calls included';
+        case PlanType.EMBED:
+          return 'Unlimited calls';
+        case PlanType.ENTERPRISE:
+          return 'Custom limit';
+        default:
+          return '';
+      }
+    } catch (err) {
+      console.error('Error getting plan limit:', err);
+      return '';
+    }
+  };
+
+  const formatNumber = (num: number) => {
+    try {
+      return new Intl.NumberFormat().format(num);
+    } catch (err) {
+      console.error('Error formatting number:', err);
+      return '0';
+    }
+  };
 
   if (loading) {
     return (
@@ -82,51 +155,6 @@ export default function Dashboard() {
     );
   }
 
-  const getUsagePercentage = (plan: BillingPlan) => {
-    if (!plan) return 0;
-    
-    switch (plan.type) {
-      case PlanType.API:
-        return Math.min(((plan as ApiPlan).currentUsage / 1000) * 100, 100);
-      case PlanType.EMBED:
-        return plan.status === 'active' ? 100 : 0;
-      case PlanType.ENTERPRISE:
-        return 50;
-      default:
-        return 0;
-    }
-  };
-
-  const getUsageDisplay = (plan: BillingPlan) => {
-    switch (plan.type) {
-      case PlanType.API:
-        return `${formatNumber((plan as ApiPlan).currentUsage)} / 1,000 calls`;
-      case PlanType.EMBED:
-        return plan.status === 'active' ? 'Active' : 'Inactive';
-      case PlanType.ENTERPRISE:
-        return 'Custom Usage';
-      default:
-        return 'N/A';
-    }
-  };
-
-  const getPlanLimit = (plan: BillingPlan) => {
-    switch (plan.type) {
-      case PlanType.API:
-        return '1,000 calls included';
-      case PlanType.EMBED:
-        return 'Unlimited calls';
-      case PlanType.ENTERPRISE:
-        return 'Custom limit';
-      default:
-        return '';
-    }
-  };
-
-  const formatNumber = (num: number) => {
-    return new Intl.NumberFormat().format(num);
-  };
-
   return (
     <Layout>
       <Head>
@@ -135,6 +163,14 @@ export default function Dashboard() {
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
         <div className="container mx-auto px-4">
+          {error && (
+            <div className="max-w-6xl mx-auto mb-8">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            </div>
+          )}
+
           <motion.div
             variants={containerVariants}
             initial="hidden"
@@ -157,24 +193,24 @@ export default function Dashboard() {
 
             {/* Usage Stats */}
             <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {user.billing?.plans.map((plan, index) => (
+              {user.billing?.plans?.map((plan, index) => (
                 <div key={index} className="bg-white rounded-xl shadow-sm p-6">
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {plan.type === PlanType.API ? 'API Usage' : 
-                         plan.type === PlanType.EMBED ? 'Embed Status' : 
+                        {plan?.type === PlanType.API ? 'API Usage' : 
+                         plan?.type === PlanType.EMBED ? 'Embed Status' : 
                          'Enterprise Usage'}
                       </h3>
                       <p className="text-sm text-gray-500">
-                        {plan.type === PlanType.API ? 'This billing period' :
-                         plan.type === PlanType.EMBED ? 'Current status' :
+                        {plan?.type === PlanType.API ? 'This billing period' :
+                         plan?.type === PlanType.EMBED ? 'Current status' :
                          'Custom billing'}
                       </p>
                     </div>
-                    {plan.type === PlanType.API ? (
+                    {plan?.type === PlanType.API ? (
                       <FiCode className="w-6 h-6 text-blue-500" />
-                    ) : plan.type === PlanType.EMBED ? (
+                    ) : plan?.type === PlanType.EMBED ? (
                       <FiBox className="w-6 h-6 text-purple-500" />
                     ) : (
                       <FiStar className="w-6 h-6 text-yellow-500" />
@@ -188,14 +224,14 @@ export default function Dashboard() {
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          plan.type === PlanType.API ? 'bg-blue-500' : 
-                          plan.type === PlanType.EMBED ? 'bg-purple-500' :
+                          plan?.type === PlanType.API ? 'bg-blue-500' : 
+                          plan?.type === PlanType.EMBED ? 'bg-purple-500' :
                           'bg-yellow-500'
                         } transition-all duration-500 ease-in-out`}
                         style={{ width: `${getUsagePercentage(plan)}%` }}
                       />
                     </div>
-                    {plan.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
+                    {plan?.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
                       <p className="mt-2 text-sm text-orange-600">
                         Approaching limit. Consider upgrading your plan.
                       </p>
