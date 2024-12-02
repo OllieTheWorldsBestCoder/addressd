@@ -4,6 +4,9 @@ import Layout from '../components/Layout';
 import { FiCode, FiBox, FiGift, FiCopy, FiCheck } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
+const NEW_ADDRESS_POINTS = 0.05;
+const EXISTING_ADDRESS_POINTS = NEW_ADDRESS_POINTS / 4;
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -82,56 +85,160 @@ export default function Docs() {
                 <h2 className="text-2xl font-bold text-gray-900">Delivery API</h2>
               </div>
               <p className="text-gray-600">
-                Optimize your delivery operations with natural language directions. Our API helps drivers find locations more efficiently.
+                Optimize your delivery operations with our API endpoints.
               </p>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800">Authentication</h3>
-                <p className="text-gray-600">
-                  Include your API token in the Authorization header of your requests:
-                </p>
-                <CodeBlock
-                  section="auth"
-                  code={`Authorization: Bearer your_api_token_here`}
-                />
 
-                <h3 className="text-lg font-semibold text-gray-800 mt-6">Get Delivery Directions</h3>
-                <p className="text-gray-600">
-                  Generate natural language directions for a specific address:
-                </p>
+              <h3 className="text-lg font-semibold text-gray-800">Authentication</h3>
+              <p className="text-gray-600">
+                Include your API token in the Authorization header of your requests:
+              </p>
+              <CodeBlock
+                section="auth"
+                code={`Authorization: Bearer your_api_token_here`}
+              />
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-6">Get Delivery Directions</h3>
+              <p className="text-gray-600">
+                Generate natural language directions for a specific address:
+              </p>
+              <CodeBlock
+                section="delivery"
+                language="bash"
+                code={`curl -X POST https://api.addressd.app/v1/address/validate \\
+  -H "Authorization: Bearer your_api_token_here" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "address": "123 Main St, City, Country"
+  }'`}
+              />
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+                <h4 className="font-semibold text-blue-900 mb-2">Response Format</h4>
                 <CodeBlock
-                  section="delivery"
-                  language="bash"
-                  code={`curl -X POST https://api.addressd.app/v1/directions \\
+                  section="response"
+                  language="json"
+                  code={`{
+  "summary": "The entrance is on the north side of Main St...",
+  "uploadLink": "https://addressd.app/upload/abc123",
+  "addressId": "abc123"
+}`}
+                />
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Contribute Directions</h3>
+              <p className="text-gray-600">
+                Add or update directions for an address:
+              </p>
+              <CodeBlock
+                section="contribute"
+                language="bash"
+                code={`curl -X POST https://api.addressd.app/v1/address/contribute \\
   -H "Authorization: Bearer your_api_token_here" \\
   -H "Content-Type: application/json" \\
   -d '{
     "address": "123 Main St, City, Country",
-    "includeDetails": true
+    "description": "The building has a distinctive blue awning..."
   }'`}
-                />
+              />
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Response Format</h4>
-                  <CodeBlock
-                    section="response"
-                    language="json"
-                    code={`{
-  "directions": {
-    "text": "The building is on the north side of Main St...",
-    "landmarks": ["Corner store", "Red brick building"],
-    "accessPoints": ["Main entrance", "Side door"]
-  },
-  "location": {
-    "formatted_address": "123 Main St, City, Country",
-    "coordinates": {
-      "lat": 51.5074,
-      "lng": -0.1278
-    }
-  }
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                <h4 className="font-semibold text-green-900 mb-2">Response Format</h4>
+                <CodeBlock
+                  section="contribute-response"
+                  language="json"
+                  code={`{
+  "addressId": "abc123",
+  "isNewAddress": false,
+  "pointsEarned": 0.0125
 }`}
-                  />
+                />
+              </div>
+
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+                <h4 className="font-semibold text-yellow-900 mb-2">Points System</h4>
+                <ul className="list-disc list-inside text-yellow-800 space-y-2">
+                  <li>New location description: {NEW_ADDRESS_POINTS} credits</li>
+                  <li>Improving existing description: {EXISTING_ADDRESS_POINTS} credits</li>
+                </ul>
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Error Responses</h3>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                <CodeBlock
+                  section="error"
+                  language="json"
+                  code={`{
+  "error": "Error message here",
+  "details": "Additional error details (in development)"
+}`}
+                />
+              </div>
+            </motion.section>
+
+            {/* Embed Section */}
+            <motion.section variants={itemVariants} className="space-y-6 mt-16">
+              <div className="flex items-center space-x-3">
+                <FiBox className="w-6 h-6 text-purple-500" />
+                <h2 className="text-2xl font-bold text-gray-900">Embed Integration</h2>
+              </div>
+              <p className="text-gray-600">
+                Add natural language directions to your website with our embed widget.
+              </p>
+
+              <h3 className="text-lg font-semibold text-gray-800">Quick Start</h3>
+              <p className="text-gray-600">
+                Add this code to your website where you want the directions widget to appear:
+              </p>
+              <CodeBlock
+                section="embed"
+                language="html"
+                code={`<script src="https://addressd.app/embed.js"></script>
+
+<div id="addressd-directions" data-address="123 Main St, City"></div>
+
+<script>
+  new AddressdEmbed({
+    selector: '#addressd-directions',
+    apiKey: 'your_api_key_here',
+    theme: 'light' // or 'dark'
+  });
+</script>`}
+              />
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Live Example</h3>
+              <div className="bg-white rounded-lg shadow-lg p-6 mt-4">
+                <div className="bg-gray-50 rounded-xl p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Delivery Instructions</h4>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      The entrance is on the north side of Main Street. Look for the blue awning 
+                      next to the coffee shop. The delivery entrance is through the side alley.
+                    </p>
+                  </div>
                 </div>
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Configuration Options</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <CodeBlock
+                  section="config"
+                  language="javascript"
+                  code={`{
+  selector: '#addressd-directions',  // Element to mount the widget
+  apiKey: 'your_api_key_here',      // Your API key
+  theme: 'light',                   // 'light' or 'dark'
+  width: '100%',                    // Widget width
+  height: 'auto',                   // Widget height
+  language: 'en',                   // Language code
+  showMap: true,                    // Show/hide map preview
+  mapType: 'roadmap'               // 'roadmap' or 'satellite'
+}`}
+                />
               </div>
             </motion.section>
 
@@ -168,55 +275,6 @@ export default function Docs() {
                     <li>Improving existing description: 0.0125 credits</li>
                     <li>Credits can be used to reduce API usage costs</li>
                   </ul>
-                </div>
-              </div>
-            </motion.section>
-
-            {/* Embed Demo Section */}
-            <motion.section variants={itemVariants} className="space-y-6">
-              <div className="flex items-center space-x-3">
-                <FiBox className="w-6 h-6 text-purple-500" />
-                <h2 className="text-2xl font-bold text-gray-900">Embed Integration</h2>
-              </div>
-              <p className="text-gray-600">
-                Add natural language directions to your website with our easy-to-use embed code.
-              </p>
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-800">Basic Implementation</h3>
-                <CodeBlock
-                  section="embed"
-                  language="html"
-                  code={`<script src="https://embed.addressd.app/v1/directions.js"></script>
-
-<div id="addressd-directions" data-address="123 Main St, City, Country"></div>
-
-<script>
-  AddressdDirections.init('your_embed_token_here');
-</script>`}
-                />
-
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-purple-900 mb-2">Customization Options</h4>
-                  <CodeBlock
-                    section="customize"
-                    language="html"
-                    code={`<div 
-  id="addressd-directions" 
-  data-address="123 Main St, City, Country"
-  data-theme="light"
-  data-language="en"
-  data-show-map="true"
-></div>`}
-                  />
-                </div>
-
-                <div className="mt-8">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">Live Demo</h3>
-                  <div className="border border-gray-200 rounded-lg p-6 bg-white">
-                    {/* Add your live demo component here */}
-                    <p className="text-gray-600 text-center">Demo component will be added here</p>
-                  </div>
                 </div>
               </div>
             </motion.section>
