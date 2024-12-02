@@ -251,29 +251,19 @@ Access-Control-Max-Age: 86400`}
                 section="embed"
                 language="html"
                 code={`<!-- Add the Addressd script -->
-<script async src="https://js.stripe.com/v3/pricing-table.js"></script>
+<script src="https://addressd.app/embed.js"></script>
 
 <!-- Add the directions widget -->
-<stripe-pricing-table
-  pricing-table-id="your_pricing_table_id"
-  publishable-key="your_publishable_key"
-  client-reference-id="optional_user_id"
-  customer-email="optional_user_email"
-/>
+<div id="addressd-directions"></div>
 
 <!-- Initialize with your configuration -->
 <script>
-  // Optional: Add custom styles
-  const styles = {
+  new AddressdDirections({
+    element: '#addressd-directions',
+    apiKey: 'your_api_key',
+    address: '123 Main St, City',
     theme: 'light',  // or 'dark'
-    width: '100%',
-    borderRadius: '8px',
-    fontFamily: 'system-ui, sans-serif'
-  };
-
-  // Optional: Add event listeners
-  document.querySelector('stripe-pricing-table').addEventListener('priceSelected', (event) => {
-    console.log('Selected price:', event.detail);
+    language: 'en'   // default: 'en'
   });
 </script>`}
               />
@@ -285,13 +275,17 @@ Access-Control-Max-Age: 86400`}
                   language="javascript"
                   code={`{
   // Required
-  pricing-table-id: 'your_pricing_table_id',
-  publishable-key: 'your_publishable_key',
+  element: '#addressd-directions',  // CSS selector for the container
+  apiKey: 'your_api_key',          // Your API key
+  address: '123 Main St, City',    // Address to show directions for
 
   // Optional
-  client-reference-id: 'user_123',    // For tracking subscriptions
-  customer-email: 'user@example.com',  // Pre-fill customer email
-  theme: 'light',                      // 'light' or 'dark'
+  theme: 'light',                  // 'light' or 'dark'
+  language: 'en',                  // Language code
+  width: '100%',                   // Container width
+  height: 'auto',                  // Container height
+  showMap: true,                   // Show map preview
+  mapType: 'roadmap'              // 'roadmap' or 'satellite'
 }`}
                 />
               </div>
@@ -300,10 +294,27 @@ Access-Control-Max-Age: 86400`}
               <div className="space-y-4">
                 <p className="text-gray-600">The widget emits events you can listen to:</p>
                 <ul className="list-disc list-inside text-gray-600 space-y-2">
-                  <li><code>priceSelected</code> - When a price is selected</li>
-                  <li><code>subscriptionCreated</code> - When a subscription is created</li>
+                  <li><code>loaded</code> - When the directions are loaded</li>
                   <li><code>error</code> - When an error occurs</li>
+                  <li><code>feedback</code> - When user provides feedback</li>
                 </ul>
+                <CodeBlock
+                  section="events"
+                  language="javascript"
+                  code={`const widget = new AddressdDirections({...});
+
+widget.on('loaded', (data) => {
+  console.log('Directions loaded:', data);
+});
+
+widget.on('error', (error) => {
+  console.error('Error:', error);
+});
+
+widget.on('feedback', (feedback) => {
+  console.log('User feedback:', feedback);
+});`}
+                />
               </div>
 
               <h3 className="text-lg font-semibold text-gray-800 mt-8">Live Example</h3>
