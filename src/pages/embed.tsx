@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
-import { FiCode, FiArrowLeft, FiLock } from 'react-icons/fi';
+import { FiArrowLeft } from 'react-icons/fi';
 import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
@@ -52,58 +52,6 @@ export default function Embed() {
     }
   };
 
-  const handleCreateEmbed = async () => {
-    if (!description) {
-      setError('Please enter a description');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log('Using Stripe key mode:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_') ? 'live' : 'test');
-
-      const response = await fetch('/api/create-embed-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user?.uid,
-          addressId: validationResult?.addressId,
-          description,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to create checkout session');
-      }
-
-      const { sessionId } = await response.json();
-
-      const stripe = await import('@stripe/stripe-js').then((mod) => mod.loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-        { apiVersion: '2024-11-20.acacia' }
-      ));
-
-      if (!stripe) {
-        throw new Error('Failed to load Stripe');
-      }
-
-      const result = await stripe.redirectToCheckout({ sessionId });
-      
-      if (result.error) {
-        throw new Error(result.error.message);
-      }
-    } catch (err: any) {
-      console.error('Checkout Error:', err);
-      setError(err.message || 'Failed to start checkout. Please try again.');
-      setLoading(false);
-    }
-  };
-
   const handleBack = () => {
     setError(null);
     setStep(step - 1);
@@ -114,6 +62,7 @@ export default function Embed() {
       <Head>
         <title>Create Embed - Addressd</title>
         <meta name="description" content="Add address validation to your website in minutes" />
+        <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
@@ -201,7 +150,7 @@ export default function Embed() {
               </button>
             </motion.div>
 
-            {/* Step 2: Enter Description */}
+            {/* Step 2: Choose Plan */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -213,109 +162,29 @@ export default function Embed() {
                 <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
                   2
                 </div>
-                <h2 className="text-2xl font-bold ml-4">Add Description</h2>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => {
-                      setDescription(e.target.value);
-                      setError(null);
-                    }}
-                    placeholder="Enter a description of this location..."
-                    rows={4}
-                    className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-opacity-20 transition-all ${
-                      error ? 'border-red-300 focus:border-red-400 focus:ring-red-200' :
-                      'border-gray-200 focus:border-secondary focus:ring-secondary'
-                    }`}
-                  />
-                  <p className="mt-2 text-sm text-gray-500">
-                    This description will help users understand more about this location
-                  </p>
-                </div>
+                <h2 className="text-2xl font-bold ml-4">Choose Your Plan</h2>
               </div>
 
               {user ? (
-                <>
-                  <button
-                    onClick={handleCreateEmbed}
-                    className="button button-primary w-full mt-6"
-                    disabled={loading || !description}
-                  >
-                    {loading ? 'Processing...' : 'Continue to Payment'}
-                  </button>
-                  <p className="text-sm text-gray-500 text-center mt-4">
-                    £3/month · Cancel anytime
-                  </p>
-                </>
+                <div className="mt-6">
+                  <stripe-pricing-table
+                    pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}
+                    publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+                    client-reference-id={user.uid}
+                    customer-email={user.email || undefined}
+                  />
+                </div>
               ) : (
-                <div className="text-center mt-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                    <FiLock className="text-2xl text-gray-500" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2">Sign in to continue</h3>
+                <div className="text-center p-8 bg-gray-50 rounded-lg">
+                  <h3 className="text-xl font-semibold mb-4">Sign in to continue</h3>
                   <p className="text-gray-600 mb-6">
-                    Create an account or sign in to create your embed
+                    Create an account or sign in to view pricing and create your embed
                   </p>
-                  <a
-                    href="/signup"
-                    className="button button-primary"
-                  >
+                  <a href="/signup" className="button button-primary">
                     Sign In
                   </a>
                 </div>
               )}
-            </motion.div>
-          </div>
-
-          {/* Features */}
-          <div className="mt-24 max-w-4xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="grid md:grid-cols-3 gap-8"
-            >
-              <div className="card">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
-                    <FiCode className="text-2xl text-secondary" />
-                  </div>
-                  <h3 className="text-xl font-semibold ml-3">Easy Setup</h3>
-                </div>
-                <p className="text-gray-600">
-                  Add our embed code to your website and you're ready to go
-                </p>
-              </div>
-
-              <div className="card">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-accent bg-opacity-10 rounded-lg">
-                    <FiCode className="text-2xl text-accent" />
-                  </div>
-                  <h3 className="text-xl font-semibold ml-3">Customizable</h3>
-                </div>
-                <p className="text-gray-600">
-                  Match your website's design with custom styling options
-                </p>
-              </div>
-
-              <div className="card">
-                <div className="flex items-center mb-4">
-                  <div className="p-2 bg-primary bg-opacity-10 rounded-lg">
-                    <FiLock className="text-2xl text-primary" />
-                  </div>
-                  <h3 className="text-xl font-semibold ml-3">Secure</h3>
-                </div>
-                <p className="text-gray-600">
-                  Enterprise-grade security for your address validation
-                </p>
-              </div>
             </motion.div>
           </div>
         </div>
