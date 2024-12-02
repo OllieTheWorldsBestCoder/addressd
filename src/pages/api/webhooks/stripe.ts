@@ -67,7 +67,6 @@ export default async function handler(
       }
     }
 
-    // Send success response after processing
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
@@ -77,19 +76,15 @@ export default async function handler(
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   if (!session.client_reference_id) {
-    console.error('No client_reference_id found in session');
     throw new Error('No client_reference_id found in session');
   }
 
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-  console.log('Retrieved subscription:', subscription);
-
   const userRef = doc(db, 'users', session.client_reference_id);
   const userData = await getDoc(userRef);
   
   if (!userData.exists()) {
-    console.error('User not found:', session.client_reference_id);
-    return;
+    throw new Error('User not found: ' + session.client_reference_id);
   }
 
   // Determine plan type from metadata
@@ -149,22 +144,19 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const userId = subscription.metadata.userId;
   if (!userId) {
-    console.error('No user ID found in subscription metadata');
-    return;
+    throw new Error('No user ID found in subscription metadata');
   }
 
   const userRef = doc(db, 'users', userId);
   const userData = (await getDoc(userRef)).data();
   
   if (!userData) {
-    console.error('User not found:', userId);
-    return;
+    throw new Error('User not found: ' + userId);
   }
 
-  const updatedPlans = userData.billing.plans.map((plan: BillingPlan) => {
+  const updatedPlans = userData.billing?.plans?.map((plan: BillingPlan) => {
     if (plan.stripeSubscriptionId === subscription.id) {
-      // Determine the correct status based on subscription state
-      let status = plan.status;
+      let status: SubscriptionStatus = plan.status as SubscriptionStatus;
       
       if (subscription.cancel_at_period_end) {
         status = 'cancelling';
@@ -183,7 +175,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
       };
     }
     return plan;
-  });
+  }) || [];
 
   await updateDoc(userRef, {
     'billing.plans': updatedPlans
@@ -193,39 +185,37 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
   const userId = subscription.metadata.userId;
   if (!userId) {
-    console.error('No user ID found in subscription metadata');
-    return;
+    throw new Error('No user ID found in subscription metadata');
   }
 
   const userRef = doc(db, 'users', userId);
   const userData = (await getDoc(userRef)).data();
   
   if (!userData) {
-    console.error('User not found:', userId);
-    return;
+    throw new Error('User not found: ' + userId);
   }
 
-  const updatedPlans = userData.billing.plans.map((plan: BillingPlan) => {
+  const updatedPlans = userData.billing?.plans?.map((plan: BillingPlan) => {
     if (plan.stripeSubscriptionId === subscription.id) {
+      const status: SubscriptionStatus = 'cancelled';
       return {
         ...plan,
-        status: 'cancelled',
+        status,
         endDate: new Date(subscription.ended_at ? subscription.ended_at * 1000 : Date.now())
       };
     }
     return plan;
-  });
+  }) || [];
 
   // If this was an embed subscription, also update the activeEmbeds array
   if (subscription.metadata.plan_type === 'embed' && subscription.metadata.addressId) {
-    const activeEmbeds = userData.embedAccess?.activeEmbeds || [];
-    const updatedEmbeds = activeEmbeds.filter(
+    const activeEmbeds = userData.embedAccess?.activeEmbeds?.filter(
       (embed: any) => embed.addressId !== subscription.metadata.addressId
-    );
+    ) || [];
 
     await updateDoc(userRef, {
       'billing.plans': updatedPlans,
-      'embedAccess.activeEmbeds': updatedEmbeds
+      'embedAccess.activeEmbeds': activeEmbeds
     });
   } else {
     await updateDoc(userRef, {
