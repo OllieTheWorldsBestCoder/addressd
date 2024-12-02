@@ -23,6 +23,27 @@ export default async function handler(
     const session = await stripe.billingPortal.sessions.create({
       customer: user.billing.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/profile`,
+      configuration: {
+        features: {
+          subscription_cancel: {
+            enabled: true,
+            mode: 'at_period_end',
+            proration_behavior: 'create_prorations'
+          },
+          subscription_pause: {
+            enabled: true
+          },
+          payment_method_update: {
+            enabled: true
+          },
+          invoice_history: {
+            enabled: true
+          }
+        },
+        business_information: {
+          headline: 'Manage your Addressd subscription'
+        }
+      }
     });
 
     res.status(200).json({ url: session.url });

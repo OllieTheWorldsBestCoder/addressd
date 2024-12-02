@@ -311,11 +311,24 @@ export default function Profile() {
           <h2>Billing</h2>
           <button
             onClick={async () => {
-              const response = await fetch('/api/create-billing-portal-session', {
-                method: 'POST',
-              });
-              const { url } = await response.json();
-              window.location.href = url;
+              try {
+                const response = await fetch('/api/create-billing-portal-session', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                if (!response.ok) {
+                  throw new Error('Failed to create billing portal session');
+                }
+                
+                const { url } = await response.json();
+                window.location.href = url;
+              } catch (error) {
+                console.error('Error accessing billing portal:', error);
+                alert('Failed to access billing portal. Please try again.');
+              }
             }}
             className={styles.billingButton}
           >
