@@ -6,23 +6,7 @@ import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
 import AddressAutocomplete from '../components/AddressAutocomplete';
-
-// Declare the custom element type
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'stripe-pricing-table': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          'pricing-table-id': string;
-          'publishable-key': string;
-          'client-reference-id'?: string;
-          'customer-email'?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
+import '../types/stripe'; // Import the type definitions
 
 export default function Embed() {
   const [user, setUser] = useState<User | null>(null);
@@ -30,7 +14,6 @@ export default function Embed() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [address, setAddress] = useState('');
-  const [description, setDescription] = useState('');
   const [validationResult, setValidationResult] = useState<any>(null);
 
   useEffect(() => {
