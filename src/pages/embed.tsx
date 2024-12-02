@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
-import { FiCode, FiCopy, FiCheck, FiExternalLink, FiLock, FiArrowLeft } from 'react-icons/fi';
+import { FiCode, FiArrowLeft, FiLock } from 'react-icons/fi';
 import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
@@ -9,12 +9,11 @@ import AddressAutocomplete from '../components/AddressAutocomplete';
 
 export default function Embed() {
   const [user, setUser] = useState<User | null>(null);
-  const [copied, setCopied] = useState(false);
-  const [previewAddress, setPreviewAddress] = useState('');
-  const [selectedDomain, setSelectedDomain] = useState('');
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [address, setAddress] = useState('');
+  const [description, setDescription] = useState('');
   const [validationResult, setValidationResult] = useState<any>(null);
 
   useEffect(() => {
@@ -24,24 +23,8 @@ export default function Embed() {
     return () => unsubscribe();
   }, []);
 
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const getEmbedCode = (domain: string) => {
-    return `<script src="https://addressd.vercel.app/embed.js"></script>
-<div id="addressd-embed" data-domain="${domain}"></div>`;
-  };
-
-  const validateDomain = (domain: string) => {
-    const domainRegex = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9][a-z0-9-]{0,61}[a-z0-9]$/i;
-    return domainRegex.test(domain);
-  };
-
   const handleAddressValidation = async () => {
-    if (!previewAddress) return;
+    if (!address) return;
 
     setLoading(true);
     setError(null);
@@ -52,7 +35,7 @@ export default function Embed() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address: previewAddress }),
+        body: JSON.stringify({ address }),
       });
 
       if (!response.ok) {
@@ -70,8 +53,8 @@ export default function Embed() {
   };
 
   const handleCreateEmbed = async () => {
-    if (!selectedDomain || !validateDomain(selectedDomain)) {
-      setError('Please enter a valid domain');
+    if (!description) {
+      setError('Please enter a description');
       return;
     }
 
@@ -86,8 +69,8 @@ export default function Embed() {
         },
         body: JSON.stringify({
           userId: user?.uid,
-          domain: selectedDomain,
           addressId: validationResult?.addressId,
+          description,
         }),
       });
 
@@ -115,7 +98,7 @@ export default function Embed() {
   return (
     <Layout>
       <Head>
-        <title>Embed Address Validation - Addressd</title>
+        <title>Create Embed - Addressd</title>
         <meta name="description" content="Add address validation to your website in minutes" />
       </Head>
 
@@ -126,7 +109,7 @@ export default function Embed() {
             <div className="h-2 bg-gray-200 rounded-full">
               <div 
                 className="h-full bg-secondary rounded-full transition-all duration-300"
-                style={{ width: `${(step / 3) * 100}%` }}
+                style={{ width: `${(step / 2) * 100}%` }}
               />
             </div>
           </div>
@@ -138,7 +121,7 @@ export default function Embed() {
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl md:text-5xl font-bold text-primary mb-6"
             >
-              Add Address Validation to Your Website
+              Create Your Address Embed
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -146,7 +129,7 @@ export default function Embed() {
               transition={{ delay: 0.1 }}
               className="text-xl text-gray-600"
             >
-              Get started in minutes with our simple embed code
+              Add address validation to your website in minutes
             </motion.p>
           </div>
 
@@ -169,7 +152,7 @@ export default function Embed() {
               </div>
             )}
 
-            {/* Step 1: Preview */}
+            {/* Step 1: Enter Address */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -181,15 +164,15 @@ export default function Embed() {
                 <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
                   1
                 </div>
-                <h2 className="text-2xl font-bold ml-4">Try it out</h2>
+                <h2 className="text-2xl font-bold ml-4">Enter Address</h2>
               </div>
               
               <div className="bg-white rounded-lg p-6 mb-6">
                 <AddressAutocomplete
-                  value={previewAddress}
-                  onChange={setPreviewAddress}
+                  value={address}
+                  onChange={setAddress}
                   onSelect={(place) => {
-                    setPreviewAddress(place.formatted_address || '');
+                    setAddress(place.formatted_address || '');
                   }}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
                 />
@@ -198,13 +181,13 @@ export default function Embed() {
               <button
                 onClick={handleAddressValidation}
                 className="button button-primary w-full"
-                disabled={loading || !previewAddress}
+                disabled={loading || !address}
               >
                 {loading ? 'Validating...' : 'Continue'}
               </button>
             </motion.div>
 
-            {/* Step 2: Configure */}
+            {/* Step 2: Enter Description */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -216,103 +199,54 @@ export default function Embed() {
                 <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
                   2
                 </div>
-                <h2 className="text-2xl font-bold ml-4">Configure</h2>
+                <h2 className="text-2xl font-bold ml-4">Add Description</h2>
               </div>
 
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Website Domain
+                    Description
                   </label>
-                  <input
-                    type="text"
-                    value={selectedDomain}
+                  <textarea
+                    value={description}
                     onChange={(e) => {
-                      setSelectedDomain(e.target.value);
+                      setDescription(e.target.value);
                       setError(null);
                     }}
-                    placeholder="example.com"
+                    placeholder="Enter a description of this location..."
+                    rows={4}
                     className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:ring-opacity-20 transition-all ${
                       error ? 'border-red-300 focus:border-red-400 focus:ring-red-200' :
                       'border-gray-200 focus:border-secondary focus:ring-secondary'
                     }`}
                   />
                   <p className="mt-2 text-sm text-gray-500">
-                    Enter the domain where you'll embed the address validation
+                    This description will help users understand more about this location
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={() => {
-                  if (validateDomain(selectedDomain)) {
-                    setError(null);
-                    setStep(3);
-                  } else {
-                    setError('Please enter a valid domain');
-                  }
-                }}
-                className="button button-primary w-full mt-6"
-                disabled={loading || !selectedDomain}
-              >
-                Continue
-              </button>
-            </motion.div>
-
-            {/* Step 3: Get Code */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className={`card ${step === 3 ? 'ring-2 ring-secondary ring-opacity-50' : ''}`}
-              style={{ display: step === 3 ? 'block' : 'none' }}
-            >
-              <div className="flex items-center mb-6">
-                <div className="w-8 h-8 rounded-full bg-secondary text-white flex items-center justify-center">
-                  3
-                </div>
-                <h2 className="text-2xl font-bold ml-4">Get the Code</h2>
-              </div>
-
               {user ? (
                 <>
-                  <div className="bg-gray-900 rounded-lg p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center">
-                        <FiCode className="text-gray-400 mr-2" />
-                        <span className="text-gray-400">Embed Code</span>
-                      </div>
-                      <button
-                        onClick={() => handleCopyCode(getEmbedCode(selectedDomain))}
-                        className="text-gray-400 hover:text-white transition-colors"
-                      >
-                        {copied ? <FiCheck /> : <FiCopy />}
-                      </button>
-                    </div>
-                    <pre className="text-gray-300 overflow-x-auto">
-                      {getEmbedCode(selectedDomain)}
-                    </pre>
-                  </div>
-
                   <button
                     onClick={handleCreateEmbed}
-                    className="button button-primary w-full"
-                    disabled={loading}
+                    className="button button-primary w-full mt-6"
+                    disabled={loading || !description}
                   >
-                    {loading ? 'Processing...' : 'Start Free Trial'}
+                    {loading ? 'Processing...' : 'Continue to Payment'}
                   </button>
                   <p className="text-sm text-gray-500 text-center mt-4">
                     £3/month · Cancel anytime
                   </p>
                 </>
               ) : (
-                <div className="text-center">
+                <div className="text-center mt-6">
                   <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
                     <FiLock className="text-2xl text-gray-500" />
                   </div>
                   <h3 className="text-xl font-semibold mb-2">Sign in to continue</h3>
                   <p className="text-gray-600 mb-6">
-                    Create an account or sign in to get your embed code
+                    Create an account or sign in to create your embed
                   </p>
                   <a
                     href="/signup"
@@ -348,7 +282,7 @@ export default function Embed() {
               <div className="card">
                 <div className="flex items-center mb-4">
                   <div className="p-2 bg-accent bg-opacity-10 rounded-lg">
-                    <FiExternalLink className="text-2xl text-accent" />
+                    <FiCode className="text-2xl text-accent" />
                   </div>
                   <h3 className="text-xl font-semibold ml-3">Customizable</h3>
                 </div>
@@ -365,7 +299,7 @@ export default function Embed() {
                   <h3 className="text-xl font-semibold ml-3">Secure</h3>
                 </div>
                 <p className="text-gray-600">
-                  Enterprise-grade security with domain verification
+                  Enterprise-grade security for your address validation
                 </p>
               </div>
             </motion.div>
