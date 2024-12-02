@@ -7,6 +7,23 @@ import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 
+// Declare the custom element type
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'stripe-pricing-table': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          'pricing-table-id': string;
+          'publishable-key': string;
+          'client-reference-id'?: string;
+          'customer-email'?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 export default function Embed() {
   const [user, setUser] = useState<User | null>(null);
   const [step, setStep] = useState(1);
@@ -168,8 +185,8 @@ export default function Embed() {
               {user ? (
                 <div className="mt-6">
                   <stripe-pricing-table
-                    pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}
-                    publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+                    pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID || ''}
+                    publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''}
                     client-reference-id={user.uid}
                     customer-email={user.email || undefined}
                   />
