@@ -266,17 +266,25 @@ Access-Control-Max-Age: 86400`}
               <h3 className="text-lg font-semibold text-gray-800 mt-8">Live Example</h3>
               <div className="bg-white rounded-lg shadow-lg p-6 mt-4">
                 <div className="bg-gray-50 rounded-xl p-6">
-                  <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
-                  {process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? (
-                    <stripe-pricing-table
-                      pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}
-                      publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-                    />
-                  ) : (
-                    <div className="text-gray-600 text-center py-8">
-                      Loading pricing table...
+                  <div className="flex items-center mb-4">
+                    <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  <div className="space-y-4">
+                    <h4 className="text-lg font-semibold">Delivery Instructions</h4>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      The entrance is on the north side of Main Street. Look for the blue awning 
+                      next to the coffee shop. The delivery entrance is through the side alley.
+                    </p>
+                    <div className="flex items-center text-sm text-gray-500">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      123 Main Street, City
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
 
