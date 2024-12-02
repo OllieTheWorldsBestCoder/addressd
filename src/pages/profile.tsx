@@ -115,7 +115,7 @@ export default function Profile() {
 
     try {
       // Find the embed subscription
-      const embedPlan = user.billing?.plans.find(
+      const embedPlan = user.billing?.plans?.find(
         plan => 
           plan.type === PlanType.EMBED && 
           (plan.addressId === selectedEmbed.addressId || !plan.addressId) // Handle both new and old subscriptions
@@ -126,19 +126,19 @@ export default function Profile() {
       }
 
       // Remove the embed from active embeds
-      const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+      const updatedEmbeds = user.embedAccess?.activeEmbeds?.filter(
         (e: ActiveEmbed) => 
           !(e.addressId === selectedEmbed.addressId && e.domain === selectedEmbed.domain)
-      );
+      ) || [];
       
       // Update Firebase first
       await updateDoc(doc(db, 'users', user.id), {
         'embedAccess.activeEmbeds': updatedEmbeds,
-        'billing.plans': user.billing?.plans.map(plan => 
+        'billing.plans': user.billing?.plans?.map(plan => 
           plan.stripeSubscriptionId === embedPlan.stripeSubscriptionId
             ? { ...plan, status: 'cancelling', addressId: selectedEmbed.addressId }
             : plan
-        )
+        ) || []
       });
 
       // Close the modal
