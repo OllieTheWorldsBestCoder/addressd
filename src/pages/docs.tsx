@@ -208,18 +208,11 @@ export default function Docs() {
               <h3 className="text-lg font-semibold text-gray-800 mt-8">Live Example</h3>
               <div className="bg-white rounded-lg shadow-lg p-6 mt-4">
                 <div className="bg-gray-50 rounded-xl p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
-                    <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                  </div>
-                  <div className="space-y-4">
-                    <h4 className="text-lg font-semibold">Delivery Instructions</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      The entrance is on the north side of Main Street. Look for the blue awning 
-                      next to the coffee shop. The delivery entrance is through the side alley.
-                    </p>
-                  </div>
+                  <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
+                  <stripe-pricing-table
+                    pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}
+                    publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+                  />
                 </div>
               </div>
 
