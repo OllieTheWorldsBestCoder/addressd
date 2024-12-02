@@ -4,10 +4,10 @@ import { motion } from 'framer-motion';
 import { auth, db } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { User } from '../types/user';
-import { PlanType, BillingPlan } from '../types/billing';
+import { PlanType, BillingPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink } from 'react-icons/fi';
+import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar } from 'react-icons/fi';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -84,9 +84,43 @@ export default function Dashboard() {
 
   const getUsagePercentage = (plan: BillingPlan) => {
     if (!plan) return 0;
-    const limit = plan.type === PlanType.API ? 1000 : 100;
-    const usage = plan.currentUsage || 0;
-    return Math.min((usage / limit) * 100, 100);
+    
+    switch (plan.type) {
+      case PlanType.API:
+        return Math.min(((plan as ApiPlan).currentUsage / 1000) * 100, 100);
+      case PlanType.EMBED:
+        return plan.status === 'active' ? 100 : 0;
+      case PlanType.ENTERPRISE:
+        return 50;
+      default:
+        return 0;
+    }
+  };
+
+  const getUsageDisplay = (plan: BillingPlan) => {
+    switch (plan.type) {
+      case PlanType.API:
+        return `${formatNumber((plan as ApiPlan).currentUsage)} / 1,000 calls`;
+      case PlanType.EMBED:
+        return plan.status === 'active' ? 'Active' : 'Inactive';
+      case PlanType.ENTERPRISE:
+        return 'Custom Usage';
+      default:
+        return 'N/A';
+    }
+  };
+
+  const getPlanLimit = (plan: BillingPlan) => {
+    switch (plan.type) {
+      case PlanType.API:
+        return '1,000 calls included';
+      case PlanType.EMBED:
+        return 'Unlimited calls';
+      case PlanType.ENTERPRISE:
+        return 'Custom limit';
+      default:
+        return '';
+    }
   };
 
   const formatNumber = (num: number) => {
@@ -128,29 +162,44 @@ export default function Dashboard() {
                   <div className="flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">
-                        {plan.type === PlanType.API ? 'API Usage' : 'Embed Usage'}
+                        {plan.type === PlanType.API ? 'API Usage' : 
+                         plan.type === PlanType.EMBED ? 'Embed Status' : 
+                         'Enterprise Usage'}
                       </h3>
-                      <p className="text-sm text-gray-500">This billing period</p>
+                      <p className="text-sm text-gray-500">
+                        {plan.type === PlanType.API ? 'This billing period' :
+                         plan.type === PlanType.EMBED ? 'Current status' :
+                         'Custom billing'}
+                      </p>
                     </div>
                     {plan.type === PlanType.API ? (
                       <FiCode className="w-6 h-6 text-blue-500" />
-                    ) : (
+                    ) : plan.type === PlanType.EMBED ? (
                       <FiBox className="w-6 h-6 text-purple-500" />
+                    ) : (
+                      <FiStar className="w-6 h-6 text-yellow-500" />
                     )}
                   </div>
                   <div className="mt-4">
                     <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>{formatNumber(plan.currentUsage || 0)} calls</span>
-                      <span>{plan.type === PlanType.API ? '1,000' : '100'} included</span>
+                      <span>{getUsageDisplay(plan)}</span>
+                      <span>{getPlanLimit(plan)}</span>
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full ${
-                          plan.type === PlanType.API ? 'bg-blue-500' : 'bg-purple-500'
-                        }`}
+                          plan.type === PlanType.API ? 'bg-blue-500' : 
+                          plan.type === PlanType.EMBED ? 'bg-purple-500' :
+                          'bg-yellow-500'
+                        } transition-all duration-500 ease-in-out`}
                         style={{ width: `${getUsagePercentage(plan)}%` }}
                       />
                     </div>
+                    {plan.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
+                      <p className="mt-2 text-sm text-orange-600">
+                        Approaching limit. Consider upgrading your plan.
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
