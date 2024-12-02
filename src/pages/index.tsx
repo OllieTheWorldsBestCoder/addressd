@@ -97,7 +97,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center max-w-3xl mx-auto"
+            className="text-center max-w-7xl mx-auto"
           >
             <h1 className="text-5xl font-bold text-primary mb-6">
               Beyond Just Addresses
@@ -108,7 +108,7 @@ export default function Home() {
             </p>
 
             {/* Main Input Form */}
-            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto mb-16">
+            <form onSubmit={handleSubmit} className="max-w-3xl mx-auto mb-16">
               <div className="relative">
                 <AddressAutocomplete
                   value={address}
@@ -350,7 +350,7 @@ export default function Home() {
 
         {/* CTA Section */}
         <div className="bg-primary text-white py-20">
-          <div className="container mx-auto px-4 text-center">
+          <div className="container max-w-7xl mx-auto px-4 text-center">
             <h2 className="text-3xl font-bold mb-6">
               Ready to Improve Delivery Success?
             </h2>
