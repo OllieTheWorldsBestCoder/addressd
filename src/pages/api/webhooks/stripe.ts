@@ -22,15 +22,16 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
-    return res.status(405).end();
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).end('Method Not Allowed');
   }
-
-  const buf = await buffer(req);
-  const sig = req.headers['stripe-signature']!;
 
   let event: Stripe.Event;
 
   try {
+    const buf = await buffer(req);
+    const sig = req.headers['stripe-signature']!;
+    
     event = stripe.webhooks.constructEvent(
       buf,
       sig,
@@ -40,9 +41,6 @@ export default async function handler(
     console.error('⚠️ Webhook signature verification failed:', err);
     return res.status(400).json({ error: 'Invalid signature' });
   }
-
-  // Return 200 immediately as recommended by Stripe
-  res.status(200).end();
 
   try {
     console.log(`Processing webhook event: ${event.type}`, {
@@ -68,8 +66,12 @@ export default async function handler(
         break;
       }
     }
+
+    // Send success response after processing
+    return res.status(200).json({ received: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
+    return res.status(500).json({ error: 'Webhook handler failed' });
   }
 }
 
