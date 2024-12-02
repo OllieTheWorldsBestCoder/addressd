@@ -9,6 +9,19 @@ import AddressFeedback from '../components/AddressFeedback';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
 
+// Declare the google namespace to ensure PlaceResult type is available
+declare global {
+  interface Window {
+    google: {
+      maps: {
+        places: {
+          PlaceResult: any;
+        };
+      };
+    };
+  }
+}
+
 interface AddressResult {
   summary: string;
   uploadLink: string;
