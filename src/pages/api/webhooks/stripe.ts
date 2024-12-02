@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { buffer } from 'micro';
 import Stripe from 'stripe';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { PlanType, BillingPlan } from '../../../types/billing';
 
@@ -16,6 +16,23 @@ export const config = {
     bodyParser: false,
   },
 };
+
+// Helper function to find user by Stripe customer ID
+async function findUserByCustomerId(customerId: string) {
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('billing.stripeCustomerId', '==', customerId));
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) {
+    throw new Error('User not found for customer: ' + customerId);
+  }
+
+  const userData = snapshot.docs[0].data();
+  return {
+    id: snapshot.docs[0].id,
+    ...userData
+  };
+}
 
 export default async function handler(
   req: NextApiRequest,
@@ -142,19 +159,11 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata.userId;
-  if (!userId) {
-    throw new Error('No user ID found in subscription metadata');
-  }
+  // Find user by customer ID
+  const user = await findUserByCustomerId(subscription.customer as string);
+  const userRef = doc(db, 'users', user.id);
 
-  const userRef = doc(db, 'users', userId);
-  const userData = (await getDoc(userRef)).data();
-  
-  if (!userData) {
-    throw new Error('User not found: ' + userId);
-  }
-
-  const updatedPlans = userData.billing?.plans?.map((plan: BillingPlan) => {
+  const updatedPlans = user.billing?.plans?.map((plan: BillingPlan) => {
     if (plan.stripeSubscriptionId === subscription.id) {
       let status: SubscriptionStatus = plan.status as SubscriptionStatus;
       
@@ -183,20 +192,12 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata.userId;
-  if (!userId) {
-    throw new Error('No user ID found in subscription metadata');
-  }
-
-  const userRef = doc(db, 'users', userId);
-  const userData = (await getDoc(userRef)).data();
-  
-  if (!userData) {
-    throw new Error('User not found: ' + userId);
-  }
+  // Find user by customer ID
+  const user = await findUserByCustomerId(subscription.customer as string);
+  const userRef = doc(db, 'users', user.id);
 
   // Find the subscription in the user's plans
-  const plan = userData.billing?.plans?.find((p: BillingPlan) => 
+  const plan = user.billing?.plans?.find((p: BillingPlan) => 
     p.stripeSubscriptionId === subscription.id
   );
 
@@ -205,7 +206,7 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
   }
 
   // Update the plans array
-  const updatedPlans = userData.billing?.plans?.map((p: BillingPlan) => {
+  const updatedPlans = user.billing?.plans?.map((p: BillingPlan) => {
     if (p.stripeSubscriptionId === subscription.id) {
       return {
         ...p,
@@ -218,7 +219,7 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
 
   // If this was an embed subscription, remove it from activeEmbeds
   if (plan.type === PlanType.EMBED && plan.addressId) {
-    const activeEmbeds = userData.embedAccess?.activeEmbeds?.filter(
+    const activeEmbeds = user.embedAccess?.activeEmbeds?.filter(
       (embed: any) => embed.addressId !== plan.addressId
     ) || [];
 
