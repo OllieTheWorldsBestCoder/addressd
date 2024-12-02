@@ -236,104 +236,103 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-32 text-left"
+              className="mt-32 text-left max-w-7xl mx-auto"
             >
-              <div className="max-w-7xl mx-auto">
-                <div className="flex flex-col md:flex-row items-center gap-12">
-                  {/* Left side: Demo */}
-                  <div className="w-full md:w-1/2">
-                    <div className="bg-white rounded-2xl shadow-2xl p-6 transform rotate-1 hover:rotate-0 transition-transform duration-300">
-                      <div className="bg-gray-50 rounded-xl p-6">
-                        <div className="flex items-center mb-4">
-                          <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
-                          <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                        </div>
-                        <div className="space-y-4">
-                          <h4 className="text-lg font-semibold text-gray-900">Delivery Instructions</h4>
-                          <p className="text-gray-600 text-sm leading-relaxed">
-                            The entrance is on the north side of Main Street. Look for the blue awning 
-                            next to the coffee shop. The delivery entrance is through the side alley, 
-                            marked with a "Deliveries" sign.
-                          </p>
-                          <div className="flex items-center text-sm text-gray-500">
-                            <FiCheck className="text-green-500 mr-2" />
-                            Verified by Addressd
-                          </div>
+              <div className="flex flex-col md:flex-row items-center gap-12">
+                {/* Left side: Demo */}
+                <div className="w-full md:w-1/2">
+                  <div className="bg-white rounded-2xl shadow-2xl p-6 transform rotate-1 hover:rotate-0 transition-transform duration-300">
+                    <div className="bg-gray-50 rounded-xl p-6">
+                      <div className="flex items-center mb-4">
+                        <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                        <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                        <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                      </div>
+                      <div className="space-y-4">
+                        <h4 className="text-lg font-semibold text-gray-900">Delivery Instructions</h4>
+                        <p className="text-gray-600 text-sm leading-relaxed">
+                          The entrance is on the north side of Main Street. Look for the blue awning 
+                          next to the coffee shop. The delivery entrance is through the side alley, 
+                          marked with a "Deliveries" sign.
+                        </p>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <FiCheck className="text-green-500 mr-2" />
+                          Verified by Addressd
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Right side: Content */}
-                  <div className="w-full md:w-1/2">
-                    <h2 className="text-3xl font-bold text-primary mb-6">
-                      Embed Natural Directions
-                    </h2>
-                    <p className="text-gray-600 mb-8">
-                      Add clear, verified delivery instructions to your website with our 
-                      easy-to-use embed. Help customers and delivery drivers find your 
-                      location without the confusion.
-                    </p>
-                    <div className="space-y-4">
-                      <div className="flex items-start">
-                        <div className="p-2 bg-green-100 rounded-lg mt-1">
-                          <FiCheck className="text-green-500" />
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="font-semibold text-gray-900">One-Line Integration</h3>
-                          <p className="text-gray-600 text-sm">
-                            Add the embed to your site with a single line of code
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="p-2 bg-blue-100 rounded-lg mt-1">
-                          <FiShield className="text-blue-500" />
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="font-semibold text-gray-900">Verified Directions</h3>
-                          <p className="text-gray-600 text-sm">
-                            All directions are verified by our community and AI
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-start">
-                        <div className="p-2 bg-purple-100 rounded-lg mt-1">
-                          <FiSearch className="text-purple-500" />
-                        </div>
-                        <div className="ml-4">
-                          <h3 className="font-semibold text-gray-900">Custom Styling</h3>
-                          <p className="text-gray-600 text-sm">
-                            Match your brand with customizable themes and styles
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-8">
-                      <Link
-                        href="/embed"
-                        className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
-                      >
-                        Try Embed for Free
-                        <FiArrowRight className="ml-2" />
-                      </Link>
                     </div>
                   </div>
                 </div>
 
-                {/* Code Preview */}
-                <div className="mt-16 bg-gray-900 rounded-xl p-6 overflow-hidden">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
-                      <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                {/* Right side: Content */}
+                <div className="w-full md:w-1/2">
+                  <h2 className="text-3xl font-bold text-primary mb-6">
+                    Embed Natural Directions
+                  </h2>
+                  <p className="text-gray-600 mb-8">
+                    Add clear, verified delivery instructions to your website with our 
+                    easy-to-use embed. Help customers and delivery drivers find your 
+                    location without the confusion.
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <div className="p-2 bg-green-100 rounded-lg mt-1">
+                        <FiCheck className="text-green-500" />
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="font-semibold text-gray-900">One-Line Integration</h3>
+                        <p className="text-gray-600 text-sm">
+                          Add the embed to your site with a single line of code
+                        </p>
+                      </div>
                     </div>
-                    <span className="text-gray-400 text-sm">embed.html</span>
+                    <div className="flex items-start">
+                      <div className="p-2 bg-blue-100 rounded-lg mt-1">
+                        <FiShield className="text-blue-500" />
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="font-semibold text-gray-900">Verified Directions</h3>
+                        <p className="text-gray-600 text-sm">
+                          All directions are verified by our community and AI
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start">
+                      <div className="p-2 bg-purple-100 rounded-lg mt-1">
+                        <FiSearch className="text-purple-500" />
+                      </div>
+                      <div className="ml-4">
+                        <h3 className="font-semibold text-gray-900">Custom Styling</h3>
+                        <p className="text-gray-600 text-sm">
+                          Match your brand with customizable themes and styles
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <pre className="text-gray-300 font-mono text-sm overflow-x-auto">
-                    <code>{`<script src="https://embed.addressd.app/v1/directions.js"></script>
+                  <div className="mt-8">
+                    <Link
+                      href="/embed"
+                      className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                    >
+                      Try Embed for Free
+                      <FiArrowRight className="ml-2" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code Preview */}
+              <div className="mt-16 bg-gray-900 rounded-xl p-6 overflow-hidden">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                  </div>
+                  <span className="text-gray-400 text-sm">embed.html</span>
+                </div>
+                <pre className="text-gray-300 font-mono text-sm overflow-x-auto">
+                  <code>{`<script src="https://embed.addressd.app/v1/directions.js"></script>
 
 <div id="addressd-directions" 
      data-address="123 Main St, City, Country"
@@ -343,8 +342,7 @@ export default function Home() {
 <script>
   AddressdDirections.init('your_embed_token');
 </script>`}</code>
-                  </pre>
-                </div>
+                </pre>
               </div>
             </motion.div>
           </motion.div>
