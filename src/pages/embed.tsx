@@ -62,6 +62,8 @@ export default function Embed() {
     setError(null);
 
     try {
+      console.log('Using Stripe key mode:', process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_live_') ? 'live' : 'test');
+
       const response = await fetch('/api/create-embed-checkout-session', {
         method: 'POST',
         headers: {
@@ -75,17 +77,29 @@ export default function Embed() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to create checkout session');
       }
 
       const { sessionId } = await response.json();
 
       const stripe = await import('@stripe/stripe-js').then((mod) => mod.loadStripe(
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+        { apiVersion: '2024-11-20.acacia' }
       ));
-      await stripe?.redirectToCheckout({ sessionId });
-    } catch (err) {
-      setError('Failed to start checkout. Please try again.');
+
+      if (!stripe) {
+        throw new Error('Failed to load Stripe');
+      }
+
+      const result = await stripe.redirectToCheckout({ sessionId });
+      
+      if (result.error) {
+        throw new Error(result.error.message);
+      }
+    } catch (err: any) {
+      console.error('Checkout Error:', err);
+      setError(err.message || 'Failed to start checkout. Please try again.');
       setLoading(false);
     }
   };

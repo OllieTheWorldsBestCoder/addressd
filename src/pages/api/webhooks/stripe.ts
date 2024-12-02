@@ -9,7 +9,13 @@ import { User } from '../../../types/user';
 type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2024-11-20.acacia',
+  typescript: true,
+  appInfo: {
+    name: 'Addressd',
+    version: '1.0.0'
+  },
+  telemetry: false
 });
 
 export const config = {
