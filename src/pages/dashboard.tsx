@@ -7,7 +7,7 @@ import { User } from '../types/user';
 import { PlanType, BillingPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar } from 'react-icons/fi';
+import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck } from 'react-icons/fi';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -34,6 +34,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [copySuccess, setCopySuccess] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
@@ -125,6 +126,19 @@ export default function Dashboard() {
     }
   };
 
+  const handleCopyApiKey = async () => {
+    try {
+      if (user?.apiKey) {
+        await navigator.clipboard.writeText(user.apiKey);
+        setCopySuccess(true);
+        setTimeout(() => setCopySuccess(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to copy API key:', err);
+      setError('Failed to copy API key to clipboard');
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -177,7 +191,9 @@ export default function Dashboard() {
             <motion.div variants={itemVariants} className="flex justify-between items-center">
               <div>
                 <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600 mt-2">Monitor your API usage and embed performance</p>
+                <p className="text-gray-600 mt-2">
+                  Optimize deliveries with natural language directions
+                </p>
               </div>
               <Link
                 href="/pricing"
@@ -257,7 +273,10 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold">API Integration</h3>
                   <FiCode className="w-6 h-6" />
                 </div>
-                <p className="mb-6">Start integrating address validation into your application.</p>
+                <p className="mb-6">
+                  Enhance your delivery service with precise, natural language directions. 
+                  Reduce failed deliveries and improve driver efficiency.
+                </p>
                 <div className="flex space-x-4">
                   <Link
                     href="/docs"
@@ -265,8 +284,21 @@ export default function Dashboard() {
                   >
                     View Docs
                   </Link>
-                  <button className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                    Copy API Key
+                  <button 
+                    onClick={handleCopyApiKey}
+                    className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors flex items-center"
+                  >
+                    {copySuccess ? (
+                      <>
+                        <FiCheck className="mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <FiCode className="mr-2" />
+                        Copy API Key
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -276,7 +308,10 @@ export default function Dashboard() {
                   <h3 className="text-xl font-semibold">Embed Integration</h3>
                   <FiBox className="w-6 h-6" />
                 </div>
-                <p className="mb-6">Add address validation to your website with our embed solution.</p>
+                <p className="mb-6">
+                  Help customers find your exact location with clear, natural language directions.
+                  Perfect for business websites and contact pages.
+                </p>
                 <div className="flex space-x-4">
                   <Link
                     href="/embed"
@@ -298,49 +333,49 @@ export default function Dashboard() {
             <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Boost Accuracy</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Contribute & Save</h3>
                   <FiTrendingUp className="w-6 h-6 text-green-500" />
                 </div>
                 <p className="text-gray-600 mb-6">
-                  Improve address validation accuracy with our advanced validation rules.
+                  Add detailed location descriptions to earn free API credits. Help improve delivery success rates while reducing your costs.
                 </p>
                 <Link
-                  href="/docs#validation-rules"
+                  href="/contribute"
                   className="inline-flex items-center text-gray-600 hover:text-gray-900"
                 >
-                  Learn more <FiExternalLink className="ml-2 w-4 h-4" />
+                  Start Contributing <FiExternalLink className="ml-2 w-4 h-4" />
                 </Link>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Custom Rules</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Optimize Deliveries</h3>
                   <FiZap className="w-6 h-6 text-yellow-500" />
                 </div>
                 <p className="text-gray-600 mb-6">
-                  Create custom validation rules tailored to your business needs.
+                  Track delivery success rates and optimize routes with clear, natural language directions.
                 </p>
                 <Link
-                  href="/docs#custom-rules"
+                  href="/docs#optimization"
                   className="inline-flex items-center text-gray-600 hover:text-gray-900"
                 >
-                  Learn more <FiExternalLink className="ml-2 w-4 h-4" />
+                  View Guide <FiExternalLink className="ml-2 w-4 h-4" />
                 </Link>
               </div>
 
               <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
                 <div className="flex items-start justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Bulk Validation</h3>
-                  <FiPlus className="w-6 h-6 text-indigo-500" />
+                  <h3 className="text-lg font-semibold text-gray-900">Add New Location</h3>
+                  <FiPlus className="w-6 h-6 text-blue-500" />
                 </div>
                 <p className="text-gray-600 mb-6">
-                  Validate multiple addresses at once with our bulk validation feature.
+                  Create detailed, natural language directions for a new location to help drivers find it easily.
                 </p>
                 <Link
-                  href="/docs#bulk-validation"
+                  href="/"
                   className="inline-flex items-center text-gray-600 hover:text-gray-900"
                 >
-                  Learn more <FiExternalLink className="ml-2 w-4 h-4" />
+                  Add Location <FiExternalLink className="ml-2 w-4 h-4" />
                 </Link>
               </div>
             </motion.section>
