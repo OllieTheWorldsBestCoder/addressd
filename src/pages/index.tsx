@@ -177,8 +177,8 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* Feature Highlights */}
-            <div className="grid md:grid-cols-3 gap-8 text-left mt-16">
+            {/* Feature Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-7xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -238,7 +238,7 @@ export default function Home() {
               transition={{ delay: 0.5 }}
               className="mt-32 text-left"
             >
-              <div className="max-w-4xl mx-auto">
+              <div className="max-w-7xl mx-auto">
                 <div className="flex flex-col md:flex-row items-center gap-12">
                   {/* Left side: Demo */}
                   <div className="w-full md:w-1/2">

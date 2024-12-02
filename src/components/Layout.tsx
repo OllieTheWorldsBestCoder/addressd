@@ -46,7 +46,7 @@ export default function Layout({ children }: LayoutProps) {
           isScrolled ? 'bg-white shadow-md' : 'bg-transparent'
         }`}
       >
-        <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <nav className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <motion.div
