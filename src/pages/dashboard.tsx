@@ -42,13 +42,9 @@ export default function Dashboard() {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            // Ensure billing and plans exist
-            if (!userData.billing) {
-              userData.billing = { plans: [] };
-            }
-            if (!userData.billing.plans) {
-              userData.billing.plans = [];
-            }
+            // Ensure billing and plans exist and are arrays
+            userData.billing = userData.billing || { plans: [] };
+            userData.billing.plans = Array.isArray(userData.billing.plans) ? userData.billing.plans : [];
             setUser(userData);
           }
         } catch (err) {
@@ -193,52 +189,65 @@ export default function Dashboard() {
 
             {/* Usage Stats */}
             <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {user.billing?.plans?.map((plan, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-sm p-6">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {plan?.type === PlanType.API ? 'API Usage' : 
-                         plan?.type === PlanType.EMBED ? 'Embed Status' : 
-                         'Enterprise Usage'}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {plan?.type === PlanType.API ? 'This billing period' :
-                         plan?.type === PlanType.EMBED ? 'Current status' :
-                         'Custom billing'}
-                      </p>
+              {Array.isArray(user?.billing?.plans) && user.billing.plans.length > 0 ? (
+                user.billing.plans.map((plan, index) => (
+                  <div key={index} className="bg-white rounded-xl shadow-sm p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">
+                          {plan?.type === PlanType.API ? 'API Usage' : 
+                           plan?.type === PlanType.EMBED ? 'Embed Status' : 
+                           'Enterprise Usage'}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {plan?.type === PlanType.API ? 'This billing period' :
+                           plan?.type === PlanType.EMBED ? 'Current status' :
+                           'Custom billing'}
+                        </p>
+                      </div>
+                      {plan?.type === PlanType.API ? (
+                        <FiCode className="w-6 h-6 text-blue-500" />
+                      ) : plan?.type === PlanType.EMBED ? (
+                        <FiBox className="w-6 h-6 text-purple-500" />
+                      ) : (
+                        <FiStar className="w-6 h-6 text-yellow-500" />
+                      )}
                     </div>
-                    {plan?.type === PlanType.API ? (
-                      <FiCode className="w-6 h-6 text-blue-500" />
-                    ) : plan?.type === PlanType.EMBED ? (
-                      <FiBox className="w-6 h-6 text-purple-500" />
-                    ) : (
-                      <FiStar className="w-6 h-6 text-yellow-500" />
-                    )}
+                    <div className="mt-4">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>{getUsageDisplay(plan)}</span>
+                        <span>{getPlanLimit(plan)}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            plan?.type === PlanType.API ? 'bg-blue-500' : 
+                            plan?.type === PlanType.EMBED ? 'bg-purple-500' :
+                            'bg-yellow-500'
+                          } transition-all duration-500 ease-in-out`}
+                          style={{ width: `${getUsagePercentage(plan)}%` }}
+                        />
+                      </div>
+                      {plan?.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
+                        <p className="mt-2 text-sm text-orange-600">
+                          Approaching limit. Consider upgrading your plan.
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                      <span>{getUsageDisplay(plan)}</span>
-                      <span>{getPlanLimit(plan)}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          plan?.type === PlanType.API ? 'bg-blue-500' : 
-                          plan?.type === PlanType.EMBED ? 'bg-purple-500' :
-                          'bg-yellow-500'
-                        } transition-all duration-500 ease-in-out`}
-                        style={{ width: `${getUsagePercentage(plan)}%` }}
-                      />
-                    </div>
-                    {plan?.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
-                      <p className="mt-2 text-sm text-orange-600">
-                        Approaching limit. Consider upgrading your plan.
-                      </p>
-                    )}
-                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center p-8 bg-white rounded-xl shadow-sm">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No Active Plans</h3>
+                  <p className="text-gray-600 mb-4">You don't have any active plans yet.</p>
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                  >
+                    View Plans
+                  </Link>
                 </div>
-              ))}
+              )}
             </motion.section>
 
             {/* Quick Actions */}
