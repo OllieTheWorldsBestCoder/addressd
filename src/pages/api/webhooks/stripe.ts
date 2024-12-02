@@ -195,22 +195,31 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
     throw new Error('User not found: ' + userId);
   }
 
-  const updatedPlans = userData.billing?.plans?.map((plan: BillingPlan) => {
-    if (plan.stripeSubscriptionId === subscription.id) {
-      const status: SubscriptionStatus = 'cancelled';
+  // Find the subscription in the user's plans
+  const plan = userData.billing?.plans?.find((p: BillingPlan) => 
+    p.stripeSubscriptionId === subscription.id
+  );
+
+  if (!plan) {
+    throw new Error('Subscription not found in user plans');
+  }
+
+  // Update the plans array
+  const updatedPlans = userData.billing?.plans?.map((p: BillingPlan) => {
+    if (p.stripeSubscriptionId === subscription.id) {
       return {
-        ...plan,
-        status,
+        ...p,
+        status: 'cancelled' as SubscriptionStatus,
         endDate: new Date(subscription.ended_at ? subscription.ended_at * 1000 : Date.now())
       };
     }
-    return plan;
+    return p;
   }) || [];
 
-  // If this was an embed subscription, also update the activeEmbeds array
-  if (subscription.metadata.plan_type === 'embed' && subscription.metadata.addressId) {
+  // If this was an embed subscription, remove it from activeEmbeds
+  if (plan.type === PlanType.EMBED && plan.addressId) {
     const activeEmbeds = userData.embedAccess?.activeEmbeds?.filter(
-      (embed: any) => embed.addressId !== subscription.metadata.addressId
+      (embed: any) => embed.addressId !== plan.addressId
     ) || [];
 
     await updateDoc(userRef, {
