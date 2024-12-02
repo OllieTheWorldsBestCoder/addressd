@@ -250,18 +250,61 @@ Access-Control-Max-Age: 86400`}
               <CodeBlock
                 section="embed"
                 language="html"
-                code={`<script src="https://addressd.app/embed.js"></script>
+                code={`<!-- Add the Addressd script -->
+<script async src="https://js.stripe.com/v3/pricing-table.js"></script>
 
-<div id="addressd-directions" data-address="123 Main St, City"></div>
+<!-- Add the directions widget -->
+<stripe-pricing-table
+  pricing-table-id="your_pricing_table_id"
+  publishable-key="your_publishable_key"
+  client-reference-id="optional_user_id"
+  customer-email="optional_user_email"
+/>
 
+<!-- Initialize with your configuration -->
 <script>
-  new AddressdEmbed({
-    selector: '#addressd-directions',
-    apiKey: 'your_api_key_here',
-    theme: 'light' // or 'dark'
+  // Optional: Add custom styles
+  const styles = {
+    theme: 'light',  // or 'dark'
+    width: '100%',
+    borderRadius: '8px',
+    fontFamily: 'system-ui, sans-serif'
+  };
+
+  // Optional: Add event listeners
+  document.querySelector('stripe-pricing-table').addEventListener('priceSelected', (event) => {
+    console.log('Selected price:', event.detail);
   });
 </script>`}
               />
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Configuration Options</h3>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <CodeBlock
+                  section="config"
+                  language="javascript"
+                  code={`{
+  // Required
+  pricing-table-id: 'your_pricing_table_id',
+  publishable-key: 'your_publishable_key',
+
+  // Optional
+  client-reference-id: 'user_123',    // For tracking subscriptions
+  customer-email: 'user@example.com',  // Pre-fill customer email
+  theme: 'light',                      // 'light' or 'dark'
+}`}
+                />
+              </div>
+
+              <h3 className="text-lg font-semibold text-gray-800 mt-8">Events</h3>
+              <div className="space-y-4">
+                <p className="text-gray-600">The widget emits events you can listen to:</p>
+                <ul className="list-disc list-inside text-gray-600 space-y-2">
+                  <li><code>priceSelected</code> - When a price is selected</li>
+                  <li><code>subscriptionCreated</code> - When a subscription is created</li>
+                  <li><code>error</code> - When an error occurs</li>
+                </ul>
+              </div>
 
               <h3 className="text-lg font-semibold text-gray-800 mt-8">Live Example</h3>
               <div className="bg-white rounded-lg shadow-lg p-6 mt-4">
@@ -286,24 +329,6 @@ Access-Control-Max-Age: 86400`}
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <h3 className="text-lg font-semibold text-gray-800 mt-8">Configuration Options</h3>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                <CodeBlock
-                  section="config"
-                  language="javascript"
-                  code={`{
-  selector: '#addressd-directions',  // Element to mount the widget
-  apiKey: 'your_api_key_here',      // Your API key
-  theme: 'light',                   // 'light' or 'dark'
-  width: '100%',                    // Widget width
-  height: 'auto',                   // Widget height
-  language: 'en',                   // Language code
-  showMap: true,                    // Show/hide map preview
-  mapType: 'roadmap'               // 'roadmap' or 'satellite'
-}`}
-                />
               </div>
             </motion.section>
 
