@@ -1,46 +1,38 @@
-import { useEffect, useRef, useState } from 'react';
-import styles from '../styles/AddressAutocomplete.module.css';
+import { useEffect, useRef } from 'react';
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
   onSelect: (place: google.maps.places.PlaceResult) => void;
   disabled?: boolean;
+  className?: string;
 }
 
-export default function AddressAutocomplete({ value, onChange, onSelect, disabled }: Props) {
+export default function AddressAutocomplete({ value, onChange, onSelect, disabled, className }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
-    const checkGoogleMapsLoaded = () => {
-      if (window.google && window.google.maps) {
-        setIsGoogleLoaded(true);
-        initAutocomplete();
-      } else {
-        setTimeout(checkGoogleMapsLoaded, 100);
-      }
-    };
+    if (!inputRef.current || !window.google) return;
 
-    checkGoogleMapsLoaded();
-  }, []);
-
-  const initAutocomplete = () => {
-    if (!inputRef.current) return;
-
-    const autocomplete = new google.maps.places.Autocomplete(inputRef.current, {
-      componentRestrictions: { country: 'gb' },
-      fields: ['formatted_address', 'geometry', 'name'],
+    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+      types: ['address'],
+      fields: ['formatted_address', 'address_components', 'geometry'],
     });
 
-    autocomplete.addListener('place_changed', () => {
-      const place = autocomplete.getPlace();
-      if (place.formatted_address) {
-        onChange(place.formatted_address);
+    autocompleteRef.current.addListener('place_changed', () => {
+      const place = autocompleteRef.current?.getPlace();
+      if (place) {
         onSelect(place);
       }
     });
-  };
+
+    return () => {
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+    };
+  }, [onSelect]);
 
   return (
     <input
@@ -48,9 +40,9 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      disabled={disabled || !isGoogleLoaded}
-      placeholder={isGoogleLoaded ? "Enter an address..." : "Loading..."}
-      className={styles.input}
+      disabled={disabled}
+      className={className}
+      placeholder="Enter an address..."
     />
   );
 } 

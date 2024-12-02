@@ -1,21 +1,51 @@
-import { ReactNode } from 'react';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiMenu, FiX, FiUser, FiLogOut } from 'react-icons/fi';
-import { useState } from 'react';
+import { FiMenu, FiX, FiUser, FiLogOut, FiBook, FiDollarSign, FiGrid } from 'react-icons/fi';
+import { auth } from '../config/firebase';
+import { signOut } from 'firebase/auth';
+import { User } from 'firebase/auth';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { data: session } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      setUser(user);
+    });
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b border-gray-200 fixed w-full z-50">
+      <header 
+        className={`fixed w-full z-50 transition-all duration-200 ${
+          isScrolled ? 'bg-white shadow-md' : 'bg-transparent'
+        }`}
+      >
         <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
@@ -23,38 +53,66 @@ export default function Layout({ children }: LayoutProps) {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3 }}
+              className="relative"
             >
-              {/* Replace with your actual logo */}
               <div className="w-8 h-8 bg-primary rounded-lg"></div>
+              <div className="absolute -inset-0.5 bg-primary opacity-20 blur rounded-lg"></div>
             </motion.div>
-            <span className="text-xl font-bold text-primary">Addressd</span>
+            <span className={`text-xl font-bold transition-colors duration-200 ${
+              isScrolled ? 'text-primary' : 'text-primary'
+            }`}>
+              Addressd
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            <Link href="/docs" className="text-gray-600 hover:text-primary transition-colors">
-              Documentation
+            <Link 
+              href="/docs" 
+              className={`flex items-center space-x-2 transition-colors duration-200 ${
+                isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+              }`}
+            >
+              <FiBook className="text-lg" />
+              <span>Docs</span>
             </Link>
-            <Link href="/pricing" className="text-gray-600 hover:text-primary transition-colors">
-              Pricing
+            <Link 
+              href="/pricing" 
+              className={`flex items-center space-x-2 transition-colors duration-200 ${
+                isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+              }`}
+            >
+              <FiDollarSign className="text-lg" />
+              <span>Pricing</span>
             </Link>
-            {session ? (
+            {user ? (
               <>
-                <Link href="/dashboard" className="text-gray-600 hover:text-primary transition-colors">
-                  Dashboard
+                <Link 
+                  href="/dashboard" 
+                  className={`flex items-center space-x-2 transition-colors duration-200 ${
+                    isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+                  }`}
+                >
+                  <FiGrid className="text-lg" />
+                  <span>Dashboard</span>
                 </Link>
                 <div className="relative group">
-                  <button className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors">
-                    <FiUser />
-                    <span>{session.user?.email}</span>
+                  <button className={`flex items-center space-x-2 transition-colors duration-200 ${
+                    isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+                  }`}>
+                    <FiUser className="text-lg" />
+                    <span>{user.email}</span>
                   </button>
                   <div className="absolute right-0 w-48 mt-2 py-2 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                    <Link href="/profile" className="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                    <Link 
+                      href="/profile" 
+                      className="block px-4 py-2 text-gray-800 hover:bg-gray-50 transition-colors duration-200"
+                    >
                       Profile
                     </Link>
                     <button
-                      onClick={() => signOut()}
-                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100 flex items-center"
+                      onClick={handleSignOut}
+                      className="w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-50 transition-colors duration-200 flex items-center"
                     >
                       <FiLogOut className="mr-2" />
                       Sign Out
@@ -63,18 +121,20 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </>
             ) : (
-              <button
-                onClick={() => signIn()}
-                className="px-6 py-2 bg-primary text-white rounded-full hover:bg-primary-light transition-all"
+              <Link
+                href="/signup"
+                className="button button-primary"
               >
                 Sign In
-              </button>
+              </Link>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-gray-600 hover:text-primary transition-colors"
+            className={`md:hidden transition-colors duration-200 ${
+              isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+            }`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
@@ -84,62 +144,67 @@ export default function Layout({ children }: LayoutProps) {
         {/* Mobile Navigation */}
         <motion.div
           initial={false}
-          animate={{ height: isMenuOpen ? 'auto' : 0, opacity: isMenuOpen ? 1 : 0 }}
+          animate={{ 
+            height: isMenuOpen ? 'auto' : 0,
+            opacity: isMenuOpen ? 1 : 0
+          }}
           transition={{ duration: 0.2 }}
-          className="md:hidden overflow-hidden bg-white border-t border-gray-200"
+          className="md:hidden overflow-hidden bg-white border-t border-gray-200 shadow-lg"
         >
           <div className="container mx-auto px-4 py-4 space-y-4">
             <Link
               href="/docs"
-              className="block text-gray-600 hover:text-primary transition-colors"
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
               onClick={() => setIsMenuOpen(false)}
             >
-              Documentation
+              <FiBook className="text-lg" />
+              <span>Documentation</span>
             </Link>
             <Link
               href="/pricing"
-              className="block text-gray-600 hover:text-primary transition-colors"
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
               onClick={() => setIsMenuOpen(false)}
             >
-              Pricing
+              <FiDollarSign className="text-lg" />
+              <span>Pricing</span>
             </Link>
-            {session ? (
+            {user ? (
               <>
                 <Link
                   href="/dashboard"
-                  className="block text-gray-600 hover:text-primary transition-colors"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Dashboard
+                  <FiGrid className="text-lg" />
+                  <span>Dashboard</span>
                 </Link>
                 <Link
                   href="/profile"
-                  className="block text-gray-600 hover:text-primary transition-colors"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  Profile
+                  <FiUser className="text-lg" />
+                  <span>Profile</span>
                 </Link>
                 <button
                   onClick={() => {
-                    signOut();
+                    handleSignOut();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left text-gray-600 hover:text-primary transition-colors flex items-center"
+                  className="w-full flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
                 >
-                  <FiLogOut className="mr-2" />
-                  Sign Out
+                  <FiLogOut className="text-lg" />
+                  <span>Sign Out</span>
                 </button>
               </>
             ) : (
-              <button
-                onClick={() => {
-                  signIn();
-                  setIsMenuOpen(false);
-                }}
-                className="w-full px-6 py-2 bg-primary text-white rounded-full hover:bg-primary-light transition-all"
+              <Link
+                href="/signup"
+                onClick={() => setIsMenuOpen(false)}
+                className="button button-primary w-full text-center"
               >
                 Sign In
-              </button>
+              </Link>
             )}
           </div>
         </motion.div>
