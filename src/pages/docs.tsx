@@ -209,10 +209,16 @@ export default function Docs() {
               <div className="bg-white rounded-lg shadow-lg p-6 mt-4">
                 <div className="bg-gray-50 rounded-xl p-6">
                   <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
-                  <stripe-pricing-table
-                    pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}
-                    publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
-                  />
+                  {process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID && process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ? (
+                    <stripe-pricing-table
+                      pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}
+                      publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+                    />
+                  ) : (
+                    <div className="text-gray-600 text-center py-8">
+                      Loading pricing table...
+                    </div>
+                  )}
                 </div>
               </div>
 
