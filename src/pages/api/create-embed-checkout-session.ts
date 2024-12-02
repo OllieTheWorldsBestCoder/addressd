@@ -1,24 +1,28 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
 
+// Add detailed debug logging
+console.log('Environment Check:', {
+  keyType: process.env.STRIPE_SECRET_KEY?.substring(0, 7), // Just show "sk_live" or "sk_test"
+  priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
+  baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+  nodeEnv: process.env.NODE_ENV
+});
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2024-11-20.acacia',
+  typescript: true,
+  appInfo: {
+    name: 'Addressd',
+    version: '1.0.0'
+  },
+  telemetry: false // Disable usage tracking
 });
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Add CORS headers first
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -31,12 +35,11 @@ export default async function handler(
   try {
     const { userId, addressId, description } = req.body;
 
-    // Add logging to debug the request
-    console.log('Creating checkout session with:', {
-      userId,
-      addressId,
-      description,
-      priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID
+    // Log the actual key being used (first 7 chars only for security)
+    console.log('Stripe Configuration:', {
+      keyPrefix: stripe.getApiField('key')?.substring(0, 7),
+      priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
+      isTestMode: !stripe.getApiField('key')?.startsWith('sk_live_')
     });
 
     const session = await stripe.checkout.sessions.create({
