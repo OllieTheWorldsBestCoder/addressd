@@ -8,6 +8,7 @@ import styles from '../styles/Profile.module.css';
 import { useRouter } from 'next/router';
 import { Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
+import { DeleteEmbedModal } from '../components/DeleteEmbedModal';
 
 interface ActiveEmbed {
   addressId: string;
@@ -26,6 +27,8 @@ export default function Profile() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedEmbed, setSelectedEmbed] = useState<ActiveEmbed | null>(null);
   const router = useRouter();
   const [addressDetails, setAddressDetails] = useState<{[key: string]: AddressDetails}>({});
 
@@ -104,6 +107,45 @@ export default function Profile() {
     } catch (err) {
       console.error('Error signing out:', err);
       setError('Failed to sign out');
+    }
+  };
+
+  const handleDeleteEmbed = async () => {
+    if (!user || !selectedEmbed) return;
+
+    try {
+      // Find the embed subscription
+      const embedPlan = user.billing?.plans.find(
+        plan => plan.type === PlanType.EMBED
+      );
+
+      if (embedPlan?.stripeSubscriptionId) {
+        // Remove the embed from active embeds
+        const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
+          (e: ActiveEmbed) => 
+            !(e.addressId === selectedEmbed.addressId && e.domain === selectedEmbed.domain)
+        );
+        
+        // Update Firebase first
+        await updateDoc(doc(db, 'users', user.id), {
+          'embedAccess.activeEmbeds': updatedEmbeds,
+          'billing.plans': user.billing?.plans.map(plan => 
+            plan.type === PlanType.EMBED 
+              ? { ...plan, status: 'cancelling' }
+              : plan
+          )
+        });
+
+        // Close the modal
+        setIsDeleteModalOpen(false);
+        setSelectedEmbed(null);
+
+        // Redirect to Stripe billing portal for subscription cancellation
+        window.location.href = 'https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA';
+      }
+    } catch (error) {
+      console.error('Error deleting embed:', error);
+      setError('Failed to delete embed. Please try again.');
     }
   };
 
@@ -216,7 +258,7 @@ export default function Profile() {
             </Link>
           </div>
 
-          {user.embedAccess?.activeEmbeds && user.embedAccess.activeEmbeds.length > 0 ? (
+          {user?.embedAccess?.activeEmbeds && user.embedAccess.activeEmbeds.length > 0 ? (
             <div className={styles.embedsList}>
               {user.embedAccess.activeEmbeds.map((embed: ActiveEmbed) => (
                 <div key={`${embed.addressId}-${embed.domain}`} className={styles.embedItem}>
@@ -246,42 +288,9 @@ export default function Profile() {
                       Copy Code
                     </button>
                     <button
-                      onClick={async () => {
-                        const confirmed = window.confirm(
-                          'Warning: Deleting this embed will cancel your subscription at the end of the current billing period. You will continue to be charged until the end of the period. Do you want to proceed?'
-                        );
-                        
-                        if (confirmed) {
-                          try {
-                            // Find the embed subscription
-                            const embedPlan = user.billing?.plans.find(
-                              plan => plan.type === PlanType.EMBED
-                            );
-
-                            if (embedPlan?.stripeSubscriptionId) {
-                              // Remove the embed from active embeds
-                              const updatedEmbeds = user.embedAccess?.activeEmbeds.filter(
-                                (e: ActiveEmbed) => 
-                                  !(e.addressId === embed.addressId && e.domain === embed.domain)
-                              );
-                              
-                              await updateDoc(doc(db, 'users', user.id), {
-                                'embedAccess.activeEmbeds': updatedEmbeds,
-                                'billing.plans': user.billing?.plans.map(plan => 
-                                  plan.type === PlanType.EMBED 
-                                    ? { ...plan, status: 'cancelling' }
-                                    : plan
-                                )
-                              });
-
-                              // Redirect to Stripe billing portal
-                              window.location.href = 'https://billing.stripe.com/p/login/7sIaHs5Vx1cq2DC9AA';
-                            }
-                          } catch (error) {
-                            console.error('Error deleting embed:', error);
-                            alert('Failed to delete embed');
-                          }
-                        }
+                      onClick={() => {
+                        setSelectedEmbed(embed);
+                        setIsDeleteModalOpen(true);
                       }}
                       className={styles.deleteButton}
                     >
@@ -313,6 +322,15 @@ export default function Profile() {
           </a>
         </div>
       </div>
+
+      <DeleteEmbedModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedEmbed(null);
+        }}
+        onConfirm={handleDeleteEmbed}
+      />
     </div>
   );
 } 

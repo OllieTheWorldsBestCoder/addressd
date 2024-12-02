@@ -129,13 +129,22 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
       return {
         ...plan,
         status: 'cancelled',
-        canceledAt: new Date()
+        canceledAt: new Date(),
+        endDate: new Date(subscription.current_period_end * 1000)
       };
     }
     return plan;
   });
 
-  await updateDoc(userRef, {
-    'billing.plans': updatedPlans
-  });
+  if (subscription.metadata.plan_type === 'embed') {
+    await updateDoc(userRef, {
+      'billing.plans': updatedPlans,
+      'embedAccess.activeEmbeds': [],
+      'embedAccess.isEmbedUser': false
+    });
+  } else {
+    await updateDoc(userRef, {
+      'billing.plans': updatedPlans
+    });
+  }
 } 

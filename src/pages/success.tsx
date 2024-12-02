@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
-import { PlanType } from '../types/billing';
 import styles from '../styles/Success.module.css';
 
 export default function Success() {
@@ -13,7 +10,7 @@ export default function Success() {
 
   useEffect(() => {
     if (session_id) {
-      fetch('/api/verify-checkout-session', {
+      fetch('/api/verify-success', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
