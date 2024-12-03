@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiCopy, FiTrash2, FiExternalLink, FiCheck } from 'react-icons/fi';
+import { FiCopy, FiTrash2, FiExternalLink, FiCheck, FiCode, FiBox, FiStar } from 'react-icons/fi';
 import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
