@@ -8,6 +8,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { User as FirebaseUser } from 'firebase/auth';
 import { User } from '../types/user';
+import { BillingPlan, PlanType, ApiPlan } from '../types/billing';
 import { DeleteEmbedModal } from '../components/DeleteEmbedModal';
 
 const containerVariants = {
