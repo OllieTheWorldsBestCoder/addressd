@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { User as FirebaseUser } from 'firebase/auth';
 import { User } from '../types/user';
 import { DeleteEmbedModal } from '../components/DeleteEmbedModal';
 
