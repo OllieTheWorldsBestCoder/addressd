@@ -18,6 +18,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   telemetry: false
 });
 
+// Log Stripe configuration
+console.log('Stripe Configuration:', {
+  keyType: process.env.STRIPE_SECRET_KEY?.substring(0, 7),
+  isLiveMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_')
+});
+
 export const config = {
   api: {
     bodyParser: false,
@@ -129,12 +135,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Get metadata from both session and subscription
-  const planType = subscription.metadata?.plan_type as PlanType || PlanType.API;
+  const planType = subscription.items.data[0].price.id === process.env.STRIPE_EMBED_MONTHLY_PRICE_ID ||
+                  subscription.items.data[0].price.id === process.env.STRIPE_EMBED_YEARLY_PRICE_ID
+                  ? PlanType.EMBED
+                  : subscription.items.data[0].price.id === process.env.STRIPE_API_PRICE_ID
+                  ? PlanType.API
+                  : null;
+
   const addressId = session.metadata?.addressId || subscription.metadata?.addressId;
   const description = session.metadata?.description || '';
 
-  if (planType === PlanType.EMBED && !addressId) {
-    throw new Error('No address ID found for embed subscription');
+  if (!planType) {
+    console.error('Could not determine plan type from price ID:', {
+      priceId: subscription.items.data[0].price.id,
+      embedMonthlyPriceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
+      embedYearlyPriceId: process.env.STRIPE_EMBED_YEARLY_PRICE_ID,
+      apiPriceId: process.env.STRIPE_API_PRICE_ID,
+      sessionMetadata: session.metadata,
+      subscriptionMetadata: subscription.metadata
+    });
+    throw new Error('Invalid price ID - could not determine plan type');
   }
 
   console.log('Processing plan:', {
@@ -142,7 +162,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     addressId,
     description,
     sessionMetadata: session.metadata,
-    subscriptionMetadata: subscription.metadata
+    subscriptionMetadata: subscription.metadata,
+    stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test'
   });
 
   // Create the base plan object
