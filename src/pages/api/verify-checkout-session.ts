@@ -1,8 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import Stripe from 'stripe';
-import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { PlanType } from '../../types/billing';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia'
@@ -17,38 +16,87 @@ export default async function handler(
   }
 
   try {
-    const { sessionId } = req.body;
+    const { sessionId, userId } = req.body;
 
-    // Retrieve the session
+    if (!sessionId || !userId) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    console.log('Verifying checkout session:', { sessionId, userId });
+
+    // Retrieve the session with expanded subscription data
     const session = await stripe.checkout.sessions.retrieve(sessionId, {
       expand: ['subscription']
     });
 
-    if (!session.client_reference_id) {
-      throw new Error('No client reference ID found');
+    console.log('Retrieved session:', {
+      clientReferenceId: session.client_reference_id,
+      metadata: session.metadata
+    });
+
+    // Verify the session belongs to this user
+    if (session.client_reference_id !== userId) {
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
     const subscription = session.subscription as Stripe.Subscription;
-    const subscriptionItem = subscription.items.data[0];
+    
+    // Get the user's data to verify the subscription was recorded
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
-    // Update user with subscription details
-    const userRef = doc(db, 'users', session.client_reference_id);
-    await updateDoc(userRef, {
-      'billing.stripeCustomerId': session.customer as string,
-      'billing.apiSubscriptionItemId': subscriptionItem.id,
-      'billing.plans': arrayUnion({
-        type: PlanType.API,
-        status: 'active',
-        minimumSpend: 5000, // £50
-        ratePerCall: 0.5, // £0.005
-        currentUsage: 0,
-        billingStartDate: new Date(),
-        contributionPoints: 0,
-        stripeSubscriptionId: subscription.id
-      })
+    const userData = userDoc.data();
+    console.log('User data:', {
+      hasEmbedAccess: !!userData.embedAccess,
+      activeEmbeds: userData.embedAccess?.activeEmbeds?.length || 0,
+      plans: userData.billing?.plans?.length || 0
     });
 
-    return res.status(200).json({ success: true });
+    // For embed subscriptions, return all necessary data
+    if (subscription.metadata.plan_type === 'embed') {
+      const addressId = subscription.metadata.addressId;
+      const embed = userData.embedAccess?.activeEmbeds?.find(
+        (e: any) => e.addressId === addressId
+      );
+
+      if (!embed) {
+        console.log('Embed not found in user data, waiting for webhook...');
+        return res.status(202).json({ 
+          status: 'processing',
+          message: 'Subscription is being processed'
+        });
+      }
+
+      return res.status(200).json({ 
+        success: true,
+        addressId,
+        description: embed.description,
+        subscriptionId: subscription.id,
+        embedToken: userData.embedAccess.embedToken
+      });
+    }
+
+    // For other subscription types
+    const plan = userData.billing?.plans?.find(
+      (p: any) => p.stripeSubscriptionId === subscription.id
+    );
+
+    if (!plan) {
+      console.log('Plan not found in user data, waiting for webhook...');
+      return res.status(202).json({ 
+        status: 'processing',
+        message: 'Subscription is being processed'
+      });
+    }
+
+    return res.status(200).json({ 
+      success: true,
+      subscriptionId: subscription.id,
+      plan
+    });
+
   } catch (error: any) {
     console.error('Error verifying checkout session:', error);
     return res.status(500).json({ 

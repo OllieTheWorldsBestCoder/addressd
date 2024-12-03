@@ -99,11 +99,24 @@ export default async function handler(
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  console.log('Processing checkout completion:', {
+    sessionId: session.id,
+    customerId: session.customer,
+    clientReferenceId: session.client_reference_id,
+    metadata: session.metadata
+  });
+
   if (!session.client_reference_id) {
     throw new Error('No client_reference_id found in session');
   }
 
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+  console.log('Retrieved subscription:', {
+    subscriptionId: subscription.id,
+    status: subscription.status,
+    metadata: subscription.metadata
+  });
+
   const userRef = doc(db, 'users', session.client_reference_id);
   const userData = await getDoc(userRef);
   
@@ -114,6 +127,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   // Determine plan type from metadata
   const planType = subscription.metadata.plan_type as PlanType;
   const addressId = subscription.metadata.addressId;
+  const description = session.metadata.description || '';
+
+  console.log('Processing plan:', {
+    type: planType,
+    addressId,
+    description
+  });
 
   // Create the base plan object
   const status: SubscriptionStatus = 'active';
@@ -131,7 +151,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       type: PlanType.EMBED,
       priceMonthly: 300, // £3
       priceYearly: 2000, // £20
-      addressId: addressId
+      addressId: addressId,
+      description: description
     };
   } else if (planType === PlanType.API) {
     plan = {
@@ -145,22 +166,45 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     };
   }
 
-  // Update user with subscription details
+  // Initialize billing and embedAccess if they don't exist
+  const currentUser = userData.data() as User;
   const updates: any = {
-    'billing.stripeCustomerId': session.customer as string,
-    'billing.plans': arrayUnion(plan)
+    billing: {
+      ...currentUser.billing,
+      stripeCustomerId: session.customer as string,
+      plans: [...(currentUser.billing?.plans || []), plan]
+    }
   };
 
   // For embed subscriptions, also update the activeEmbeds array
   if (planType === PlanType.EMBED && addressId) {
-    updates['embedAccess.activeEmbeds'] = arrayUnion({
+    const embedAccess = currentUser.embedAccess || {
+      isEmbedUser: true,
+      managedAddresses: [],
+      embedToken: session.client_reference_id,
+      activeEmbeds: []
+    };
+
+    const newEmbed = {
       addressId: addressId,
       domain: 'pending', // Will be updated on first embed view
       createdAt: new Date(),
       lastUsed: new Date(),
-      viewCount: 0
-    });
+      viewCount: 0,
+      description: description
+    };
+
+    updates.embedAccess = {
+      ...embedAccess,
+      isEmbedUser: true,
+      activeEmbeds: [...embedAccess.activeEmbeds, newEmbed]
+    };
   }
+
+  console.log('Updating user document:', {
+    userId: session.client_reference_id,
+    updates
+  });
 
   await updateDoc(userRef, updates);
 }
