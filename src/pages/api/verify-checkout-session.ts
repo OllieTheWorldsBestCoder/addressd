@@ -31,7 +31,8 @@ export default async function handler(
 
     console.log('Retrieved session:', {
       clientReferenceId: session.client_reference_id,
-      metadata: session.metadata
+      metadata: session.metadata,
+      status: session.status
     });
 
     // Verify the session belongs to this user
@@ -39,8 +40,19 @@ export default async function handler(
       return res.status(403).json({ error: 'Unauthorized' });
     }
 
+    // Check if the session was completed
+    if (session.status !== 'complete') {
+      return res.status(400).json({ 
+        error: 'Checkout session not completed',
+        status: session.status
+      });
+    }
+
     const subscription = session.subscription as Stripe.Subscription;
-    
+    if (!subscription) {
+      return res.status(400).json({ error: 'No subscription found in session' });
+    }
+
     // Get the user's data to verify the subscription was recorded
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (!userDoc.exists()) {
@@ -54,15 +66,29 @@ export default async function handler(
       plans: userData.billing?.plans?.length || 0
     });
 
+    // Get metadata from both session and subscription
+    const planType = subscription.metadata?.plan_type || 'embed';
+    const addressId = session.metadata?.addressId || subscription.metadata?.addressId;
+
     // For embed subscriptions, return all necessary data
-    if (subscription.metadata.plan_type === 'embed') {
-      const addressId = subscription.metadata.addressId;
+    if (planType === 'embed') {
+      if (!addressId) {
+        console.error('Missing addressId in metadata:', {
+          sessionMetadata: session.metadata,
+          subscriptionMetadata: subscription.metadata
+        });
+        return res.status(400).json({ error: 'Missing address ID for embed subscription' });
+      }
+
       const embed = userData.embedAccess?.activeEmbeds?.find(
         (e: any) => e.addressId === addressId
       );
 
       if (!embed) {
-        console.log('Embed not found in user data, waiting for webhook...');
+        console.log('Embed not found in user data, waiting for webhook...', {
+          addressId,
+          activeEmbeds: userData.embedAccess?.activeEmbeds
+        });
         return res.status(202).json({ 
           status: 'processing',
           message: 'Subscription is being processed'
@@ -84,7 +110,10 @@ export default async function handler(
     );
 
     if (!plan) {
-      console.log('Plan not found in user data, waiting for webhook...');
+      console.log('Plan not found in user data, waiting for webhook...', {
+        subscriptionId: subscription.id,
+        plans: userData.billing?.plans
+      });
       return res.status(202).json({ 
         status: 'processing',
         message: 'Subscription is being processed'

@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   authToken: string;
+  apiKey?: string;  // API key for making API calls
   summaryCount: number;
   contributionPoints: number;
   createdAt: Date;

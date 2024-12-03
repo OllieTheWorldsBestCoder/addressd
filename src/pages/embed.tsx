@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiCopy, FiCheck } from 'react-icons/fi';
 import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 
 export default function Embed() {
+  const router = useRouter();
+  const { session_id } = router.query;
   const [user, setUser] = useState<User | null>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -16,6 +19,7 @@ export default function Embed() {
   const [description, setDescription] = useState('');
   const [validationResult, setValidationResult] = useState<any>(null);
   const [embedCode, setEmbedCode] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -27,6 +31,62 @@ export default function Embed() {
     });
     return () => unsubscribe();
   }, [step]);
+
+  // Handle session_id from Stripe redirect
+  useEffect(() => {
+    if (session_id && user) {
+      verifyCheckoutSession();
+    }
+  }, [session_id, user]);
+
+  const verifyCheckoutSession = async () => {
+    try {
+      const response = await fetch('/api/verify-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          sessionId: session_id,
+          userId: user?.uid 
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Generate embed code using the address ID from the session
+        const embedCode = generateEmbedCode(data.addressId);
+        setEmbedCode(embedCode);
+        setStep(5); // Move to embed code display
+      } else {
+        setError('Failed to verify checkout. Please contact support.');
+      }
+    } catch (err) {
+      setError('Failed to verify checkout. Please try again.');
+    }
+  };
+
+  const generateEmbedCode = (addressId: string) => {
+    return `<script src="https://embed.addressd.app/v1/directions.js"></script>
+
+<div id="addressd-directions" 
+     data-address-id="${addressId}"
+     data-theme="light">
+</div>
+
+<script>
+  AddressdDirections.init('${user?.uid}');
+</script>`;
+  };
+
+  const handleCopyCode = async () => {
+    if (embedCode) {
+      await navigator.clipboard.writeText(embedCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const handleAddressValidation = async () => {
     if (!address) return;
@@ -289,15 +349,44 @@ export default function Embed() {
 
               {embedCode ? (
                 <div className="bg-white rounded-lg p-6">
-                  <pre className="bg-gray-50 p-4 rounded-lg overflow-x-auto">
-                    <code>{embedCode}</code>
-                  </pre>
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold mb-2">Installation Instructions</h3>
+                    <p className="text-gray-600 mb-4">
+                      Copy and paste this code into your website where you want the directions to appear.
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg overflow-x-auto relative">
+                    <pre className="text-sm">
+                      <code>{embedCode}</code>
+                    </pre>
+                  </div>
                   <button
-                    onClick={() => navigator.clipboard.writeText(embedCode)}
-                    className="button button-secondary mt-4"
+                    onClick={handleCopyCode}
+                    className="button button-secondary mt-4 flex items-center"
                   >
-                    Copy Code
+                    {copied ? (
+                      <>
+                        <FiCheck className="mr-2" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <FiCopy className="mr-2" />
+                        Copy Code
+                      </>
+                    )}
                   </button>
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <p className="text-gray-600 mb-4">
+                      You can always find your embed codes and manage your embeds in your dashboard.
+                    </p>
+                    <a
+                      href="/dashboard"
+                      className="button button-primary"
+                    >
+                      Go to Dashboard
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div className="text-center p-8 bg-white rounded-lg">
