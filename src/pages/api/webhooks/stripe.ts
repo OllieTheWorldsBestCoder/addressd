@@ -3,7 +3,7 @@ import { buffer } from 'micro';
 import Stripe from 'stripe';
 import { doc, updateDoc, arrayUnion, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
-import { PlanType, BillingPlan } from '../../../types/billing';
+import { PlanType, BillingPlan, EmbedPlan } from '../../../types/billing';
 import { User } from '../../../types/user';
 
 type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
