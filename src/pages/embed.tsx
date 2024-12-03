@@ -325,6 +325,17 @@ export default function Embed() {
                 <h2 className="text-2xl font-bold ml-4">Choose Your Plan</h2>
               </div>
 
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mb-4 p-4 bg-gray-100 rounded text-sm">
+                  <p>Debug Info:</p>
+                  <p>Pricing Table ID: {process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID}</p>
+                  <p>Publishable Key: {process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.substring(0, 7)}...</p>
+                  <p>User ID: {user?.uid}</p>
+                  <p>User Email: {user?.email}</p>
+                </div>
+              )}
+
               <stripe-pricing-table
                 pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID!}
                 publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
