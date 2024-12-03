@@ -110,6 +110,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     throw new Error('No client_reference_id found in session');
   }
 
+  if (!session.subscription) {
+    throw new Error('No subscription found in session');
+  }
+
   const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
   console.log('Retrieved subscription:', {
     subscriptionId: subscription.id,
@@ -124,15 +128,21 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     throw new Error('User not found: ' + session.client_reference_id);
   }
 
-  // Determine plan type from metadata
+  // Get metadata from both session and subscription
   const planType = subscription.metadata?.plan_type as PlanType || PlanType.API;
-  const addressId = subscription.metadata?.addressId;
-  const description = subscription.metadata?.description || '';
+  const addressId = session.metadata?.addressId || subscription.metadata?.addressId;
+  const description = session.metadata?.description || '';
+
+  if (planType === PlanType.EMBED && !addressId) {
+    throw new Error('No address ID found for embed subscription');
+  }
 
   console.log('Processing plan:', {
     type: planType,
     addressId,
-    description
+    description,
+    sessionMetadata: session.metadata,
+    subscriptionMetadata: subscription.metadata
   });
 
   // Create the base plan object
@@ -200,16 +210,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     updates.embedAccess = {
       ...embedAccess,
       isEmbedUser: true,
-      activeEmbeds: [...embedAccess.activeEmbeds, newEmbed]
+      activeEmbeds: [...(embedAccess.activeEmbeds || []), newEmbed]
     };
   }
 
   console.log('Updating user document:', {
     userId: session.client_reference_id,
-    updates
+    updates: {
+      ...updates,
+      'billing.plans.length': updates.billing.plans.length,
+      'embedAccess.activeEmbeds.length': updates.embedAccess?.activeEmbeds?.length
+    }
   });
 
-  await updateDoc(userRef, updates);
+  try {
+    await updateDoc(userRef, updates);
+    console.log('Successfully updated user document');
+  } catch (error) {
+    console.error('Failed to update user document:', error);
+    throw error;
+  }
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
