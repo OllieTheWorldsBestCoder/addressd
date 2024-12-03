@@ -314,7 +314,7 @@ export default function Home() {
                       href="/embed"
                       className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
                     >
-                      Try Embed for Free
+                      Create Your Embed
                       <FiArrowRight className="ml-2" />
                     </Link>
                   </div>
