@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { FiCopy, FiTrash2, FiExternalLink, FiCheck } from 'react-icons/fi';
 import Layout from '../components/Layout';
