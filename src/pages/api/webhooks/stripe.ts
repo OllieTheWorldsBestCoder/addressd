@@ -125,9 +125,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Determine plan type from metadata
-  const planType = subscription.metadata.plan_type as PlanType;
-  const addressId = subscription.metadata.addressId;
-  const description = session.metadata.description || '';
+  const planType = subscription.metadata?.plan_type as PlanType || PlanType.API;
+  const addressId = subscription.metadata?.addressId;
+  const description = subscription.metadata?.description || '';
 
   console.log('Processing plan:', {
     type: planType,
@@ -146,14 +146,17 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   // Add plan-specific fields
   if (planType === PlanType.EMBED && addressId) {
-    plan = {
+    const embedPlan: Partial<EmbedPlan> = {
       ...plan,
       type: PlanType.EMBED,
       priceMonthly: 300, // £3
       priceYearly: 2000, // £20
-      addressId: addressId,
-      description: description
+      addressId: addressId
     };
+    if (description) {
+      embedPlan.description = description;
+    }
+    plan = embedPlan;
   } else if (planType === PlanType.API) {
     plan = {
       ...plan,

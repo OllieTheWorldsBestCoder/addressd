@@ -12,6 +12,7 @@ export interface EmbedPlan {
   status: 'active' | 'cancelled' | 'past_due' | 'cancelling';
   stripeSubscriptionId?: string;
   addressId: string;  // Link to the specific embed address
+  description?: string;  // Natural language directions for the embed
 }
 
 export interface ApiPlan {
