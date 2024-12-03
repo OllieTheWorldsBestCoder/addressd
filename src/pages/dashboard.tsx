@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
+import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
-import { auth, db } from '../config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { User as FirebaseUser } from 'firebase/auth';
-import { User } from '../types/user';
-import { PlanType, BillingPlan, ApiPlan } from '../types/billing';
-import Link from 'next/link';
+import { FiCopy, FiTrash2, FiExternalLink, FiCheck } from 'react-icons/fi';
 import Layout from '../components/Layout';
-import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck } from 'react-icons/fi';
+import { auth } from '../config/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { User } from '../types/user';
+import { DeleteEmbedModal } from '../components/DeleteEmbedModal';
 
 const containerVariants = {
   hidden: { opacity: 0 },
