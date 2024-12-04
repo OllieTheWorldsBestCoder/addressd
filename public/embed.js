@@ -1,15 +1,42 @@
 (function() {
   const container = document.getElementById('addressd-embed');
-  const token = document.currentScript.dataset.token;
-  const addressId = document.currentScript.dataset.address;
-  const baseUrl = 'https://addressd.vercel.app';
+  const script = document.currentScript;
+  const token = script.dataset.token;
+  const addressId = script.dataset.address;
+  const baseUrl = '__ADDRESSD_BASE_URL__';
+
+  // Validate base URL was properly injected during build
+  if (baseUrl === '__ADDRESSD_BASE_URL__') {
+    console.error('Addressd: Base URL not properly configured');
+    return;
+  }
+
+  if (!container) {
+    console.error('Addressd: No container element found with id "addressd-embed"');
+    return;
+  }
+
+  if (!token || !addressId) {
+    container.innerHTML = 'Invalid embed configuration';
+    console.error('Addressd: Missing required data attributes (data-token and data-address)');
+    return;
+  }
+
+  // Show loading state
+  container.innerHTML = `
+    <div class="addressd-content" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 1rem;">
+      <p style="margin: 0;">Loading address description...</p>
+    </div>
+  `;
 
   async function fetchDescription() {
     try {
       const response = await fetch(`${baseUrl}/api/embed/description?addressId=${addressId}`, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Origin': window.location.origin
+        },
+        credentials: 'omit'
       });
       
       const data = await response.json();
@@ -29,10 +56,22 @@
           </div>
         `;
       } else {
-        container.innerHTML = 'Unable to load address description';
+        const errorMessage = data.error === 'Subscription required' 
+          ? 'Subscription required to view address description'
+          : 'Unable to load address description';
+        container.innerHTML = `
+          <div class="addressd-content" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 1rem;">
+            <p style="margin: 0; color: #dc2626;">${errorMessage}</p>
+          </div>
+        `;
       }
     } catch (error) {
-      container.innerHTML = 'Error loading address description';
+      container.innerHTML = `
+        <div class="addressd-content" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 1rem;">
+          <p style="margin: 0; color: #dc2626;">Error loading address description</p>
+        </div>
+      `;
+      console.error('Addressd: Error fetching description:', error);
     }
   }
 

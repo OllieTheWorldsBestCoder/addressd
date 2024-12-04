@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build-embed.js && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "ts-node src/scripts/test-address-api.ts",
@@ -50,6 +50,7 @@
     "@types/react": "^18.2.42",
     "@types/react-dom": "^18.2.17",
     "@types/stripe": "^8.0.416",
+    "terser": "^5.27.2",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.2"
   }
