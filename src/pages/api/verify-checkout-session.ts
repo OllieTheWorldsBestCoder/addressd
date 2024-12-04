@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../config/firebase';
 import { stripe } from '../../config/stripe';
 import { PlanType } from '../../types/billing';
-import { collection, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
 
 export default async function handler(
   req: NextApiRequest,
@@ -83,15 +83,17 @@ export default async function handler(
   data-token="${userId}">
 </script>`;
 
-    // Update the embed document
+    // Create or update the embed document
     const embedsCollection = collection(db, 'embeds');
     const embedRef = doc(embedsCollection, addressId);
-    await updateDoc(embedRef, {
+    await setDoc(embedRef, {
       status: 'active',
       embedCode,
       stripeSubscriptionId: session.subscription,
-      userId
-    });
+      userId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }, { merge: true });
 
     // Get address details
     const addressesCollection = collection(db, 'addresses');
