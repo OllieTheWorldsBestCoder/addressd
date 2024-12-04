@@ -65,27 +65,16 @@ export default function Dashboard() {
             setUser(userData);
 
             const addressPromises = userData.billing.plans
-              .filter((plan): plan is EmbedPlan => {
-                return plan.type === PlanType.EMBED && 
-                       typeof plan.addressId === 'string';
-              })
+              .filter((plan): plan is EmbedPlan => plan.type === PlanType.EMBED)
               .map(async (plan) => {
                 try {
-                  const [addressDoc, embedDoc] = await Promise.all([
-                    getDoc(doc(db, 'addresses', plan.addressId)),
-                    getDoc(doc(db, 'embeds', plan.addressId))
-                  ]);
-
+                  const addressDoc = await getDoc(doc(db, 'addresses', plan.addressId));
                   const address = addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found';
-                  const embedData = embedDoc.exists() ? embedDoc.data() : null;
-
+                  
                   return [
                     plan.addressId,
                     {
                       address,
-                      embedCode: embedData?.embedCode,
-                      viewCount: embedData?.viewCount || 0,
-                      domain: embedData?.domain || 'Not yet used',
                       subscription: {
                         nextPaymentTimestamp: plan.currentPeriodEnd instanceof Date ? plan.currentPeriodEnd.getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
                         status: plan.status,
@@ -96,14 +85,11 @@ export default function Dashboard() {
                     }
                   ] as const;
                 } catch (err) {
-                  console.error('Error fetching details for plan:', plan.addressId, err);
+                  console.error('Error fetching address for plan:', plan.addressId, err);
                   return [
                     plan.addressId,
                     {
                       address: 'Error loading address',
-                      embedCode: null,
-                      viewCount: 0,
-                      domain: 'Error',
                       subscription: null
                     }
                   ] as const;
