@@ -39,7 +39,6 @@ export default async function handler(
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       billing_address_collection: 'auto',
-      customer_email: undefined, // Will be collected during checkout
       line_items: [
         {
           price: priceId,
@@ -49,10 +48,6 @@ export default async function handler(
       mode: 'subscription',
       allow_promotion_codes: true,
       automatic_tax: { enabled: true },
-      customer_update: {
-        address: 'auto',
-        name: 'auto',
-      },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed`,
       client_reference_id: userId,
