@@ -68,12 +68,21 @@ export default function Dashboard() {
               })
               .map(async (plan) => {
                 try {
-                  const addressDoc = await getDoc(doc(db, 'addresses', plan.addressId));
+                  const [addressDoc, embedDoc] = await Promise.all([
+                    getDoc(doc(db, 'addresses', plan.addressId)),
+                    getDoc(doc(db, 'embeds', plan.addressId))
+                  ]);
+
+                  const address = addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found';
+                  const embedData = embedDoc.exists() ? embedDoc.data() : null;
 
                   return [
                     plan.addressId,
                     {
-                      address: addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found',
+                      address,
+                      embedCode: embedData?.embedCode,
+                      viewCount: embedData?.viewCount || 0,
+                      domain: embedData?.domain || 'Not yet used',
                       subscription: {
                         nextPaymentTimestamp: plan.currentPeriodEnd instanceof Date ? plan.currentPeriodEnd.getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
                         status: plan.status,
@@ -89,6 +98,9 @@ export default function Dashboard() {
                     plan.addressId,
                     {
                       address: 'Error loading address',
+                      embedCode: null,
+                      viewCount: 0,
+                      domain: 'Error',
                       subscription: null
                     }
                   ] as const;
@@ -214,13 +226,11 @@ export default function Dashboard() {
   };
 
   const getDomainForEmbed = (addressId: string) => {
-    const embed = user?.embedAccess?.activeEmbeds?.find(e => e.addressId === addressId);
-    return embed?.domain || 'Not yet used';
+    return addressDetails[addressId]?.domain || 'Not yet used';
   };
 
   const getViewCountForEmbed = (addressId: string) => {
-    const embed = user?.embedAccess?.activeEmbeds?.find(e => e.addressId === addressId);
-    return embed?.viewCount || 0;
+    return addressDetails[addressId]?.viewCount || 0;
   };
 
   const formatDate = (timestamp?: number | null) => {
