@@ -49,9 +49,11 @@ export default function Embed() {
       }
 
       const result = await response.json();
+      console.log('Address validation result:', result);
       setValidationResult(result);
       setStep(3); // Move to description step
     } catch (err) {
+      console.error('Address validation error:', err);
       setError('Failed to validate address. Please try again.');
     } finally {
       setLoading(false);
@@ -267,7 +269,7 @@ export default function Embed() {
 
               <EmbedPricingTable
                 userId={user?.uid}
-                addressId={validationResult?.id}
+                addressId={validationResult?.addressId}
                 description={description}
               />
             </motion.div>
