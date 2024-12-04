@@ -9,7 +9,6 @@ import { PlanType, BillingPlan, EmbedPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck, FiCopy } from 'react-icons/fi';
-import { stripe } from '../config/stripe';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -32,6 +31,14 @@ const itemVariants = {
   }
 };
 
+interface SubscriptionDetails {
+  nextPaymentTimestamp: number;
+  currentPeriodStart: number;
+  cancelAt: number | null;
+  status: string;
+  cancelAtPeriodEnd: boolean;
+}
+
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,8 +47,7 @@ export default function Dashboard() {
   const [apiCopySuccess, setApiCopySuccess] = useState(false);
   const [addressDetails, setAddressDetails] = useState<{[key: string]: {
     address: string;
-    nextPayment?: Date;
-    subscription?: any;
+    subscription?: SubscriptionDetails;
   }}>({});
 
   useEffect(() => {
@@ -63,16 +69,21 @@ export default function Dashboard() {
               })
               .map(async (plan) => {
                 try {
-                  const [addressDoc, subscriptionData] = await Promise.all([
+                  const [addressDoc, subscriptionRes] = await Promise.all([
                     getDoc(doc(db, 'addresses', plan.addressId)),
-                    stripe.subscriptions.retrieve(plan.stripeSubscriptionId as string)
+                    fetch(`/api/get-subscription-details?subscriptionId=${plan.stripeSubscriptionId}`)
                   ]);
+
+                  const subscriptionData = await subscriptionRes.json();
+
+                  if (!subscriptionRes.ok) {
+                    throw new Error(subscriptionData.message || 'Failed to fetch subscription');
+                  }
 
                   return [
                     plan.addressId,
                     {
                       address: addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found',
-                      nextPayment: new Date(subscriptionData.current_period_end * 1000),
                       subscription: subscriptionData
                     }
                   ] as const;
@@ -216,13 +227,13 @@ export default function Dashboard() {
     return embed?.viewCount || 0;
   };
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return 'Not available';
+  const formatDate = (timestamp?: number | null) => {
+    if (!timestamp) return 'Not available';
     return new Intl.DateTimeFormat('en-GB', {
       day: 'numeric',
       month: 'long',
       year: 'numeric'
-    }).format(date);
+    }).format(new Date(timestamp));
   };
 
   if (loading) {
@@ -332,10 +343,15 @@ export default function Dashboard() {
                                 Views: {getViewCountForEmbed(plan.addressId)}
                               </p>
                               <p className="text-xs text-gray-500">
-                                Status: {plan.status}
+                                Next Payment: {formatDate(addressDetails[plan.addressId]?.subscription?.nextPaymentTimestamp)}
                               </p>
                               <p className="text-xs text-gray-500">
-                                Next Payment: {formatDate(addressDetails[plan.addressId]?.nextPayment)}
+                                Status: {addressDetails[plan.addressId]?.subscription?.status || plan.status}
+                                {addressDetails[plan.addressId]?.subscription?.cancelAtPeriodEnd && 
+                                  ` (Cancels on ${formatDate(addressDetails[plan.addressId]?.subscription?.cancelAt)})`}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Started: {formatDate(addressDetails[plan.addressId]?.subscription?.currentPeriodStart)}
                               </p>
                               <p className="text-xs text-gray-500">
                                 Billing Period: {plan.billingPeriod}
