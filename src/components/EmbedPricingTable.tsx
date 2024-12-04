@@ -35,6 +35,10 @@ export default function EmbedPricingTable({ userId, addressId, description }: Em
 
       const { sessionId, url } = await response.json();
 
+      if (!url) {
+        throw new Error('No checkout URL received');
+      }
+
       // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error) {

@@ -102,39 +102,28 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     throw new Error('User not found: ' + session.client_reference_id);
   }
 
-  // Determine plan type from metadata
-  const planType = subscription.metadata.plan_type as PlanType;
-  const addressId = subscription.metadata.addressId;
+  // Get metadata from the session
+  const planType = session.metadata?.plan_type as PlanType;
+  const addressId = session.metadata?.addressId;
+  const billingPeriod = session.metadata?.billing_period as 'monthly' | 'yearly';
+
+  if (!planType || !addressId || !billingPeriod) {
+    throw new Error('Missing required metadata');
+  }
 
   // Create the base plan object
   const status: SubscriptionStatus = 'active';
-  let plan: Partial<BillingPlan> = {
+  const plan = {
     type: planType,
     status,
     startDate: new Date(),
     stripeSubscriptionId: subscription.id,
+    addressId,
+    billingPeriod,
+    priceMonthly: 300, // £3
+    priceYearly: 2000, // £20
+    currentPrice: billingPeriod === 'yearly' ? 2000 : 300
   };
-
-  // Add plan-specific fields
-  if (planType === PlanType.EMBED && addressId) {
-    plan = {
-      ...plan,
-      type: PlanType.EMBED,
-      priceMonthly: 300, // £3
-      priceYearly: 2000, // £20
-      addressId: addressId
-    };
-  } else if (planType === PlanType.API) {
-    plan = {
-      ...plan,
-      type: PlanType.API,
-      minimumSpend: 5000, // £50
-      ratePerCall: 0.5, // £0.005
-      currentUsage: 0,
-      billingStartDate: new Date(),
-      contributionPoints: 0
-    };
-  }
 
   // Update user with subscription details
   const updates: any = {
@@ -143,15 +132,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   };
 
   // For embed subscriptions, also update the activeEmbeds array
-  if (planType === PlanType.EMBED && addressId) {
-    updates['embedAccess.activeEmbeds'] = arrayUnion({
-      addressId: addressId,
-      domain: 'pending', // Will be updated on first embed view
-      createdAt: new Date(),
-      lastUsed: new Date(),
-      viewCount: 0
-    });
-  }
+  updates['embedAccess.activeEmbeds'] = arrayUnion({
+    addressId: addressId,
+    domain: 'pending', // Will be updated on first embed view
+    createdAt: new Date(),
+    lastUsed: new Date(),
+    viewCount: 0
+  });
 
   await updateDoc(userRef, updates);
 }
