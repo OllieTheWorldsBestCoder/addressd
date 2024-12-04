@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiCheck } from 'react-icons/fi';
 
 interface EmbedPricingTableProps {
@@ -17,9 +17,31 @@ const features = [
 
 export default function EmbedPricingTable({ userId, addressId, description }: EmbedPricingTableProps) {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    console.log('EmbedPricingTable props:', { userId, addressId, description });
+  }, [userId, addressId, description]);
 
   const handleSubscribe = async () => {
     try {
+      setError(null);
+      setLoading(true);
+
+      if (!userId || !addressId) {
+        console.error('Missing required information:', { userId, addressId });
+        setError('Missing required information. Please try again.');
+        return;
+      }
+
+      console.log('Creating checkout session with:', {
+        userId,
+        addressId,
+        description,
+        billingPeriod
+      });
+
       const response = await fetch('/api/create-embed-checkout-session', {
         method: 'POST',
         headers: {
@@ -33,21 +55,34 @@ export default function EmbedPricingTable({ userId, addressId, description }: Em
         }),
       });
 
-      const { sessionId, url } = await response.json();
+      const data = await response.json();
+      console.log('Checkout session response:', { status: response.status, data });
 
-      if (!url) {
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
+
+      if (!data.url) {
         throw new Error('No checkout URL received');
       }
 
       // Redirect to Stripe Checkout
-      window.location.href = url;
-    } catch (error) {
+      window.location.href = data.url;
+    } catch (error: any) {
       console.error('Error creating checkout session:', error);
+      setError(error.message || 'Failed to create checkout session. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+          {error}
+        </div>
+      )}
       {/* Billing Toggle */}
       <div className="flex justify-center items-center space-x-4 mb-8">
         <button
@@ -91,9 +126,10 @@ export default function EmbedPricingTable({ userId, addressId, description }: Em
 
         <button
           onClick={handleSubscribe}
-          className="w-full bg-primary text-white py-3 px-6 rounded-lg mb-8 hover:bg-primary-dark transition-colors"
+          disabled={loading}
+          className="w-full bg-primary text-white py-3 px-6 rounded-lg mb-8 hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Get Started
+          {loading ? 'Loading...' : 'Get Started'}
         </button>
 
         <ul className="space-y-4">

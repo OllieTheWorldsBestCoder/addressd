@@ -16,8 +16,10 @@ export default async function handler(
 
   try {
     const { userId, addressId, description, billingPeriod } = req.body;
+    console.log('Received request with:', { userId, addressId, description, billingPeriod });
 
     if (!userId || !addressId || !billingPeriod) {
+      console.error('Missing required parameters:', { userId, addressId, billingPeriod });
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
@@ -27,12 +29,17 @@ export default async function handler(
       : process.env.STRIPE_EMBED_YEARLY_PRICE_ID;
 
     if (!priceId) {
-      return res.status(500).json({ error: 'Price ID not configured' });
+      console.error('Price ID not configured for billing period:', billingPeriod);
+      return res.status(500).json({ error: `Price ID not configured for ${billingPeriod} billing period` });
     }
+
+    console.log('Using price ID:', priceId);
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
+      billing_address_collection: 'auto',
+      customer_email: undefined, // Will be collected during checkout
       line_items: [
         {
           price: priceId,
@@ -40,6 +47,12 @@ export default async function handler(
         },
       ],
       mode: 'subscription',
+      allow_promotion_codes: true,
+      automatic_tax: { enabled: true },
+      customer_update: {
+        address: 'auto',
+        name: 'auto',
+      },
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed`,
       client_reference_id: userId,
@@ -57,6 +70,17 @@ export default async function handler(
         plan_type: 'embed',
         billing_period: billingPeriod
       },
+    });
+
+    if (!session?.url) {
+      console.error('No URL in created session:', session);
+      return res.status(500).json({ error: 'No checkout URL in created session' });
+    }
+
+    console.log('Created session:', { 
+      sessionId: session.id,
+      url: session.url,
+      hasUrl: !!session.url 
     });
 
     return res.status(200).json({ 
