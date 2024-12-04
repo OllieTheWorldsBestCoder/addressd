@@ -16,8 +16,21 @@ export const config = {
 };
 
 // Helper function to find user by Stripe customer ID
-async function findUserByCustomerId(customerId: string): Promise<User> {
+async function findUserByCustomerId(customerId: string, clientReferenceId?: string): Promise<User> {
   const usersRef = collection(db, 'users');
+  
+  // First try to find by client reference ID if provided
+  if (clientReferenceId) {
+    const userDoc = await getDoc(doc(usersRef, clientReferenceId));
+    if (userDoc.exists()) {
+      return {
+        id: userDoc.id,
+        ...userDoc.data()
+      } as User;
+    }
+  }
+
+  // If not found by client reference ID, try customer ID
   const q = query(usersRef, where('billing.stripeCustomerId', '==', customerId));
   const snapshot = await getDocs(q);
   
@@ -144,36 +157,44 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
-  // Find user by customer ID
-  const user = await findUserByCustomerId(subscription.customer as string);
-  const userRef = doc(db, 'users', user.id);
+  try {
+    // Find user by customer ID or client reference ID from metadata
+    const user = await findUserByCustomerId(
+      subscription.customer as string,
+      subscription.metadata?.userId
+    );
+    const userRef = doc(db, 'users', user.id);
 
-  const updatedPlans = user.billing?.plans?.map((plan: BillingPlan) => {
-    if (plan.stripeSubscriptionId === subscription.id) {
-      let status: SubscriptionStatus = plan.status as SubscriptionStatus;
-      
-      if (subscription.cancel_at_period_end) {
-        status = 'cancelling';
-      } else if (subscription.status === 'active') {
-        status = 'active';
-      } else if (subscription.status === 'past_due') {
-        status = 'past_due';
-      } else if (subscription.status === 'canceled') {
-        status = 'cancelled';
+    const updatedPlans = user.billing?.plans?.map((plan: BillingPlan) => {
+      if (plan.stripeSubscriptionId === subscription.id) {
+        let status: SubscriptionStatus = plan.status as SubscriptionStatus;
+        
+        if (subscription.cancel_at_period_end) {
+          status = 'cancelling';
+        } else if (subscription.status === 'active') {
+          status = 'active';
+        } else if (subscription.status === 'past_due') {
+          status = 'past_due';
+        } else if (subscription.status === 'canceled') {
+          status = 'cancelled';
+        }
+
+        return {
+          ...plan,
+          status,
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+        };
       }
+      return plan;
+    }) || [];
 
-      return {
-        ...plan,
-        status,
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000)
-      };
-    }
-    return plan;
-  }) || [];
-
-  await updateDoc(userRef, {
-    'billing.plans': updatedPlans
-  });
+    await updateDoc(userRef, {
+      'billing.plans': updatedPlans
+    });
+  } catch (error) {
+    console.error('Error handling subscription update:', error);
+    throw error;
+  }
 }
 
 async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {

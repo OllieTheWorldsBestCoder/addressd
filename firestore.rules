@@ -47,5 +47,13 @@ service cloud.firestore {
     match /magicLinks/{linkId} {
       allow read, write: if true;
     }
+
+    // Embeds collection
+    match /embeds/{embedId} {
+      allow read: if true;  // Allow reading embed data
+      allow create: if true;  // Allow creating new embeds
+      allow update: if true;  // Allow updating embed data
+      allow delete: if false; // Don't allow embed deletion
+    }
   }
 }
