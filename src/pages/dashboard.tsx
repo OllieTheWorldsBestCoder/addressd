@@ -71,14 +71,19 @@ export default function Dashboard() {
                 try {
                   const [addressDoc, subscriptionRes] = await Promise.all([
                     getDoc(doc(db, 'addresses', plan.addressId)),
-                    fetch(`/api/get-subscription-details?subscriptionId=${plan.stripeSubscriptionId}`)
+                    fetch(`/api/get-subscription-details?subscriptionId=${plan.stripeSubscriptionId}`, {
+                      headers: {
+                        'Authorization': `Bearer ${await firebaseUser.getIdToken()}`
+                      }
+                    })
                   ]);
 
-                  const subscriptionData = await subscriptionRes.json();
-
                   if (!subscriptionRes.ok) {
-                    throw new Error(subscriptionData.message || 'Failed to fetch subscription');
+                    const errorData = await subscriptionRes.json();
+                    throw new Error(errorData.message || 'Failed to fetch subscription');
                   }
+
+                  const subscriptionData = await subscriptionRes.json();
 
                   return [
                     plan.addressId,
