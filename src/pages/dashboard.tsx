@@ -64,28 +64,23 @@ export default function Dashboard() {
             const addressPromises = userData.billing.plans
               .filter((plan): plan is EmbedPlan => {
                 return plan.type === PlanType.EMBED && 
-                       typeof plan.addressId === 'string' && 
-                       typeof plan.stripeSubscriptionId === 'string';
+                       typeof plan.addressId === 'string';
               })
               .map(async (plan) => {
                 try {
-                  const [addressDoc, subscriptionRes] = await Promise.all([
-                    getDoc(doc(db, 'addresses', plan.addressId)),
-                    fetch(`/api/get-subscription-details?subscriptionId=${plan.stripeSubscriptionId}`)
-                  ]);
-
-                  if (!subscriptionRes.ok) {
-                    const errorData = await subscriptionRes.json();
-                    throw new Error(errorData.message || 'Failed to fetch subscription');
-                  }
-
-                  const subscriptionData = await subscriptionRes.json();
+                  const addressDoc = await getDoc(doc(db, 'addresses', plan.addressId));
 
                   return [
                     plan.addressId,
                     {
                       address: addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found',
-                      subscription: subscriptionData
+                      subscription: {
+                        nextPaymentTimestamp: plan.currentPeriodEnd?.getTime() || Date.now() + 30 * 24 * 60 * 60 * 1000,
+                        status: plan.status,
+                        cancelAtPeriodEnd: plan.status === 'cancelling',
+                        currentPeriodStart: plan.startDate?.getTime() || Date.now(),
+                        cancelAt: plan.endDate?.getTime() || null
+                      }
                     }
                   ] as const;
                 } catch (err) {
