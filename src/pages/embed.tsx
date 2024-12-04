@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
 import AddressAutocomplete from '../components/AddressAutocomplete';
+import EmbedPricingTable from '../components/EmbedPricingTable';
 
 export default function Embed() {
   const [user, setUser] = useState<User | null>(null);
@@ -80,7 +81,6 @@ export default function Embed() {
       <Head>
         <title>Create Your Address Embed - Addressd</title>
         <meta name="description" content="Help customers find your business with clear, natural language directions" />
-        <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
@@ -265,11 +265,10 @@ export default function Embed() {
                 <h2 className="text-2xl font-bold ml-4">Choose Your Plan</h2>
               </div>
 
-              <stripe-pricing-table
-                pricing-table-id={process.env.NEXT_PUBLIC_STRIPE_PRICING_TABLE_ID!}
-                publishable-key={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
-                client-reference-id={user?.uid}
-                customer-email={user?.email || undefined}
+              <EmbedPricingTable
+                userId={user?.uid}
+                addressId={validationResult?.id}
+                description={description}
               />
             </motion.div>
 

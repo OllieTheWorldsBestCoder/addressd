@@ -1,65 +1,62 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing STRIPE_SECRET_KEY environment variable');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-11-20.acacia'
 });
 
-async function createProducts() {
+async function createEmbedProduct() {
   try {
-    // Create Embed Product
-    const embedProduct = await stripe.products.create({
+    // Create the product
+    const product = await stripe.products.create({
       name: 'Addressd Embed',
-      description: 'Embed address descriptions on your website'
+      description: 'Help customers find your business with clear, natural language directions',
     });
 
-    // Create Monthly Price
+    console.log('Created product:', product.id);
+
+    // Create monthly price
     const monthlyPrice = await stripe.prices.create({
-      product: embedProduct.id,
+      product: product.id,
       unit_amount: 300, // £3.00
       currency: 'gbp',
       recurring: {
         interval: 'month'
+      },
+      metadata: {
+        type: 'embed',
+        billing_period: 'monthly'
       }
     });
 
-    // Create Yearly Price
+    console.log('Created monthly price:', monthlyPrice.id);
+
+    // Create yearly price
     const yearlyPrice = await stripe.prices.create({
-      product: embedProduct.id,
+      product: product.id,
       unit_amount: 2000, // £20.00
       currency: 'gbp',
       recurring: {
         interval: 'year'
+      },
+      metadata: {
+        type: 'embed',
+        billing_period: 'yearly'
       }
     });
 
-    // Create API Product
-    const apiProduct = await stripe.products.create({
-      name: 'Addressd API',
-      description: 'Access to the Addressd API with usage-based billing'
-    });
+    console.log('Created yearly price:', yearlyPrice.id);
 
-    // Create API Price
-    const apiPrice = await stripe.prices.create({
-      product: apiProduct.id,
-      unit_amount: 0.5, // £0.005
-      currency: 'gbp',
-      recurring: {
-        interval: 'month'
-      },
-      billing_scheme: 'per_unit'
-    });
-
-    console.log('Products and prices created:', {
-      embedProduct: embedProduct.id,
-      monthlyPrice: monthlyPrice.id,
-      yearlyPrice: yearlyPrice.id,
-      apiProduct: apiProduct.id,
-      apiPrice: apiPrice.id
-    });
+    console.log('\nAdd these to your .env.local:');
+    console.log(`STRIPE_EMBED_MONTHLY_PRICE_ID=${monthlyPrice.id}`);
+    console.log(`STRIPE_EMBED_YEARLY_PRICE_ID=${yearlyPrice.id}`);
 
   } catch (error) {
-    console.error('Error creating products:', error);
+    console.error('Error setting up Stripe products:', error);
   }
 }
 
-createProducts(); 
+createEmbedProduct(); 
