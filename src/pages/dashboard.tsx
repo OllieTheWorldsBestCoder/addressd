@@ -45,6 +45,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const [apiCopySuccess, setApiCopySuccess] = useState(false);
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://addressd.vercel.app';
   const [addressDetails, setAddressDetails] = useState<{[key: string]: {
     address: string;
     subscription?: SubscriptionDetails;
@@ -260,7 +261,7 @@ export default function Dashboard() {
   return (
     <Layout>
       <Head>
-        <title>Dashboard - Addressd</title>
+        <title>dashboard - addressd</title>
       </Head>
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
@@ -542,6 +543,9 @@ export default function Dashboard() {
           </motion.div>
         </div>
       </div>
+      <small className="text-gray-500">
+        Powered by <a href={baseUrl} target="_blank" className="text-blue-500 no-underline">addressd</a>
+      </small>
     </Layout>
   );
 } 

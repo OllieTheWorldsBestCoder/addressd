@@ -7,18 +7,18 @@
 
   // Validate base URL was properly injected during build
   if (baseUrl === '__ADDRESSD_BASE_URL__') {
-    console.error('Addressd: Base URL not properly configured');
+    console.error('addressd: Base URL not properly configured');
     return;
   }
 
   if (!container) {
-    console.error('Addressd: No container element found with id "addressd-embed"');
+    console.error('addressd: No container element found with id "addressd-embed"');
     return;
   }
 
   if (!token || !addressId) {
     container.innerHTML = 'Invalid embed configuration';
-    console.error('Addressd: Missing required data attributes (data-token and data-address)');
+    console.error('addressd: Missing required data attributes (data-token and data-address)');
     return;
   }
 
