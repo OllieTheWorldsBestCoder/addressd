@@ -8,6 +8,8 @@ export interface EmbedPlan {
   type: PlanType.EMBED;
   priceMonthly: number;  // £3
   priceYearly: number;   // £20
+  currentPrice: number;  // Current active price based on billing period
+  billingPeriod: 'monthly' | 'yearly';
   startDate: Date;
   status: 'active' | 'cancelled' | 'past_due' | 'cancelling';
   stripeSubscriptionId?: string;

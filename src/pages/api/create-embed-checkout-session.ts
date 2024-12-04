@@ -1,13 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe } from '../../config/stripe';
 
-// Add detailed debug logging
-console.log('Environment Check:', {
-  priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
-  baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-  nodeEnv: process.env.NODE_ENV
-});
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
@@ -22,19 +15,27 @@ export default async function handler(
   }
 
   try {
-    const { userId, addressId, description } = req.body;
+    const { userId, addressId, description, billingPeriod } = req.body;
 
-    // Log the configuration being used
-    console.log('Stripe Configuration:', {
-      priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
-      isLiveMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_')
-    });
+    if (!userId || !addressId || !billingPeriod) {
+      return res.status(400).json({ error: 'Missing required parameters' });
+    }
 
+    // Get the appropriate price ID based on billing period
+    const priceId = billingPeriod === 'monthly' 
+      ? process.env.STRIPE_EMBED_MONTHLY_PRICE_ID 
+      : process.env.STRIPE_EMBED_YEARLY_PRICE_ID;
+
+    if (!priceId) {
+      return res.status(500).json({ error: 'Price ID not configured' });
+    }
+
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
         {
-          price: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -44,29 +45,26 @@ export default async function handler(
       client_reference_id: userId,
       subscription_data: {
         metadata: {
-          userId: userId,
-          addressId: addressId,
-          plan_type: 'embed'
+          userId,
+          addressId,
+          plan_type: 'embed',
+          billing_period: billingPeriod
         }
       },
       metadata: {
-        addressId: addressId,
-        description: description,
-        plan_type: 'embed'
+        addressId,
+        description: description || '',
+        plan_type: 'embed',
+        billing_period: billingPeriod
       },
     });
 
-    return res.status(200).json({ sessionId: session.id });
-  } catch (error: any) {
-    // Enhanced error logging
-    console.error('Stripe Error:', {
-      type: error.type,
-      message: error.message,
-      code: error.code,
-      param: error.param,
-      raw: error.raw
+    return res.status(200).json({ 
+      sessionId: session.id,
+      url: session.url
     });
-    
+  } catch (error: any) {
+    console.error('Error creating checkout session:', error);
     return res.status(500).json({ 
       error: 'Failed to create checkout session',
       details: error.message 

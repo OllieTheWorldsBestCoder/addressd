@@ -28,8 +28,9 @@ export default async function handler(
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    // Get the address ID from the metadata
+    // Get the address ID and billing period from the metadata
     const addressId = session.metadata?.addressId;
+    const billingPeriod = session.metadata?.billing_period;
     
     if (!addressId) {
       return res.status(400).json({ message: 'No address ID found in session' });
@@ -45,8 +46,10 @@ export default async function handler(
         startDate: new Date(),
         stripeSubscriptionId: session.subscription,
         addressId: addressId,
+        billingPeriod,
         priceMonthly: 300, // £3
-        priceYearly: 2000  // £20
+        priceYearly: 2000, // £20
+        currentPrice: billingPeriod === 'yearly' ? 2000 : 300 // Set based on selected period
       }]
     });
 
