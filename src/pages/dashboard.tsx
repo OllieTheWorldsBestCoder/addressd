@@ -48,6 +48,9 @@ export default function Dashboard() {
   const [addressDetails, setAddressDetails] = useState<{[key: string]: {
     address: string;
     subscription?: SubscriptionDetails;
+    embedCode?: string | null;
+    viewCount?: number;
+    domain?: string;
   }}>({});
 
   useEffect(() => {
