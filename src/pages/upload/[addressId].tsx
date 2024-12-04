@@ -6,8 +6,9 @@ import { Contribution, Address } from '../../types/address';
 import Head from 'next/head';
 import { useAuth } from '../../hooks/useAuth';
 import { User } from '../../types/user';
-import { FiAward, FiMapPin, FiStar } from 'react-icons/fi';
+import { FiAward, FiMapPin, FiStar, FiArrowLeft } from 'react-icons/fi';
 import Link from 'next/link';
+import Layout from '../../components/Layout';
 
 const NEW_ADDRESS_POINTS = 0.05;
 const EXISTING_ADDRESS_POINTS = NEW_ADDRESS_POINTS / 4;
@@ -134,34 +135,36 @@ export default function UploadPage() {
   };
 
   return (
-    <>
+    <Layout>
       <Head>
         <title>Contribute Description - addressd</title>
         <meta name="description" content="Help improve delivery success rates by contributing detailed location descriptions" />
       </Head>
 
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+        {/* Header */}
+        <div className="bg-primary text-white py-8">
+          <div className="max-w-3xl mx-auto px-4">
+            <Link href="/" className="inline-flex items-center text-white/80 hover:text-white mb-6">
+              <FiArrowLeft className="mr-2" />
+              Back to Home
+            </Link>
+            <h1 className="text-4xl font-bold mb-4">
               Help Others Find This Location
             </h1>
             {address && (
-              <div className="flex items-center justify-center text-lg text-gray-600 mb-6">
+              <div className="flex items-center text-lg text-white/80">
                 <FiMapPin className="mr-2" />
                 {address.formattedAddress}
               </div>
             )}
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Your detailed description helps delivery drivers and visitors find this location easily. 
-              Earn rewards for your contributions and help build a better addressing system.
-            </p>
           </div>
+        </div>
 
-          {/* Contribution Box */}
-          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <div className="mb-6">
+        {/* Main Content */}
+        <div className="max-w-3xl mx-auto px-4 py-12">
+          <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <div className="mb-8">
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 Location Description
               </label>
@@ -169,7 +172,7 @@ export default function UploadPage() {
                 id="description"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 transition-all"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
                 rows={6}
                 placeholder="Describe how to find this location... (e.g., 'The entrance is on the side street, look for the blue awning...')"
               />
@@ -179,12 +182,12 @@ export default function UploadPage() {
             </div>
 
             {/* Points Info */}
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-              <div className="flex items-center text-blue-800 mb-2">
+            <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center text-secondary-dark mb-2">
                 <FiAward className="mr-2" />
                 <h3 className="font-semibold">Earn Rewards</h3>
               </div>
-              <ul className="text-sm text-blue-700 space-y-1">
+              <ul className="text-sm text-secondary-dark space-y-1">
                 <li>• First description for a location: {NEW_ADDRESS_POINTS} credits</li>
                 <li>• Additional descriptions: {EXISTING_ADDRESS_POINTS} credits</li>
                 <li>• Credits reduce your API usage costs</li>
@@ -192,17 +195,17 @@ export default function UploadPage() {
             </div>
 
             {!user && (
-              <div className="bg-yellow-50 border border-yellow-100 rounded-lg p-4 mb-6">
-                <div className="flex items-center text-yellow-800 mb-2">
+              <div className="bg-primary/5 border border-primary/10 rounded-lg p-4 mb-6">
+                <div className="flex items-center text-primary mb-2">
                   <FiStar className="mr-2" />
                   <h3 className="font-semibold">Sign Up to Earn Rewards</h3>
                 </div>
-                <p className="text-sm text-yellow-700 mb-3">
+                <p className="text-sm text-primary/80 mb-3">
                   Create an account to track your contributions and earn rewards.
                 </p>
                 <Link
                   href="/signup"
-                  className="inline-block bg-yellow-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-yellow-600 transition-colors"
+                  className="inline-block bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-light transition-colors"
                 >
                   Sign Up Now
                 </Link>
@@ -211,29 +214,29 @@ export default function UploadPage() {
 
             <button
               onClick={handleContribute}
-              className="w-full bg-blue-600 text-white rounded-lg px-4 py-3 font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-secondary text-white rounded-lg px-4 py-3 font-medium hover:bg-secondary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={status === 'loading' || !content.trim()}
             >
               {status === 'loading' ? 'Contributing...' : 'Submit Description'}
             </button>
 
             {status === 'success' && (
-              <div className="mt-4 bg-green-50 border border-green-100 rounded-lg p-4">
-                <div className="text-green-800 font-medium mb-2">
+              <div className="mt-4 bg-accent/10 border border-accent/20 rounded-lg p-4">
+                <div className="text-accent-dark font-medium mb-2">
                   Thank you for your contribution!
                 </div>
                 {pointsEarned && (
-                  <p className="text-sm text-green-700">
+                  <p className="text-sm text-accent-dark">
                     You earned {pointsEarned} credits for this contribution.
                   </p>
                 )}
                 {summaryStatus === 'generating' && (
-                  <p className="text-sm text-green-700 mt-2">
+                  <p className="text-sm text-accent-dark mt-2">
                     Generating location summary... (this may take a few seconds)
                   </p>
                 )}
                 {summaryStatus === 'done' && (
-                  <p className="text-sm text-green-700 mt-2">
+                  <p className="text-sm text-accent-dark mt-2">
                     Location summary has been updated!
                   </p>
                 )}
@@ -249,13 +252,13 @@ export default function UploadPage() {
 
           {/* Existing Descriptions */}
           {address?.descriptions && address.descriptions.length > 0 && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">
                 Existing Descriptions
               </h2>
               <div className="space-y-4">
                 {address.descriptions.map((desc, index) => (
-                  <div key={index} className="border-l-4 border-blue-200 pl-4 py-2">
+                  <div key={index} className="border-l-4 border-secondary/30 pl-4 py-2">
                     <p className="text-gray-700">{desc.content}</p>
                     <p className="text-sm text-gray-500 mt-1">
                       Added {new Date(desc.createdAt as any).toLocaleDateString()}
@@ -267,6 +270,6 @@ export default function UploadPage() {
           )}
         </div>
       </div>
-    </>
+    </Layout>
   );
 } 
