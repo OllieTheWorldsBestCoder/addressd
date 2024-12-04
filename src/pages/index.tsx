@@ -107,38 +107,6 @@ export default function Home() {
               Our natural language directions make every address instantly understandable.
             </p>
 
-            {/* Social Proof */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <p className="text-lg font-medium text-gray-900 mb-2">30% Faster Deliveries</p>
-                <p className="text-gray-600">Drivers find locations quicker with natural language guidance</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <p className="text-lg font-medium text-gray-900 mb-2">20% Fewer Failed Attempts</p>
-                <p className="text-gray-600">Clear directions reduce delivery errors and customer frustration</p>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <p className="text-lg font-medium text-gray-900 mb-2">5-Minute Setup</p>
-                <p className="text-gray-600">Quick integration with your website or delivery system</p>
-              </div>
-            </div>
-
-            {/* Main CTA */}
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <Link
-                href="/embed"
-                className="button button-primary px-8 py-4 text-lg"
-              >
-                Improve Delivery Success Now
-              </Link>
-              <Link
-                href="/pricing"
-                className="button button-secondary px-8 py-4 text-lg"
-              >
-                View Pricing Plans
-              </Link>
-            </div>
-
             {/* Main Input Form */}
             <form onSubmit={handleSubmit} className="max-w-3xl mx-auto mb-16">
               <div className="relative">
@@ -375,6 +343,22 @@ export default function Home() {
   AddressdDirections.init('your_embed_token');
 </script>`}</code>
                 </pre>
+              </div>
+
+              {/* Stats Cards moved here */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <p className="text-lg font-medium text-gray-900 mb-2">30% Faster Deliveries</p>
+                  <p className="text-gray-600">Drivers find locations quicker with natural language guidance</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <p className="text-lg font-medium text-gray-900 mb-2">20% Fewer Failed Attempts</p>
+                  <p className="text-gray-600">Clear directions reduce delivery errors and customer frustration</p>
+                </div>
+                <div className="bg-white p-6 rounded-lg shadow-sm">
+                  <p className="text-lg font-medium text-gray-900 mb-2">5-Minute Setup</p>
+                  <p className="text-gray-600">Quick integration with your website or delivery system</p>
+                </div>
               </div>
             </motion.div>
           </motion.div>
