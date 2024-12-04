@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '../../config/firebase';
 import { stripe } from '../../config/stripe';
 import { PlanType } from '../../types/billing';
-import { collection, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +14,7 @@ export default async function handler(
 
   try {
     const { sessionId, userId } = req.body;
+    console.log('Verifying checkout session:', { sessionId, userId });
 
     if (!sessionId || !userId) {
       return res.status(400).json({ message: 'Missing required parameters' });
@@ -28,6 +29,12 @@ export default async function handler(
       return res.status(404).json({ message: 'Session not found' });
     }
 
+    console.log('Retrieved session:', {
+      id: session.id,
+      metadata: session.metadata,
+      subscription: session.subscription
+    });
+
     // Get the address ID and billing period from the metadata
     const addressId = session.metadata?.addressId;
     const billingPeriod = session.metadata?.billing_period;
@@ -39,19 +46,35 @@ export default async function handler(
     // Update user's billing information
     const usersCollection = collection(db, 'users');
     const userRef = doc(usersCollection, userId);
-    await updateDoc(userRef, {
-      'billing.plans': [{
-        type: PlanType.EMBED,
-        status: 'active',
-        startDate: new Date(),
-        stripeSubscriptionId: session.subscription,
+
+    // Create the new plan object
+    const newPlan = {
+      type: PlanType.EMBED,
+      status: 'active',
+      startDate: new Date(),
+      stripeSubscriptionId: session.subscription,
+      addressId: addressId,
+      billingPeriod,
+      priceMonthly: 300, // £3
+      priceYearly: 2000, // £20
+      currentPrice: billingPeriod === 'yearly' ? 2000 : 300 // Set based on selected period
+    };
+
+    // Update user document
+    const updates = {
+      'billing.stripeCustomerId': session.customer,
+      'billing.plans': arrayUnion(newPlan),
+      'embedAccess.activeEmbeds': arrayUnion({
         addressId: addressId,
-        billingPeriod,
-        priceMonthly: 300, // £3
-        priceYearly: 2000, // £20
-        currentPrice: billingPeriod === 'yearly' ? 2000 : 300 // Set based on selected period
-      }]
-    });
+        domain: 'pending', // Will be updated on first embed view
+        createdAt: new Date(),
+        lastUsed: new Date(),
+        viewCount: 0
+      })
+    };
+
+    console.log('Updating user document:', { userId, updates });
+    await updateDoc(userRef, updates);
 
     // Generate embed code
     const embedCode = `<div id="addressd-embed"></div>
@@ -76,6 +99,7 @@ export default async function handler(
     const addressDoc = await getDoc(addressRef);
     const address = addressDoc.data()?.formatted_address || '';
 
+    console.log('Successfully verified checkout session');
     res.status(200).json({
       embedId: addressId,
       embedCode,
