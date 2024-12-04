@@ -3,6 +3,7 @@ import { db } from '../../config/firebase';
 import { stripe } from '../../config/stripe';
 import { PlanType } from '../../types/billing';
 import { collection, doc, getDoc, updateDoc, arrayUnion, setDoc } from 'firebase/firestore';
+import crypto from 'crypto';
 
 export default async function handler(
   req: NextApiRequest,
@@ -35,52 +36,36 @@ export default async function handler(
       subscription: session.subscription
     });
 
-    // Get the address ID and billing period from the metadata
+    // Get the address ID from the metadata
     const addressId = session.metadata?.addressId;
-    const billingPeriod = session.metadata?.billing_period;
     
     if (!addressId) {
       return res.status(400).json({ message: 'No address ID found in session' });
     }
 
-    // Update user's billing information
-    const usersCollection = collection(db, 'users');
-    const userRef = doc(usersCollection, userId);
+    // Get user's embed token
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+    const userData = userDoc.data();
+    
+    // Create embed token if it doesn't exist
+    let embedToken = userData?.embedAccess?.embedToken;
+    if (!embedToken) {
+      embedToken = crypto.randomBytes(32).toString('hex');
+      await updateDoc(userRef, {
+        'embedAccess.embedToken': embedToken,
+        'embedAccess.isEmbedUser': true
+      });
+    }
 
-    // Create the new plan object
-    const newPlan = {
-      type: PlanType.EMBED,
-      status: 'active',
-      startDate: new Date(),
-      stripeSubscriptionId: session.subscription,
-      addressId: addressId,
-      billingPeriod,
-      priceMonthly: 300, // £3
-      priceYearly: 2000, // £20
-      currentPrice: billingPeriod === 'yearly' ? 2000 : 300 // Set based on selected period
-    };
-
-    // Update user document
-    const updates = {
-      'billing.stripeCustomerId': session.customer,
-      'billing.plans': arrayUnion(newPlan),
-      'embedAccess.activeEmbeds': arrayUnion({
-        addressId: addressId,
-        domain: 'pending', // Will be updated on first embed view
-        createdAt: new Date(),
-        lastUsed: new Date(),
-        viewCount: 0
-      })
-    };
-
-    console.log('Updating user document:', { userId, updates });
-    await updateDoc(userRef, updates);
+    // Get the base URL, defaulting to production if not set
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://addressd.vercel.app';
 
     // Generate embed code
     const embedCode = `<div id="addressd-embed"></div>
-<script src="${process.env.NEXT_PUBLIC_URL}/embed.js" 
+<script src="${baseUrl}/embed.js" 
   data-address="${addressId}"
-  data-token="${userId}">
+  data-token="${embedToken}">
 </script>`;
 
     // Create or update the embed document

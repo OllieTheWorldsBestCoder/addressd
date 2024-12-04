@@ -5,7 +5,7 @@ import { auth, db } from '../config/firebase';
 import { doc, getDoc, collection } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
 import { User } from '../types/user';
-import { PlanType, BillingPlan, ApiPlan } from '../types/billing';
+import { PlanType, BillingPlan, EmbedPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck, FiCopy } from 'react-icons/fi';
@@ -51,14 +51,16 @@ export default function Dashboard() {
             userData.billing.plans = Array.isArray(userData.billing.plans) ? userData.billing.plans : [];
             setUser(userData);
 
-            // Fetch address details for each embed
-            const addressPromises = userData.embedAccess?.activeEmbeds?.map(async (embed) => {
-              const addressDoc = await getDoc(doc(db, 'addresses', embed.addressId));
-              if (addressDoc.exists()) {
-                return [embed.addressId, addressDoc.data().formatted_address];
-              }
-              return [embed.addressId, 'Address not found'];
-            }) || [];
+            // Fetch address details for each embed plan
+            const addressPromises = userData.billing.plans
+              .filter((plan): plan is EmbedPlan => plan.type === PlanType.EMBED && !!plan.addressId)
+              .map(async (plan) => {
+                const addressDoc = await getDoc(doc(db, 'addresses', plan.addressId));
+                if (addressDoc.exists()) {
+                  return [plan.addressId, addressDoc.data().formatted_address];
+                }
+                return [plan.addressId, 'Address not found'];
+              });
 
             const addressResults = await Promise.all(addressPromises);
             setAddressDetails(Object.fromEntries(addressResults));
@@ -173,7 +175,19 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Error copying embed code:', err);
+      setError('Failed to copy embed code');
+      setTimeout(() => setError(''), 3000);
     }
+  };
+
+  const getDomainForEmbed = (addressId: string) => {
+    const embed = user?.embedAccess?.activeEmbeds?.find(e => e.addressId === addressId);
+    return embed?.domain || 'Not yet used';
+  };
+
+  const getViewCountForEmbed = (addressId: string) => {
+    const embed = user?.embedAccess?.activeEmbeds?.find(e => e.addressId === addressId);
+    return embed?.viewCount || 0;
   };
 
   if (loading) {
@@ -275,9 +289,17 @@ export default function Dashboard() {
                             <p className="text-sm font-medium text-gray-900">
                               {addressDetails[plan.addressId] || 'Loading address...'}
                             </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {user?.embedAccess?.activeEmbeds?.find(e => e.addressId === plan.addressId)?.domain || 'No views yet'}
-                            </p>
+                            <div className="mt-2 space-y-1">
+                              <p className="text-xs text-gray-500">
+                                Domain: {getDomainForEmbed(plan.addressId)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Views: {getViewCountForEmbed(plan.addressId)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Status: {plan.status}
+                              </p>
+                            </div>
                           </div>
                           <button
                             onClick={() => handleCopyEmbedCode(plan.addressId)}

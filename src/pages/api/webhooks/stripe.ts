@@ -6,6 +6,7 @@ import { doc, updateDoc, arrayUnion, getDoc, collection, query, where, getDocs }
 import { db } from '../../../config/firebase';
 import { PlanType, BillingPlan } from '../../../types/billing';
 import { User } from '../../../types/user';
+import { randomBytes } from 'crypto';
 
 type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
 
@@ -124,6 +125,18 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     throw new Error('Missing required metadata');
   }
 
+  // Check if plan already exists
+  const existingPlans = userData.data()?.billing?.plans || [];
+  const planExists = existingPlans.some((plan: any) => 
+    plan.addressId === addressId && 
+    plan.stripeSubscriptionId === subscription.id
+  );
+
+  if (planExists) {
+    console.log('Plan already exists, skipping creation');
+    return;
+  }
+
   // Create the base plan object
   const status: SubscriptionStatus = 'active';
   const plan = {
@@ -138,20 +151,31 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     currentPrice: billingPeriod === 'yearly' ? 2000 : 300
   };
 
+  // Ensure user has an embed token
+  const userDataObj = userData.data();
+  let embedToken = userDataObj?.embedAccess?.embedToken;
+  if (!embedToken) {
+    embedToken = randomBytes(32).toString('hex');
+  }
+
   // Update user with subscription details
   const updates: any = {
     'billing.stripeCustomerId': session.customer as string,
-    'billing.plans': arrayUnion(plan)
+    'billing.plans': arrayUnion(plan),
+    'embedAccess.embedToken': embedToken,
+    'embedAccess.isEmbedUser': true
   };
 
   // For embed subscriptions, also update the activeEmbeds array
-  updates['embedAccess.activeEmbeds'] = arrayUnion({
-    addressId: addressId,
-    domain: 'pending', // Will be updated on first embed view
-    createdAt: new Date(),
-    lastUsed: new Date(),
-    viewCount: 0
-  });
+  if (!userDataObj?.embedAccess?.activeEmbeds?.some((embed: any) => embed.addressId === addressId)) {
+    updates['embedAccess.activeEmbeds'] = arrayUnion({
+      addressId: addressId,
+      domain: 'pending', // Will be updated on first embed view
+      createdAt: new Date(),
+      lastUsed: new Date(),
+      viewCount: 0
+    });
+  }
 
   await updateDoc(userRef, updates);
 }
