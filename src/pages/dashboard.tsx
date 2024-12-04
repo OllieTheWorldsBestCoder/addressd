@@ -75,11 +75,11 @@ export default function Dashboard() {
                     {
                       address: addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found',
                       subscription: {
-                        nextPaymentTimestamp: plan.currentPeriodEnd?.getTime() || Date.now() + 30 * 24 * 60 * 60 * 1000,
+                        nextPaymentTimestamp: plan.currentPeriodEnd instanceof Date ? plan.currentPeriodEnd.getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000,
                         status: plan.status,
                         cancelAtPeriodEnd: plan.status === 'cancelling',
-                        currentPeriodStart: plan.startDate?.getTime() || Date.now(),
-                        cancelAt: plan.endDate?.getTime() || null
+                        currentPeriodStart: plan.startDate instanceof Date ? plan.startDate.getTime() : Date.now(),
+                        cancelAt: plan.endDate instanceof Date ? plan.endDate.getTime() : null
                       }
                     }
                   ] as const;
