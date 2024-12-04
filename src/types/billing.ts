@@ -11,6 +11,8 @@ export interface EmbedPlan {
   currentPrice: number;  // Current active price based on billing period
   billingPeriod: 'monthly' | 'yearly';
   startDate: Date;
+  currentPeriodEnd?: Date;  // When the current billing period ends
+  endDate?: Date;  // When the subscription ends (if cancelled)
   status: 'active' | 'cancelled' | 'past_due' | 'cancelling';
   stripeSubscriptionId?: string;
   addressId: string;  // Link to the specific embed address

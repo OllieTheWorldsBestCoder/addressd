@@ -126,7 +126,8 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   }
 
   // Check if plan already exists
-  const existingPlans = userData.data()?.billing?.plans || [];
+  const userDataObj = userData.data();
+  const existingPlans = userDataObj?.billing?.plans || [];
   const planExists = existingPlans.some((plan: any) => 
     plan.addressId === addressId && 
     plan.stripeSubscriptionId === subscription.id
@@ -152,30 +153,32 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   };
 
   // Ensure user has an embed token
-  const userDataObj = userData.data();
   let embedToken = userDataObj?.embedAccess?.embedToken;
   if (!embedToken) {
     embedToken = randomBytes(32).toString('hex');
   }
+
+  // Remove any existing activeEmbeds for this addressId
+  const existingEmbeds = userDataObj?.embedAccess?.activeEmbeds || [];
+  const updatedEmbeds = existingEmbeds.filter((embed: any) => embed.addressId !== addressId);
+
+  // Add the new embed
+  const newEmbed = {
+    addressId: addressId,
+    domain: 'pending', // Will be updated on first embed view
+    createdAt: new Date(),
+    lastUsed: new Date(),
+    viewCount: 0
+  };
 
   // Update user with subscription details
   const updates: any = {
     'billing.stripeCustomerId': session.customer as string,
     'billing.plans': arrayUnion(plan),
     'embedAccess.embedToken': embedToken,
-    'embedAccess.isEmbedUser': true
+    'embedAccess.isEmbedUser': true,
+    'embedAccess.activeEmbeds': [...updatedEmbeds, newEmbed]
   };
-
-  // For embed subscriptions, also update the activeEmbeds array
-  if (!userDataObj?.embedAccess?.activeEmbeds?.some((embed: any) => embed.addressId === addressId)) {
-    updates['embedAccess.activeEmbeds'] = arrayUnion({
-      addressId: addressId,
-      domain: 'pending', // Will be updated on first embed view
-      createdAt: new Date(),
-      lastUsed: new Date(),
-      viewCount: 0
-    });
-  }
 
   await updateDoc(userRef, updates);
 }
@@ -206,7 +209,8 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
         return {
           ...plan,
           status,
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000)
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          endDate: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : undefined
         };
       }
       return plan;
