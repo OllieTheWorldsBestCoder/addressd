@@ -9,6 +9,7 @@ import { PlanType, BillingPlan, EmbedPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
 import Layout from '../components/Layout';
 import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck, FiCopy } from 'react-icons/fi';
+import { stripe } from '../config/stripe';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -37,7 +38,11 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const [apiCopySuccess, setApiCopySuccess] = useState(false);
-  const [addressDetails, setAddressDetails] = useState<{[key: string]: string}>({});
+  const [addressDetails, setAddressDetails] = useState<{[key: string]: {
+    address: string;
+    nextPayment?: Date;
+    subscription?: any;
+  }}>({});
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: FirebaseUser | null) => {
@@ -46,20 +51,41 @@ export default function Dashboard() {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data() as User;
-            // Ensure billing and plans exist and are arrays
             userData.billing = userData.billing || { plans: [] };
             userData.billing.plans = Array.isArray(userData.billing.plans) ? userData.billing.plans : [];
             setUser(userData);
 
-            // Fetch address details for each embed plan
             const addressPromises = userData.billing.plans
-              .filter((plan): plan is EmbedPlan => plan.type === PlanType.EMBED && !!plan.addressId)
+              .filter((plan): plan is EmbedPlan => {
+                return plan.type === PlanType.EMBED && 
+                       typeof plan.addressId === 'string' && 
+                       typeof plan.stripeSubscriptionId === 'string';
+              })
               .map(async (plan) => {
-                const addressDoc = await getDoc(doc(db, 'addresses', plan.addressId));
-                if (addressDoc.exists()) {
-                  return [plan.addressId, addressDoc.data().formatted_address];
+                try {
+                  const [addressDoc, subscriptionData] = await Promise.all([
+                    getDoc(doc(db, 'addresses', plan.addressId)),
+                    stripe.subscriptions.retrieve(plan.stripeSubscriptionId as string)
+                  ]);
+
+                  return [
+                    plan.addressId,
+                    {
+                      address: addressDoc.exists() ? addressDoc.data().formatted_address : 'Address not found',
+                      nextPayment: new Date(subscriptionData.current_period_end * 1000),
+                      subscription: subscriptionData
+                    }
+                  ] as const;
+                } catch (err) {
+                  console.error('Error fetching details for plan:', plan.addressId, err);
+                  return [
+                    plan.addressId,
+                    {
+                      address: 'Error loading address',
+                      subscription: null
+                    }
+                  ] as const;
                 }
-                return [plan.addressId, 'Address not found'];
               });
 
             const addressResults = await Promise.all(addressPromises);
@@ -190,6 +216,15 @@ export default function Dashboard() {
     return embed?.viewCount || 0;
   };
 
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return 'Not available';
+    return new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(date);
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -284,12 +319,12 @@ export default function Dashboard() {
                     {/* Show embed details if it's an embed plan */}
                     {plan?.type === PlanType.EMBED && plan.addressId && (
                       <div className="mt-4 space-y-4">
-                        <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-                          <div>
+                        <div className="flex justify-between items-start p-4 bg-gray-50 rounded-lg">
+                          <div className="space-y-2">
                             <p className="text-sm font-medium text-gray-900">
-                              {addressDetails[plan.addressId] || 'Loading address...'}
+                              {addressDetails[plan.addressId]?.address || 'Loading address...'}
                             </p>
-                            <div className="mt-2 space-y-1">
+                            <div className="space-y-1">
                               <p className="text-xs text-gray-500">
                                 Domain: {getDomainForEmbed(plan.addressId)}
                               </p>
@@ -298,6 +333,15 @@ export default function Dashboard() {
                               </p>
                               <p className="text-xs text-gray-500">
                                 Status: {plan.status}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Next Payment: {formatDate(addressDetails[plan.addressId]?.nextPayment)}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Billing Period: {plan.billingPeriod}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                Price: £{plan.currentPrice / 100}/{plan.billingPeriod}
                               </p>
                             </div>
                           </div>
