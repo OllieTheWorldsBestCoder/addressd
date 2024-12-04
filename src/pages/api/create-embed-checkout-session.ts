@@ -1,23 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import Stripe from 'stripe';
+import { stripe } from '../../config/stripe';
 
 // Add detailed debug logging
-const stripeKey = process.env.STRIPE_SECRET_KEY || '';
 console.log('Environment Check:', {
-  keyType: stripeKey.substring(0, 7), // Just show "sk_live" or "sk_test"
   priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
   nodeEnv: process.env.NODE_ENV
-});
-
-const stripe = new Stripe(stripeKey, {
-  apiVersion: '2024-11-20.acacia',
-  typescript: true,
-  appInfo: {
-    name: 'Addressd',
-    version: '1.0.0'
-  },
-  telemetry: false // Disable usage tracking
 });
 
 export default async function handler(
@@ -38,9 +26,8 @@ export default async function handler(
 
     // Log the configuration being used
     console.log('Stripe Configuration:', {
-      keyType: stripeKey.substring(0, 7),
       priceId: process.env.STRIPE_EMBED_MONTHLY_PRICE_ID,
-      isLiveMode: stripeKey.startsWith('sk_live_')
+      isLiveMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_')
     });
 
     const session = await stripe.checkout.sessions.create({
@@ -52,7 +39,7 @@ export default async function handler(
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/embed`,
       client_reference_id: userId,
       subscription_data: {

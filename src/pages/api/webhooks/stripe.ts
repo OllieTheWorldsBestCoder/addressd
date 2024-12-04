@@ -1,22 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { buffer } from 'micro';
-import Stripe from 'stripe';
+import { stripe } from '../../../config/stripe';
+import type Stripe from 'stripe';
 import { doc, updateDoc, arrayUnion, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { PlanType, BillingPlan } from '../../../types/billing';
 import { User } from '../../../types/user';
 
 type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-11-20.acacia',
-  typescript: true,
-  appInfo: {
-    name: 'Addressd',
-    version: '1.0.0'
-  },
-  telemetry: false
-});
 
 export const config = {
   api: {
