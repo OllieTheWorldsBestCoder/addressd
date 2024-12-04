@@ -71,11 +71,7 @@ export default function Dashboard() {
                 try {
                   const [addressDoc, subscriptionRes] = await Promise.all([
                     getDoc(doc(db, 'addresses', plan.addressId)),
-                    fetch(`/api/get-subscription-details?subscriptionId=${plan.stripeSubscriptionId}`, {
-                      headers: {
-                        'Authorization': `Bearer ${await firebaseUser.getIdToken()}`
-                      }
-                    })
+                    fetch(`/api/get-subscription-details?subscriptionId=${plan.stripeSubscriptionId}`)
                   ]);
 
                   if (!subscriptionRes.ok) {
