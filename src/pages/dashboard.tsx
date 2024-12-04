@@ -2,13 +2,13 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { auth, db } from '../config/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection } from 'firebase/firestore';
 import { User as FirebaseUser } from 'firebase/auth';
 import { User } from '../types/user';
 import { PlanType, BillingPlan, ApiPlan } from '../types/billing';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck } from 'react-icons/fi';
+import { FiCode, FiBox, FiTrendingUp, FiZap, FiPlus, FiExternalLink, FiStar, FiCheck, FiCopy } from 'react-icons/fi';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -35,7 +35,9 @@ export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [copySuccess, setCopySuccess] = useState(false);
+  const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [apiCopySuccess, setApiCopySuccess] = useState(false);
+  const [addressDetails, setAddressDetails] = useState<{[key: string]: string}>({});
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser: FirebaseUser | null) => {
@@ -48,6 +50,18 @@ export default function Dashboard() {
             userData.billing = userData.billing || { plans: [] };
             userData.billing.plans = Array.isArray(userData.billing.plans) ? userData.billing.plans : [];
             setUser(userData);
+
+            // Fetch address details for each embed
+            const addressPromises = userData.embedAccess?.activeEmbeds?.map(async (embed) => {
+              const addressDoc = await getDoc(doc(db, 'addresses', embed.addressId));
+              if (addressDoc.exists()) {
+                return [embed.addressId, addressDoc.data().formatted_address];
+              }
+              return [embed.addressId, 'Address not found'];
+            }) || [];
+
+            const addressResults = await Promise.all(addressPromises);
+            setAddressDetails(Object.fromEntries(addressResults));
           }
         } catch (err) {
           console.error('Error fetching user data:', err);
@@ -139,12 +153,26 @@ export default function Dashboard() {
       }
       
       await navigator.clipboard.writeText(user.authToken);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      setApiCopySuccess(true);
+      setTimeout(() => setApiCopySuccess(false), 2000);
     } catch (error) {
       console.error('Failed to copy API token:', error);
       setError('Failed to copy API token to clipboard');
       setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const handleCopyEmbedCode = async (addressId: string) => {
+    try {
+      const embedDoc = await getDoc(doc(db, 'embeds', addressId));
+      if (embedDoc.exists()) {
+        const embedCode = embedDoc.data().embedCode;
+        await navigator.clipboard.writeText(embedCode);
+        setCopySuccess(addressId);
+        setTimeout(() => setCopySuccess(null), 2000);
+      }
+    } catch (err) {
+      console.error('Error copying embed code:', err);
     }
   };
 
@@ -201,7 +229,7 @@ export default function Dashboard() {
               <div>
                 <h1 className="text-4xl font-bold text-gray-900">Dashboard</h1>
                 <p className="text-gray-600 mt-2">
-                  Optimize deliveries with natural language directions
+                  Manage your embeds and optimize deliveries
                 </p>
               </div>
               <Link
@@ -213,11 +241,11 @@ export default function Dashboard() {
             </motion.div>
 
             {/* Usage Stats */}
-            <motion.section variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.section variants={itemVariants} className="grid grid-cols-1 gap-6">
               {Array.isArray(user?.billing?.plans) && user.billing.plans.length > 0 ? (
                 user.billing.plans.map((plan, index) => (
                   <div key={index} className="bg-white rounded-xl shadow-sm p-6">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
                           {plan?.type === PlanType.API ? 'Delivery Optimizations' : 
@@ -238,27 +266,72 @@ export default function Dashboard() {
                         <FiStar className="w-6 h-6 text-yellow-500" />
                       )}
                     </div>
-                    <div className="mt-4">
-                      <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>{getUsageDisplay(plan)}</span>
-                        <span>{getPlanLimit(plan)}</span>
+
+                    {/* Show embed details if it's an embed plan */}
+                    {plan?.type === PlanType.EMBED && plan.addressId && (
+                      <div className="mt-4 space-y-4">
+                        <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {addressDetails[plan.addressId] || 'Loading address...'}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {user?.embedAccess?.activeEmbeds?.find(e => e.addressId === plan.addressId)?.domain || 'No views yet'}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleCopyEmbedCode(plan.addressId)}
+                            className="flex items-center px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+                          >
+                            {copySuccess === plan.addressId ? (
+                              <>
+                                <FiCheck className="w-4 h-4 mr-1.5" />
+                                Copied!
+                              </>
+                            ) : (
+                              <>
+                                <FiCopy className="w-4 h-4 mr-1.5" />
+                                Copy Code
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="flex justify-between text-sm text-gray-600 mb-1">
+                          <span>{getUsageDisplay(plan)}</span>
+                          <span>{getPlanLimit(plan)}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-purple-500 rounded-full transition-all duration-500 ease-in-out"
+                            style={{ width: `${getUsagePercentage(plan)}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            plan?.type === PlanType.API ? 'bg-blue-500' : 
-                            plan?.type === PlanType.EMBED ? 'bg-purple-500' :
-                            'bg-yellow-500'
-                          } transition-all duration-500 ease-in-out`}
-                          style={{ width: `${getUsagePercentage(plan)}%` }}
-                        />
+                    )}
+
+                    {/* Show regular usage stats for non-embed plans */}
+                    {plan?.type !== PlanType.EMBED && (
+                      <div className="mt-4">
+                        <div className="flex justify-between text-sm text-gray-600 mb-1">
+                          <span>{getUsageDisplay(plan)}</span>
+                          <span>{getPlanLimit(plan)}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              plan?.type === PlanType.API ? 'bg-blue-500' : 'bg-yellow-500'
+                            } transition-all duration-500 ease-in-out`}
+                            style={{ width: `${getUsagePercentage(plan)}%` }}
+                          />
+                        </div>
+                        {plan?.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
+                          <p className="mt-2 text-sm text-orange-600">
+                            Approaching limit. Consider upgrading your plan to optimize more deliveries.
+                          </p>
+                        )}
                       </div>
-                      {plan?.type === PlanType.API && (plan as ApiPlan).currentUsage > 800 && (
-                        <p className="mt-2 text-sm text-orange-600">
-                          Approaching limit. Consider upgrading your plan to optimize more deliveries.
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 ))
               ) : (
@@ -298,7 +371,7 @@ export default function Dashboard() {
                     className="px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors flex items-center"
                     disabled={!user?.authToken}
                   >
-                    {copySuccess ? (
+                    {apiCopySuccess ? (
                       <>
                         <FiCheck className="mr-2" />
                         Copied!
