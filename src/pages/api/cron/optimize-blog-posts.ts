@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { optimizeBlogPost } from '@/services/content-generation';
 import { getBlogPosts, updateBlogPost } from '@/services/blog';
+import { BlogPost } from '@/types/blog';
 
 // Verify cron job secret
 const verifyCronSecret = (req: NextApiRequest): boolean => {
@@ -29,17 +30,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { posts } = await getBlogPosts(1);
     const postsToOptimize = posts
-      .filter(post => !post.lastOptimizedAt || new Date(post.lastOptimizedAt) < thirtyDaysAgo)
+      .filter((post: BlogPost) => !post.lastOptimizedAt || new Date(post.lastOptimizedAt) < thirtyDaysAgo)
       .slice(0, POSTS_PER_RUN);
 
     // Optimize each post
     const optimizationResults = await Promise.allSettled(
-      postsToOptimize.map(async (post) => {
+      postsToOptimize.map(async (post: BlogPost) => {
         const optimizedData = await optimizeBlogPost(post);
         await updateBlogPost(post.id, optimizedData);
         return {
           postId: post.id,
-          title: optimizedData.title
+          title: post.title
         };
       })
     );
@@ -59,8 +60,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       optimized: successful.length,
       failed: failed.length,
       details: {
-        successful: successful.map(result => result.value),
-        failed: failed.map(result => ({
+        successful: successful.map((result) => result.value),
+        failed: failed.map((result) => ({
           error: result.reason instanceof Error ? result.reason.message : 'Unknown error'
         }))
       }

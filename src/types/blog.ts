@@ -8,6 +8,7 @@ export interface BlogPost {
   updatedAt: Date;
   author: string;
   tags: string[];
+  categories: string[];
   imageUrl?: string;
   
   // SEO metadata
@@ -21,6 +22,7 @@ export interface BlogPost {
   
   // Generation metadata
   isGenerated: boolean;
+  published: boolean;
   generationPrompt?: string;
   lastOptimizedAt?: Date;
 }
