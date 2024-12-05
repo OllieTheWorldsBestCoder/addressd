@@ -1,5 +1,5 @@
 import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { Address } from '../types/address';
@@ -58,17 +58,16 @@ interface AddressValidationResponse {
 
 export class AddressService {
   private googleMapsClient: Client;
-  private openai: OpenAIApi;
+  private openai: OpenAI;
   private addressCollection = 'addresses';
   private learningService: LearningService;
 
   constructor() {
     this.googleMapsClient = new Client({});
     
-    const configuration = new Configuration({
+    this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
-    this.openai = new OpenAIApi(configuration);
     this.learningService = new LearningService();
   }
 
