@@ -44,7 +44,77 @@ module.exports = {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
+      typography: {
+        DEFAULT: {
+          css: {
+            color: 'var(--tw-prose-body)',
+            maxWidth: '65ch',
+            '[class~="lead"]': {
+              color: 'var(--tw-prose-lead)'
+            },
+            a: {
+              color: 'var(--color-primary)',
+              textDecoration: 'underline',
+              fontWeight: '500'
+            },
+            strong: {
+              color: 'var(--tw-prose-bold)',
+              fontWeight: '600'
+            },
+            'ul > li': {
+              position: 'relative',
+              paddingLeft: '1.75em'
+            },
+            'ol > li': {
+              position: 'relative',
+              paddingLeft: '1.75em'
+            },
+            'h1, h2, h3, h4': {
+              color: 'var(--tw-prose-headings)',
+              fontWeight: '600'
+            },
+            h1: {
+              fontSize: '2.25em',
+              marginTop: '0',
+              marginBottom: '0.8888889em',
+              lineHeight: '1.1111111'
+            },
+            h2: {
+              fontSize: '1.5em',
+              marginTop: '2em',
+              marginBottom: '1em',
+              lineHeight: '1.3333333'
+            },
+            h3: {
+              fontSize: '1.25em',
+              marginTop: '1.6em',
+              marginBottom: '0.6em',
+              lineHeight: '1.6'
+            },
+            code: {
+              color: 'var(--tw-prose-code)',
+              fontWeight: '600'
+            },
+            'code::before': {
+              content: '"`"'
+            },
+            'code::after': {
+              content: '"`"'
+            },
+            blockquote: {
+              fontWeight: '500',
+              fontStyle: 'italic',
+              color: 'var(--tw-prose-quotes)',
+              borderLeftWidth: '0.25rem',
+              borderLeftColor: 'var(--tw-prose-quote-borders)',
+              quotes: '"\\201C""\\201D""\\2018""\\2019"'
+            }
+          }
+        }
+      }
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography')
+  ],
 }

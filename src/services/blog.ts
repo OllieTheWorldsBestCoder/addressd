@@ -89,13 +89,41 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   const postDoc = snapshot.docs[0];
   const data = postDoc.data() as FirestoreBlogPost;
   const { publishedAt, updatedAt, lastOptimizedAt, ...rest } = data;
+
+  // Format content as markdown sections
+  const content = formatContentAsMarkdown(rest.content);
+  // Remove quotes from title
+  const title = rest.title.replace(/^["'](.*)["']$/, '$1');
+  
   return {
     id: postDoc.id,
     ...rest,
+    title,
+    content,
     publishedAt: publishedAt.toDate(),
     updatedAt: updatedAt.toDate(),
     lastOptimizedAt: lastOptimizedAt?.toDate() || undefined
   } as BlogPost;
+}
+
+function formatContentAsMarkdown(content: string): string {
+  // Split content into sections
+  const sections = content.split(/\s*(?=[IVX]+\.\s+[A-Z])/);
+  
+  // Format each section with proper markdown
+  return sections.map(section => {
+    // Extract section title and content
+    const [title, ...contentParts] = section.split(/:\s+/);
+    const sectionContent = contentParts.join(': ');
+
+    if (!sectionContent) return section; // Return as is if no clear section structure
+
+    // Format as markdown
+    return `## ${title.trim()}
+
+${sectionContent.trim()}
+`;
+  }).join('\n\n');
 }
 
 export async function getRelatedPosts(currentPost: BlogPost, limit: number = 2): Promise<BlogPost[]> {

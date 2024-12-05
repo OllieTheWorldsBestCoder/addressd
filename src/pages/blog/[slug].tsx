@@ -7,6 +7,7 @@ import Layout from '@/components/Layout';
 import { BlogPost } from '@/types/blog';
 import { GetServerSideProps } from 'next';
 import { getBlogPost, getRelatedPosts, incrementPostViews } from '@/services/blog';
+import ReactMarkdown from 'react-markdown';
 
 interface BlogPostPageProps {
   post: BlogPost;
@@ -142,8 +143,9 @@ export default function BlogPostPage({ post, relatedPosts }: BlogPostPageProps) 
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
               className="prose prose-lg max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-            />
+            >
+              <ReactMarkdown>{post.content}</ReactMarkdown>
+            </motion.div>
 
             {/* Author Info */}
             <motion.div
