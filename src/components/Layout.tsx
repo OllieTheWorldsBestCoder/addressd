@@ -49,20 +49,20 @@ export default function Layout({ children }: LayoutProps) {
       >
         <nav className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" className="flex items-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3 }}
-              className="relative"
+              className="relative w-[140px] h-[40px]"
             >
               <Image
-                src={`/images/${isScrolled ? 'addressd - logo.png' : 'addressd - light.png'}`}
+                src="/images/addressd - logo.png"
                 alt="addressd"
-                width={120}
-                height={32}
-                className="h-8 w-auto"
+                fill
+                style={{ objectFit: 'contain' }}
                 priority
+                className="select-none"
               />
             </motion.div>
           </Link>
