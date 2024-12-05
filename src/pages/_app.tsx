@@ -1,5 +1,6 @@
 import { AppProps } from 'next/app';
 import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/react';
 import '../styles/globals.css';
 import '../styles/prism.css';
 
@@ -27,6 +28,7 @@ export default function App({ Component, pageProps }: AppProps) {
         id="prism-json"
       />
       <Component {...pageProps} />
+      <Analytics />
     </>
   );
 } 
