@@ -5,22 +5,12 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "publishedAt",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
-      "collectionGroup": "blog_posts",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
           "fieldPath": "tags",
           "arrayConfig": "CONTAINS"
         },
         {
-          "fieldPath": "publishedAt",
-          "order": "DESCENDING"
+          "fieldPath": "slug",
+          "order": "ASCENDING"
         }
       ]
     },
@@ -43,8 +33,12 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "slug",
-          "order": "ASCENDING"
+          "fieldPath": "tags",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
         }
       ]
     }
