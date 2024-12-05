@@ -51,18 +51,18 @@ export default function Layout({ children }: LayoutProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <Image
-              src="/images/addressd-logo.png"
-              alt="addressd logo"
-              width={150}
-              height={40}
-              className="dark:hidden"
-            />
-            <Image
               src="/images/addressd-light.png"
               alt="addressd logo"
               width={150}
               height={40}
               className="hidden dark:block"
+            />
+            <Image
+              src="/images/addressd-logo.png"
+              alt="addressd logo"
+              width={150}
+              height={40}
+              className="block dark:hidden"
             />
           </Link>
 
