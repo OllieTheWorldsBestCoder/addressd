@@ -7,6 +7,7 @@ import { db } from '../../../config/firebase';
 import { PlanType, BillingPlan } from '../../../types/billing';
 import { User } from '../../../types/user';
 import { randomBytes } from 'crypto';
+import { trackCheckoutSuccess, trackCheckoutError } from '../../../utils/analytics';
 
 type SubscriptionStatus = 'active' | 'cancelled' | 'past_due' | 'cancelling';
 
@@ -104,83 +105,93 @@ export default async function handler(
 }
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
-  if (!session.client_reference_id) {
-    throw new Error('No client_reference_id found in session');
+  try {
+    if (!session.client_reference_id) {
+      throw new Error('No client_reference_id found in session');
+    }
+
+    const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
+    const userRef = doc(db, 'users', session.client_reference_id);
+    const userData = await getDoc(userRef);
+    
+    if (!userData.exists()) {
+      throw new Error('User not found: ' + session.client_reference_id);
+    }
+
+    // Get metadata from the session
+    const planType = session.metadata?.plan_type as PlanType;
+    const addressId = session.metadata?.addressId;
+    const billingPeriod = session.metadata?.billing_period as 'monthly' | 'yearly';
+    const amount = parseInt(session.metadata?.amount || '0');
+
+    if (!planType || !addressId || !billingPeriod) {
+      throw new Error('Missing required metadata');
+    }
+
+    // Track successful checkout
+    trackCheckoutSuccess(planType, billingPeriod, amount);
+
+    // Check if plan already exists
+    const userDataObj = userData.data();
+    const existingPlans = userDataObj?.billing?.plans || [];
+    const planExists = existingPlans.some((plan: any) => 
+      plan.addressId === addressId && 
+      plan.stripeSubscriptionId === subscription.id
+    );
+
+    if (planExists) {
+      console.log('Plan already exists, skipping creation');
+      return;
+    }
+
+    // Create the base plan object
+    const status: SubscriptionStatus = 'active';
+    const plan = {
+      type: planType,
+      status,
+      startDate: new Date(),
+      stripeSubscriptionId: subscription.id,
+      addressId,
+      billingPeriod,
+      priceMonthly: 300, // £3
+      priceYearly: 2000, // £20
+      currentPrice: billingPeriod === 'yearly' ? 2000 : 300
+    };
+
+    // Ensure user has an embed token
+    let embedToken = userDataObj?.embedAccess?.embedToken;
+    if (!embedToken) {
+      embedToken = randomBytes(32).toString('hex');
+    }
+
+    // Remove any existing activeEmbeds for this addressId
+    const existingEmbeds = userDataObj?.embedAccess?.activeEmbeds || [];
+    const updatedEmbeds = existingEmbeds.filter((embed: any) => embed.addressId !== addressId);
+
+    // Add the new embed
+    const newEmbed = {
+      addressId: addressId,
+      domain: 'pending', // Will be updated on first embed view
+      createdAt: new Date(),
+      lastUsed: new Date(),
+      viewCount: 0
+    };
+
+    // Update user with subscription details
+    const updates: any = {
+      'billing.stripeCustomerId': session.customer as string,
+      'billing.plans': arrayUnion(plan),
+      'embedAccess.embedToken': embedToken,
+      'embedAccess.isEmbedUser': true,
+      'embedAccess.activeEmbeds': [...updatedEmbeds, newEmbed]
+    };
+
+    await updateDoc(userRef, updates);
+  } catch (error) {
+    // Track checkout error
+    trackCheckoutError(error instanceof Error ? error.message : 'Unknown error');
+    throw error;
   }
-
-  const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
-  const userRef = doc(db, 'users', session.client_reference_id);
-  const userData = await getDoc(userRef);
-  
-  if (!userData.exists()) {
-    throw new Error('User not found: ' + session.client_reference_id);
-  }
-
-  // Get metadata from the session
-  const planType = session.metadata?.plan_type as PlanType;
-  const addressId = session.metadata?.addressId;
-  const billingPeriod = session.metadata?.billing_period as 'monthly' | 'yearly';
-
-  if (!planType || !addressId || !billingPeriod) {
-    throw new Error('Missing required metadata');
-  }
-
-  // Check if plan already exists
-  const userDataObj = userData.data();
-  const existingPlans = userDataObj?.billing?.plans || [];
-  const planExists = existingPlans.some((plan: any) => 
-    plan.addressId === addressId && 
-    plan.stripeSubscriptionId === subscription.id
-  );
-
-  if (planExists) {
-    console.log('Plan already exists, skipping creation');
-    return;
-  }
-
-  // Create the base plan object
-  const status: SubscriptionStatus = 'active';
-  const plan = {
-    type: planType,
-    status,
-    startDate: new Date(),
-    stripeSubscriptionId: subscription.id,
-    addressId,
-    billingPeriod,
-    priceMonthly: 300, // £3
-    priceYearly: 2000, // £20
-    currentPrice: billingPeriod === 'yearly' ? 2000 : 300
-  };
-
-  // Ensure user has an embed token
-  let embedToken = userDataObj?.embedAccess?.embedToken;
-  if (!embedToken) {
-    embedToken = randomBytes(32).toString('hex');
-  }
-
-  // Remove any existing activeEmbeds for this addressId
-  const existingEmbeds = userDataObj?.embedAccess?.activeEmbeds || [];
-  const updatedEmbeds = existingEmbeds.filter((embed: any) => embed.addressId !== addressId);
-
-  // Add the new embed
-  const newEmbed = {
-    addressId: addressId,
-    domain: 'pending', // Will be updated on first embed view
-    createdAt: new Date(),
-    lastUsed: new Date(),
-    viewCount: 0
-  };
-
-  // Update user with subscription details
-  const updates: any = {
-    'billing.stripeCustomerId': session.customer as string,
-    'billing.plans': arrayUnion(plan),
-    'embedAccess.embedToken': embedToken,
-    'embedAccess.isEmbedUser': true,
-    'embedAccess.activeEmbeds': [...updatedEmbeds, newEmbed]
-  };
-
-  await updateDoc(userRef, updates);
 }
 
 async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {

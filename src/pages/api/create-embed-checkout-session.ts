@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { stripe } from '../../config/stripe';
+import { trackCheckoutStart } from '../../utils/analytics';
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,10 +24,12 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing required parameters' });
     }
 
-    // Get the appropriate price ID based on billing period
+    // Get the appropriate price ID and amount based on billing period
     const priceId = billingPeriod === 'monthly' 
       ? process.env.STRIPE_EMBED_MONTHLY_PRICE_ID 
       : process.env.STRIPE_EMBED_YEARLY_PRICE_ID;
+    
+    const amount = billingPeriod === 'monthly' ? 3 : 20;
 
     if (!priceId) {
       console.error('Price ID not configured for billing period:', billingPeriod);
@@ -34,6 +37,9 @@ export default async function handler(
     }
 
     console.log('Using price ID:', priceId);
+
+    // Track checkout start
+    trackCheckoutStart('embed', billingPeriod, amount);
 
     // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
@@ -55,7 +61,8 @@ export default async function handler(
           userId,
           addressId,
           plan_type: 'embed',
-          billing_period: billingPeriod
+          billing_period: billingPeriod,
+          amount: amount.toString()
         },
         description: `Addressd Embed - ${billingPeriod} plan`
       },
@@ -63,7 +70,8 @@ export default async function handler(
         addressId,
         description: description || '',
         plan_type: 'embed',
-        billing_period: billingPeriod
+        billing_period: billingPeriod,
+        amount: amount.toString()
       },
     });
 

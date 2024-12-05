@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { FiCheck, FiX } from 'react-icons/fi';
 import Layout from '../components/Layout';
+import { trackPricingView, trackPricingToggle, trackCheckoutStart } from '../utils/analytics';
 
 type BillingPeriod = 'monthly' | 'yearly';
 
@@ -27,6 +28,20 @@ const features: PricingFeature[] = [
 
 export default function Pricing() {
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+
+  // Track page view
+  useEffect(() => {
+    trackPricingView('all');
+  }, []);
+
+  const handleBillingToggle = (period: BillingPeriod) => {
+    setBillingPeriod(period);
+    trackPricingToggle(period);
+  };
+
+  const handleCheckoutStart = (plan: string, amount: number) => {
+    trackCheckoutStart(plan, billingPeriod, amount);
+  };
 
   const getEmbedPrice = () => {
     return billingPeriod === 'monthly' ? '£3' : '£20';
@@ -76,6 +91,24 @@ export default function Pricing() {
             </p>
           </div>
 
+          {/* Billing Toggle */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-gray-100 p-1 rounded-lg">
+              <button
+                className={`px-4 py-2 rounded-md ${billingPeriod === 'monthly' ? 'bg-white shadow-sm' : ''}`}
+                onClick={() => handleBillingToggle('monthly')}
+              >
+                Monthly
+              </button>
+              <button
+                className={`px-4 py-2 rounded-md ${billingPeriod === 'yearly' ? 'bg-white shadow-sm' : ''}`}
+                onClick={() => handleBillingToggle('yearly')}
+              >
+                Yearly
+              </button>
+            </div>
+          </div>
+
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Embed Plan */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -107,7 +140,10 @@ export default function Pricing() {
                     <span className="ml-3">Usage analytics</span>
                   </li>
                 </ul>
-                <button className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3">
+                <button 
+                  className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3"
+                  onClick={() => handleCheckoutStart('embed', billingPeriod === 'monthly' ? 3 : 20)}
+                >
                   Start Improving Deliveries
                 </button>
               </div>
@@ -143,7 +179,10 @@ export default function Pricing() {
                     <span className="ml-3">Advanced analytics</span>
                   </li>
                 </ul>
-                <button className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3">
+                <button 
+                  className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3"
+                  onClick={() => handleCheckoutStart('api', billingPeriod === 'monthly' ? 50 : 500)}
+                >
                   Start API Integration
                 </button>
               </div>
@@ -178,7 +217,10 @@ export default function Pricing() {
                     <span className="ml-3">SLA guarantees</span>
                   </li>
                 </ul>
-                <button className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3">
+                <button 
+                  className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3"
+                  onClick={() => handleCheckoutStart('enterprise', 0)}
+                >
                   Request Custom Quote
                 </button>
               </div>
