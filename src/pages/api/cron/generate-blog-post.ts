@@ -8,8 +8,8 @@ const verifyCronSecret = (req: NextApiRequest): boolean => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Allow both GET and POST for cron jobs
-  if (req.method !== 'GET' && req.method !== 'POST') {
+  // Only allow POST for cron jobs
+  if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -19,8 +19,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    console.log('Starting blog post generation...');
     // Generate new blog post
     const postId = await generateBlogPost();
+    console.log('Successfully generated blog post:', postId);
     
     return res.status(200).json({
       success: true,
