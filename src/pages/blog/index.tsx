@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { FiCalendar, FiTag, FiEye, FiHeart } from 'react-icons/fi';
 import Layout from '@/components/Layout';
 import { BlogPost, BlogCategory, BlogTag } from '@/types/blog';
+import { getAllBlogPosts, getAllCategories, getAllTags } from '@/services/blog';
+import { GetServerSideProps } from 'next';
 
 // Animation variants
 const containerVariants = {
@@ -22,19 +24,21 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-export default function BlogIndex() {
+interface BlogIndexProps {
+  initialPosts: BlogPost[];
+  categories: BlogCategory[];
+  tags: BlogTag[];
+}
+
+export default function BlogIndex({ initialPosts, categories, tags }: BlogIndexProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  // TODO: Replace with actual data fetching
-  const posts: BlogPost[] = [];
-  const categories: BlogCategory[] = [];
-  const tags: BlogTag[] = [];
+  const [posts] = useState<BlogPost[]>(initialPosts);
 
   const filteredPosts = posts.filter(post => {
-    if (selectedCategory !== 'all' && !post.tags.includes(selectedCategory)) return false;
-    if (selectedTag !== 'all' && !post.tags.includes(selectedTag)) return false;
+    if (selectedCategory !== 'all' && !post.categories?.includes(selectedCategory)) return false;
+    if (selectedTag !== 'all' && !post.tags?.includes(selectedTag)) return false;
     if (searchQuery && !post.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     return true;
   });
@@ -168,7 +172,7 @@ export default function BlogIndex() {
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 mt-4">
-                        {post.tags.map(tag => (
+                        {post.tags?.map(tag => (
                           <span 
                             key={tag}
                             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
@@ -192,4 +196,31 @@ export default function BlogIndex() {
       </div>
     </Layout>
   );
-} 
+}
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  try {
+    const [posts, categories, tags] = await Promise.all([
+      getAllBlogPosts(),
+      getAllCategories(),
+      getAllTags()
+    ]);
+
+    return {
+      props: {
+        initialPosts: JSON.parse(JSON.stringify(posts)), // Serialize dates
+        categories: JSON.parse(JSON.stringify(categories)),
+        tags: JSON.parse(JSON.stringify(tags))
+      }
+    };
+  } catch (error) {
+    console.error('Error fetching blog data:', error);
+    return {
+      props: {
+        initialPosts: [],
+        categories: [],
+        tags: []
+      }
+    };
+  }
+}; 

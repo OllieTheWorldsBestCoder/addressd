@@ -11,10 +11,16 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
   );
   
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as BlogPost[];
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      publishedAt: data.publishedAt?.toDate(),
+      updatedAt: data.updatedAt?.toDate(),
+      lastOptimizedAt: data.lastOptimizedAt?.toDate()
+    } as BlogPost;
+  });
 }
 
 export async function getBlogPosts(
@@ -40,10 +46,16 @@ export async function getBlogPosts(
   }
 
   const snapshot = await getDocs(q);
-  const posts = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as BlogPost[];
+  const posts = snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      publishedAt: data.publishedAt?.toDate(),
+      updatedAt: data.updatedAt?.toDate(),
+      lastOptimizedAt: data.lastOptimizedAt?.toDate()
+    } as BlogPost;
+  });
 
   // Check if there are more posts
   const nextQuery = query(
@@ -67,9 +79,13 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   }
   
   const doc = snapshot.docs[0];
+  const data = doc.data();
   return {
     id: doc.id,
-    ...doc.data()
+    ...data,
+    publishedAt: data.publishedAt?.toDate(),
+    updatedAt: data.updatedAt?.toDate(),
+    lastOptimizedAt: data.lastOptimizedAt?.toDate()
   } as BlogPost;
 }
 
@@ -85,10 +101,16 @@ export async function getRelatedPosts(currentPost: BlogPost, limit: number = 2):
   );
   
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as BlogPost[];
+  return snapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      publishedAt: data.publishedAt?.toDate(),
+      updatedAt: data.updatedAt?.toDate(),
+      lastOptimizedAt: data.lastOptimizedAt?.toDate()
+    } as BlogPost;
+  });
 }
 
 export async function getAllCategories(): Promise<BlogCategory[]> {
@@ -138,6 +160,7 @@ export async function createBlogPost(post: Omit<BlogPost, 'id'>): Promise<string
     ...post,
     publishedAt: Timestamp.fromDate(post.publishedAt),
     updatedAt: Timestamp.fromDate(post.updatedAt),
+    lastOptimizedAt: post.lastOptimizedAt ? Timestamp.fromDate(post.lastOptimizedAt) : null,
     views: 0,
     likes: 0
   });
@@ -146,8 +169,18 @@ export async function createBlogPost(post: Omit<BlogPost, 'id'>): Promise<string
 
 export async function updateBlogPost(id: string, post: Partial<BlogPost>): Promise<void> {
   const docRef = doc(db, 'blog_posts', id);
-  await updateDoc(docRef, {
-    ...post,
-    updatedAt: Timestamp.fromDate(new Date())
-  });
+  const updateData = { ...post };
+  
+  // Convert dates to Firestore Timestamps
+  if (post.publishedAt) {
+    updateData.publishedAt = Timestamp.fromDate(post.publishedAt);
+  }
+  if (post.updatedAt) {
+    updateData.updatedAt = Timestamp.fromDate(post.updatedAt);
+  }
+  if (post.lastOptimizedAt) {
+    updateData.lastOptimizedAt = Timestamp.fromDate(post.lastOptimizedAt);
+  }
+  
+  await updateDoc(docRef, updateData);
 } 
