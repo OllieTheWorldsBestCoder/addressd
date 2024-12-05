@@ -4,6 +4,7 @@ import { db } from '../../../config/firebase';
 import { User } from '../../../types/user';
 import { EmbedTrackingService } from '../../../services/embedTracking.service';
 import { BillingService } from '../../../services/billing.service';
+import { randomBytes } from 'crypto';
 
 const embedTracking = new EmbedTrackingService();
 const billingService = new BillingService();
@@ -67,12 +68,15 @@ export default async function handler(
       domain = 'unknown';
     }
 
+    // Generate a unique embed view ID
+    const embedViewId = `ev_${randomBytes(16).toString('hex')}`;
+
     // Track the embed view
     await embedTracking.trackEmbedView(
       userId,
       addressId as string,
       domain,
-      id
+      embedViewId
     );
 
     // Get address data
