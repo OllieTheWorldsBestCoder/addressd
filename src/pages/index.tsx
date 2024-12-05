@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiSearch, FiArrowRight, FiCheck, FiShield, FiZap, FiCpu, FiAperture, FiTrendingUp } from 'react-icons/fi';
+import { FiSearch, FiArrowRight, FiCheck, FiShield, FiZap, FiCpu, FiAperture, FiTrendingUp, FiMapPin, FiGift } from 'react-icons/fi';
 import Layout from '../components/Layout';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
@@ -203,8 +203,8 @@ export default function Home() {
                 className="card"
               >
                 <div className="flex items-center mb-4">
-                  <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
-                    <FiCheck className="text-2xl text-secondary" />
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <FiMapPin className="text-2xl text-primary" />
                   </div>
                   <h3 className="text-xl font-semibold ml-3">Smart Context</h3>
                 </div>
@@ -220,13 +220,13 @@ export default function Home() {
                 className="card"
               >
                 <div className="flex items-center mb-4">
-                  <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
-                    <FiTrendingUp className="text-2xl text-secondary" />
+                  <div className="p-2 bg-accent/10 rounded-lg">
+                    <FiGift className="text-2xl text-accent" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Always Learning</h3>
+                  <h3 className="text-xl font-semibold ml-3">Earn Credits</h3>
                 </div>
                 <p className="text-gray-600">
-                  Continuously improves directions through user feedback and contributions
+                  Contribute descriptions to earn free API credits and reduce your costs
                 </p>
               </motion.div>
             </div>
