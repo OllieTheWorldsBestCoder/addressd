@@ -25,7 +25,7 @@ export async function generateBlogPost(): Promise<string> {
 
     // 2. Generate content
     const contentCompletion = await openai.chat.completions.create({
-      model: "gpt4o-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -47,7 +47,7 @@ export async function generateBlogPost(): Promise<string> {
 
     // 3. Generate SEO metadata
     const seoCompletion = await openai.chat.completions.create({
-      model: "gpt4o-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -145,11 +145,11 @@ export async function optimizeBlogPost(post: BlogPost): Promise<Partial<BlogPost
       messages: [
         {
           role: "system",
-          content: "You are an SEO expert. Generate optimized metadata for blog posts. Return your response in this format: {title: string, description: string, keywords: string}"
+          content: "You are an SEO expert. Generate optimized metadata for blog posts. Format your response as a JSON object with these exact fields: title, description, keywords. Do not include any other text or formatting."
         },
         {
           role: "user",
-          content: `Generate SEO metadata (title, description, keywords) for this blog post:\n\n${optimizedContent.substring(0, 500)}...`
+          content: `Generate SEO metadata for this blog post:\n\n${optimizedContent.substring(0, 500)}...`
         }
       ],
       temperature: 0.3,
