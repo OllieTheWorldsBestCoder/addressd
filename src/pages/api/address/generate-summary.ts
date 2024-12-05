@@ -1,12 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 import { Address } from '../../../types/address';
 
-const openai = new OpenAIApi(new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-}));
+});
 
 export default async function handler(
   req: NextApiRequest,
@@ -48,7 +48,7 @@ export default async function handler(
 
     console.log('Sending prompt to OpenAI:', prompt);
 
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
@@ -64,9 +64,9 @@ export default async function handler(
       max_tokens: 200
     });
 
-    console.log('OpenAI response:', completion.data);
+    console.log('OpenAI response:', completion);
 
-    const summary = completion.data.choices[0]?.message?.content?.trim();
+    const summary = completion.choices[0]?.message?.content?.trim();
 
     if (!summary) {
       console.error('No summary generated from OpenAI');
