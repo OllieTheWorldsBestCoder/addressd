@@ -6,6 +6,7 @@ import { FiCalendar, FiTag, FiEye, FiHeart, FiShare2, FiArrowLeft } from 'react-
 import Layout from '@/components/Layout';
 import { BlogPost } from '@/types/blog';
 import { GetServerSideProps } from 'next';
+import { getBlogPost, getRelatedPosts, incrementPostViews } from '@/services/blog';
 
 interface BlogPostPageProps {
   post: BlogPost;
@@ -15,8 +16,10 @@ interface BlogPostPageProps {
 export default function BlogPostPage({ post, relatedPosts }: BlogPostPageProps) {
   useEffect(() => {
     // Increment view count
-    // TODO: Implement view tracking
-  }, []);
+    if (post?.id) {
+      incrementPostViews(post.id);
+    }
+  }, [post?.id]);
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -32,24 +35,39 @@ export default function BlogPostPage({ post, relatedPosts }: BlogPostPageProps) 
     }
   };
 
+  if (!post) {
+    return (
+      <Layout>
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
+          <div className="container mx-auto px-4 text-center">
+            <h1 className="text-2xl font-bold text-gray-900">Post not found</h1>
+            <Link href="/blog" className="text-primary hover:text-primary-dark mt-4 inline-block">
+              Return to Blog
+            </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <Head>
-        <title>{post.metaTitle} - addressd</title>
-        <meta name="description" content={post.metaDescription} />
-        <meta name="keywords" content={post.keywords.join(', ')} />
+        <title>{post.title} - addressd</title>
+        <meta name="description" content={post.excerpt} />
+        <meta name="keywords" content={post.tags?.join(', ')} />
         
         {/* Open Graph */}
-        <meta property="og:title" content={post.metaTitle} />
-        <meta property="og:description" content={post.metaDescription} />
+        <meta property="og:title" content={post.title} />
+        <meta property="og:description" content={post.excerpt} />
         <meta property="og:type" content="article" />
-        <meta property="og:image" content={post.imageUrl} />
+        {post.imageUrl && <meta property="og:image" content={post.imageUrl} />}
         
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={post.metaTitle} />
-        <meta name="twitter:description" content={post.metaDescription} />
-        <meta name="twitter:image" content={post.imageUrl} />
+        <meta name="twitter:title" content={post.title} />
+        <meta name="twitter:description" content={post.excerpt} />
+        {post.imageUrl && <meta name="twitter:image" content={post.imageUrl} />}
       </Head>
 
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white pt-20 pb-32">
@@ -106,7 +124,7 @@ export default function BlogPostPage({ post, relatedPosts }: BlogPostPageProps) 
               </div>
 
               <div className="flex flex-wrap gap-2">
-                {post.tags.map(tag => (
+                {post.tags?.map(tag => (
                   <span 
                     key={tag}
                     className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800"
@@ -193,12 +211,14 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     updatedAt: new Date(),
     author: 'John Doe',
     tags: ['delivery', 'optimization'],
+    categories: ['guides', 'delivery'],
     metaTitle: 'Sample Post',
     metaDescription: 'Sample description',
     keywords: ['delivery', 'optimization'],
     views: 0,
     likes: 0,
-    isGenerated: false
+    isGenerated: false,
+    published: true
   };
 
   const relatedPosts: BlogPost[] = [];
