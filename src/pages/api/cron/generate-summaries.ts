@@ -2,11 +2,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { collection, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { Address, Contribution } from '../../../types/address';
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
-const openai = new OpenAIApi(new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-}));
+});
 
 // Helper to check if a date is within last 24 hours
 const isWithin24Hours = (date: Date) => {
@@ -62,7 +62,9 @@ export default async function handler(
           address.descriptions.map(d => d.content).join('\n\n')
         }`;
 
-        const completion = await openai.createChatCompletion({
+        console.log('Sending prompt to OpenAI:', prompt);
+
+        const completion = await openai.chat.completions.create({
           model: "gpt-3.5-turbo",
           messages: [
             {
@@ -78,7 +80,9 @@ export default async function handler(
           max_tokens: 200
         });
 
-        const summary = completion.data.choices[0]?.message?.content?.trim();
+        console.log('OpenAI response:', completion);
+
+        const summary = completion.choices[0]?.message?.content?.trim();
 
         if (!summary) {
           throw new Error('Failed to generate summary');

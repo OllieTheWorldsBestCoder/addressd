@@ -3,14 +3,15 @@ import { resolve } from 'path';
 import { db } from '../config/firebase';
 import { AddressService } from '../services/address.service';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 import { Address, Contribution } from '../types/address';
+import { Client } from "@googlemaps/google-maps-services-js";
 
 config({ path: resolve(process.cwd(), '.env.local') });
 
-const openai = new OpenAIApi(new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-}));
+});
 
 async function generateSummary(addressId: string) {
   try {
@@ -35,7 +36,7 @@ async function generateSummary(addressId: string) {
 
     console.log('Sending prompt to OpenAI:', prompt);
 
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         {
@@ -51,7 +52,9 @@ async function generateSummary(addressId: string) {
       max_tokens: 200
     });
 
-    const summary = completion.data.choices[0]?.message?.content?.trim();
+    console.log('OpenAI response:', completion);
+
+    const summary = completion.choices[0]?.message?.content?.trim();
 
     if (!summary) {
       throw new Error('Failed to generate summary');
