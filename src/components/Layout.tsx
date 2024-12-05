@@ -119,7 +119,6 @@ export default function Layout({ children }: LayoutProps) {
                     isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
                   }`}>
                     <FiUser className="text-lg" />
-                    <span>{user.email}</span>
                   </button>
                   <div className="absolute right-0 w-48 mt-2 py-2 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
                     <Link 
@@ -270,16 +269,16 @@ export default function Layout({ children }: LayoutProps) {
                     Documentation
                   </Link>
                 </li>
+                <li>
+                  <Link href="/faq" className="text-gray-600 hover:text-primary transition-colors">
+                    FAQ
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>
               <h3 className="font-semibold text-gray-900 mb-4">Company</h3>
               <ul className="space-y-2">
-                <li>
-                  <Link href="/about" className="text-gray-600 hover:text-primary transition-colors">
-                    About
-                  </Link>
-                </li>
                 <li>
                   <Link href="/blog" className="text-gray-600 hover:text-primary transition-colors">
                     Blog
@@ -297,12 +296,12 @@ export default function Layout({ children }: LayoutProps) {
               <ul className="space-y-2">
                 <li>
                   <Link href="/privacy" className="text-gray-600 hover:text-primary transition-colors">
-                    Privacy
+                    Privacy Policy
                   </Link>
                 </li>
                 <li>
                   <Link href="/terms" className="text-gray-600 hover:text-primary transition-colors">
-                    Terms
+                    Terms of Service
                   </Link>
                 </li>
               </ul>
