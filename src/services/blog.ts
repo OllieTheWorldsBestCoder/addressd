@@ -79,7 +79,7 @@ export async function getBlogPosts(
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   const postsRef = collection(db, 'blog_posts');
-  const q = query(postsRef, where('slug', '==', slug), where('published', '==', true), firestoreLimit(1));
+  const q = query(postsRef, where('slug', '==', slug), firestoreLimit(1));
   const snapshot = await getDocs(q);
   
   if (snapshot.empty) {
