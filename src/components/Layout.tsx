@@ -55,15 +55,7 @@ export default function Layout({ children }: LayoutProps) {
               alt="addressd logo"
               width={150}
               height={40}
-              className="block dark:hidden"
-              priority
-            />
-            <Image
-              src="/images/addressd-light.png"
-              alt="addressd logo"
-              width={150}
-              height={40}
-              className="hidden dark:block"
+              className="block"
               priority
             />
           </Link>
