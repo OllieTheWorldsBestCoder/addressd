@@ -71,7 +71,8 @@ export default async function handler(
     await embedTracking.trackEmbedView(
       userId,
       addressId as string,
-      domain
+      domain,
+      id
     );
 
     // Get address data
