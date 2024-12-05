@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiSearch, FiArrowRight, FiCheck, FiShield } from 'react-icons/fi';
+import { FiSearch, FiArrowRight, FiCheck, FiShield, FiZap, FiCpu, FiAperture, FiTrendingUp } from 'react-icons/fi';
 import Layout from '../components/Layout';
 import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
@@ -186,13 +186,13 @@ export default function Home() {
                 className="card"
               >
                 <div className="flex items-center mb-4">
-                  <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
-                    <FiCheck className="text-2xl text-secondary" />
+                  <div className="p-2 bg-violet-100 rounded-lg">
+                    <FiAperture className="text-2xl text-violet-600" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Natural Language</h3>
+                  <h3 className="text-xl font-semibold ml-3">AI-Powered</h3>
                 </div>
                 <p className="text-gray-600">
-                  Clear, human-friendly directions that guide people to the exact location
+                  Advanced AI that understands context and generates natural, human-friendly directions
                 </p>
               </motion.div>
 
@@ -203,13 +203,13 @@ export default function Home() {
                 className="card"
               >
                 <div className="flex items-center mb-4">
-                  <div className="p-2 bg-accent bg-opacity-10 rounded-lg">
-                    <FiShield className="text-2xl text-accent" />
+                  <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
+                    <FiCheck className="text-2xl text-secondary" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Earn Credits</h3>
+                  <h3 className="text-xl font-semibold ml-3">Smart Context</h3>
                 </div>
                 <p className="text-gray-600">
-                  Contribute descriptions to earn free API credits and reduce your costs
+                  Identifies key landmarks and reference points for easier navigation
                 </p>
               </motion.div>
 
@@ -220,15 +220,99 @@ export default function Home() {
                 className="card"
               >
                 <div className="flex items-center mb-4">
-                  <div className="p-2 bg-primary bg-opacity-10 rounded-lg">
-                    <FiSearch className="text-2xl text-primary" />
+                  <div className="p-2 bg-secondary bg-opacity-10 rounded-lg">
+                    <FiTrendingUp className="text-2xl text-secondary" />
                   </div>
-                  <h3 className="text-xl font-semibold ml-3">Delivery Focused</h3>
+                  <h3 className="text-xl font-semibold ml-3">Always Learning</h3>
                 </div>
                 <p className="text-gray-600">
-                  Save time and reduce failed deliveries with precise location guidance
+                  Continuously improves directions through user feedback and contributions
                 </p>
               </motion.div>
+            </div>
+
+            {/* AI Technology Section */}
+            <div className="mt-32 max-w-7xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="text-center mb-16"
+              >
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-violet-100 text-violet-800 mb-4">
+                  <FiZap className="mr-1" />
+                  Powered by Advanced AI
+                </span>
+                <h2 className="text-4xl font-bold text-gray-900 mb-6">
+                  Smart Location Understanding
+                </h2>
+                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                  Our AI technology processes millions of location data points to generate the most accurate and human-friendly directions possible.
+                </p>
+              </motion.div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl p-8 text-white"
+                >
+                  <div className="space-y-6">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                        <FiCpu className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-1">Natural Language Processing</h3>
+                        <p className="text-white/80">Transforms complex addresses into clear, conversational directions</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                        <FiAperture className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-1">Context Analysis</h3>
+                        <p className="text-white/80">Identifies and prioritizes the most helpful navigation landmarks</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-4">
+                      <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
+                        <FiTrendingUp className="text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold mb-1">Continuous Learning</h3>
+                        <p className="text-white/80">Improves accuracy through user feedback and real-world data</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="grid grid-cols-2 gap-6"
+                >
+                  <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div className="text-4xl font-bold text-violet-600 mb-2">95%</div>
+                    <div className="text-gray-600">Accuracy Rate</div>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div className="text-4xl font-bold text-violet-600 mb-2">500k+</div>
+                    <div className="text-gray-600">Locations</div>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div className="text-4xl font-bold text-violet-600 mb-2">24/7</div>
+                    <div className="text-gray-600">AI Learning</div>
+                  </div>
+                  <div className="bg-white rounded-xl shadow-lg p-6 text-center">
+                    <div className="text-4xl font-bold text-violet-600 mb-2">20%</div>
+                    <div className="text-gray-600">Delivery Improvement</div>
+                  </div>
+                </motion.div>
+              </div>
             </div>
 
             {/* Embed Showcase Section */}
