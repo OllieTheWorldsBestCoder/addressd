@@ -5,6 +5,7 @@ import { FiMenu, FiX, FiUser, FiLogOut, FiBook, FiDollarSign, FiGrid, FiHelpCirc
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import { User } from 'firebase/auth';
+import Image from 'next/image';
 
 interface LayoutProps {
   children: ReactNode;
@@ -55,14 +56,15 @@ export default function Layout({ children }: LayoutProps) {
               transition={{ duration: 0.3 }}
               className="relative"
             >
-              <div className="w-8 h-8 bg-primary rounded-lg"></div>
-              <div className="absolute -inset-0.5 bg-primary opacity-20 blur rounded-lg"></div>
+              <Image
+                src={`/images/${isScrolled ? 'addressd - logo.png' : 'addressd - light.png'}`}
+                alt="addressd"
+                width={120}
+                height={32}
+                className="h-8 w-auto"
+                priority
+              />
             </motion.div>
-            <span className={`text-xl font-bold transition-colors duration-200 ${
-              isScrolled ? 'text-primary' : 'text-primary'
-            }`}>
-              Addressd
-            </span>
           </Link>
 
           {/* Desktop Navigation */}
