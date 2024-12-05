@@ -128,7 +128,7 @@ export default function Home() {
                   disabled={isLoading || !address.trim()}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-primary text-white px-6 py-2 rounded-full hover:bg-primary-light transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>{isLoading ? 'Validating...' : 'Add Directions'}</span>
+                  <span>{isLoading ? 'Finding...' : 'Get Directions'}</span>
                   <FiArrowRight className="ml-2" />
                 </button>
               </div>
