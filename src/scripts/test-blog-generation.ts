@@ -1,10 +1,22 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { createBlogPost } from '../services/blog';
 import { BlogPost } from '../types/blog';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Load environment variables
 config({ path: resolve(process.cwd(), '.env.local') });
+
+// Initialize Firebase Admin
+const app = initializeApp({
+  credential: cert({
+    projectId: "addressd-eb27f",
+    clientEmail: "firebase-adminsdk-qqxvr@addressd-eb27f.iam.gserviceaccount.com",
+    privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  })
+});
+
+const db = getFirestore(app);
 
 async function createTestBlogPost() {
   try {
@@ -78,8 +90,14 @@ Track these key metrics to measure the success of your optimization efforts:
       published: true
     };
 
-    const postId = await createBlogPost(testPost);
-    console.log('Successfully created test blog post with ID:', postId);
+    // Add to Firestore
+    const docRef = await db.collection('blog_posts').add({
+      ...testPost,
+      publishedAt: new Date(),
+      updatedAt: new Date()
+    });
+
+    console.log('Successfully created test blog post with ID:', docRef.id);
     
   } catch (error) {
     console.error('Error creating test blog post:', error);

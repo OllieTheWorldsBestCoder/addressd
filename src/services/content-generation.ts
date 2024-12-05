@@ -1,5 +1,5 @@
 import { OpenAI } from 'openai';
-import { BlogPost } from '@/types/blog';
+import { BlogPost } from '../types/blog';
 import { createBlogPost } from './blog';
 import slugify from 'slugify';
 
