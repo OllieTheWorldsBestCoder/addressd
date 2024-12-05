@@ -2,6 +2,13 @@ import { db } from '@/config/firebase';
 import { collection, getDocs, getDoc, doc, query, orderBy, where, limit as firestoreLimit, updateDoc, addDoc, Timestamp } from 'firebase/firestore';
 import { BlogPost, BlogCategory, BlogTag } from '@/types/blog';
 
+// Helper type for Firestore document
+type FirestoreBlogPost = Omit<BlogPost, 'publishedAt' | 'updatedAt' | 'lastOptimizedAt'> & {
+  publishedAt: Timestamp;
+  updatedAt: Timestamp;
+  lastOptimizedAt?: Timestamp | null;
+};
+
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
   const postsRef = collection(db, 'blog_posts');
   const q = query(
@@ -12,13 +19,13 @@ export async function getAllBlogPosts(): Promise<BlogPost[]> {
   
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
-    const data = doc.data();
+    const data = doc.data() as FirestoreBlogPost;
     return {
       id: doc.id,
       ...data,
-      publishedAt: data.publishedAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
-      lastOptimizedAt: data.lastOptimizedAt?.toDate()
+      publishedAt: data.publishedAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+      lastOptimizedAt: data.lastOptimizedAt?.toDate() || undefined
     } as BlogPost;
   });
 }
@@ -47,13 +54,13 @@ export async function getBlogPosts(
 
   const snapshot = await getDocs(q);
   const posts = snapshot.docs.map(doc => {
-    const data = doc.data();
+    const data = doc.data() as FirestoreBlogPost;
     return {
       id: doc.id,
       ...data,
-      publishedAt: data.publishedAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
-      lastOptimizedAt: data.lastOptimizedAt?.toDate()
+      publishedAt: data.publishedAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+      lastOptimizedAt: data.lastOptimizedAt?.toDate() || undefined
     } as BlogPost;
   });
 
@@ -79,13 +86,13 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   }
   
   const doc = snapshot.docs[0];
-  const data = doc.data();
+  const data = doc.data() as FirestoreBlogPost;
   return {
     id: doc.id,
     ...data,
-    publishedAt: data.publishedAt?.toDate(),
-    updatedAt: data.updatedAt?.toDate(),
-    lastOptimizedAt: data.lastOptimizedAt?.toDate()
+    publishedAt: data.publishedAt.toDate(),
+    updatedAt: data.updatedAt.toDate(),
+    lastOptimizedAt: data.lastOptimizedAt?.toDate() || undefined
   } as BlogPost;
 }
 
@@ -102,13 +109,13 @@ export async function getRelatedPosts(currentPost: BlogPost, limit: number = 2):
   
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => {
-    const data = doc.data();
+    const data = doc.data() as FirestoreBlogPost;
     return {
       id: doc.id,
       ...data,
-      publishedAt: data.publishedAt?.toDate(),
-      updatedAt: data.updatedAt?.toDate(),
-      lastOptimizedAt: data.lastOptimizedAt?.toDate()
+      publishedAt: data.publishedAt.toDate(),
+      updatedAt: data.updatedAt.toDate(),
+      lastOptimizedAt: data.lastOptimizedAt?.toDate() || undefined
     } as BlogPost;
   });
 }
@@ -156,20 +163,20 @@ export async function incrementPostLikes(postId: string): Promise<void> {
 }
 
 export async function createBlogPost(post: Omit<BlogPost, 'id'>): Promise<string> {
-  const docRef = await addDoc(collection(db, 'blog_posts'), {
+  const firestorePost: Omit<FirestoreBlogPost, 'id'> = {
     ...post,
     publishedAt: Timestamp.fromDate(post.publishedAt),
     updatedAt: Timestamp.fromDate(post.updatedAt),
-    lastOptimizedAt: post.lastOptimizedAt ? Timestamp.fromDate(post.lastOptimizedAt) : null,
-    views: 0,
-    likes: 0
-  });
+    lastOptimizedAt: post.lastOptimizedAt ? Timestamp.fromDate(post.lastOptimizedAt) : null
+  };
+
+  const docRef = await addDoc(collection(db, 'blog_posts'), firestorePost);
   return docRef.id;
 }
 
 export async function updateBlogPost(id: string, post: Partial<BlogPost>): Promise<void> {
   const docRef = doc(db, 'blog_posts', id);
-  const updateData = { ...post };
+  const updateData: Partial<FirestoreBlogPost> = { ...post };
   
   // Convert dates to Firestore Timestamps
   if (post.publishedAt) {
