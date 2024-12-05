@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiMenu, FiX, FiUser, FiLogOut, FiBook, FiDollarSign, FiGrid } from 'react-icons/fi';
+import { FiMenu, FiX, FiUser, FiLogOut, FiBook, FiDollarSign, FiGrid, FiHelpCircle, FiPackage } from 'react-icons/fi';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import { User } from 'firebase/auth';
@@ -68,6 +68,15 @@ export default function Layout({ children }: LayoutProps) {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <Link 
+              href="/features" 
+              className={`flex items-center space-x-2 transition-colors duration-200 ${
+                isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+              }`}
+            >
+              <FiPackage className="text-lg" />
+              <span>Features</span>
+            </Link>
+            <Link 
               href="/docs" 
               className={`flex items-center space-x-2 transition-colors duration-200 ${
                 isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
@@ -75,6 +84,15 @@ export default function Layout({ children }: LayoutProps) {
             >
               <FiBook className="text-lg" />
               <span>Docs</span>
+            </Link>
+            <Link 
+              href="/faq" 
+              className={`flex items-center space-x-2 transition-colors duration-200 ${
+                isScrolled ? 'text-gray-600 hover:text-primary' : 'text-gray-800 hover:text-primary'
+              }`}
+            >
+              <FiHelpCircle className="text-lg" />
+              <span>FAQ</span>
             </Link>
             <Link 
               href="/pricing" 
@@ -143,27 +161,42 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Mobile Navigation */}
         <motion.div
-          initial={false}
-          animate={{ 
-            height: isMenuOpen ? 'auto' : 0,
-            opacity: isMenuOpen ? 1 : 0
-          }}
+          initial={{ opacity: 0, x: '100%' }}
+          animate={{ opacity: isMenuOpen ? 1 : 0, x: isMenuOpen ? 0 : '100%' }}
           transition={{ duration: 0.2 }}
-          className="md:hidden overflow-hidden bg-white border-t border-gray-200 shadow-lg"
+          className={`fixed inset-y-0 right-0 w-64 bg-white shadow-lg p-4 transform ${
+            isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+          } md:hidden`}
         >
-          <div className="container mx-auto px-4 py-4 space-y-4">
-            <Link
-              href="/docs"
-              className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
+          <div className="flex flex-col space-y-4">
+            <Link 
+              href="/features"
               onClick={() => setIsMenuOpen(false)}
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary"
+            >
+              <FiPackage className="text-lg" />
+              <span>Features</span>
+            </Link>
+            <Link 
+              href="/docs"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary"
             >
               <FiBook className="text-lg" />
-              <span>Documentation</span>
+              <span>Docs</span>
             </Link>
-            <Link
-              href="/pricing"
-              className="flex items-center space-x-2 text-gray-600 hover:text-primary transition-colors duration-200"
+            <Link 
+              href="/faq"
               onClick={() => setIsMenuOpen(false)}
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary"
+            >
+              <FiHelpCircle className="text-lg" />
+              <span>FAQ</span>
+            </Link>
+            <Link 
+              href="/pricing"
+              onClick={() => setIsMenuOpen(false)}
+              className="flex items-center space-x-2 text-gray-600 hover:text-primary"
             >
               <FiDollarSign className="text-lg" />
               <span>Pricing</span>
