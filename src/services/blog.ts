@@ -1,6 +1,6 @@
-import { db } from '@/config/firebase';
+import { db } from '../config/firebase';
 import { collection, getDocs, getDoc, doc, query, orderBy, where, limit as firestoreLimit, updateDoc, addDoc, Timestamp } from 'firebase/firestore';
-import { BlogPost, BlogCategory, BlogTag } from '@/types/blog';
+import { BlogPost, BlogCategory, BlogTag } from '../types/blog';
 
 // Helper type for Firestore document
 type FirestoreBlogPost = Omit<BlogPost, 'id' | 'publishedAt' | 'updatedAt' | 'lastOptimizedAt'> & {
