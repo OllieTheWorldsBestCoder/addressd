@@ -50,21 +50,20 @@ export default function Layout({ children }: LayoutProps) {
         <nav className="container mx-auto px-4 h-16 flex items-center justify-between max-w-7xl">
           {/* Logo */}
           <Link href="/" className="flex items-center">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.3 }}
-              className="relative w-[140px] h-[40px]"
-            >
-              <Image
-                src="/images/addressd - logo.png"
-                alt="addressd"
-                fill
-                style={{ objectFit: 'contain' }}
-                priority
-                className="select-none"
-              />
-            </motion.div>
+            <Image
+              src="/images/addressd-logo.png"
+              alt="addressd logo"
+              width={150}
+              height={40}
+              className="dark:hidden"
+            />
+            <Image
+              src="/images/addressd-light.png"
+              alt="addressd logo"
+              width={150}
+              height={40}
+              className="hidden dark:block"
+            />
           </Link>
 
           {/* Desktop Navigation */}
