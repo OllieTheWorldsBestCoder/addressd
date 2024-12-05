@@ -9,30 +9,40 @@ const openai = new OpenAI({
 
 // Topics related to our niche
 const TOPIC_CATEGORIES = [
-  'Delivery Optimization',
-  'Last Mile Delivery',
-  'Location Guidance',
-  'Address Verification',
-  'Delivery Success Rates',
-  'Logistics Technology',
-  'Route Optimization',
-  'Customer Experience',
-  'Delivery Instructions',
-  'Urban Delivery Challenges'
+  'Customer Location Challenges',  // e.g., Hard-to-find business locations
+  'Delivery Pain Points',         // e.g., Failed deliveries, wrong addresses
+  'Local Business Visibility',    // e.g., Getting found by customers
+  'Address Communication',        // e.g., Clear directions for customers/drivers
+  'Delivery Driver Experience',   // e.g., Reducing driver confusion
+  'Customer Navigation',          // e.g., Helping customers find your business
+  'Small Business Accessibility', // e.g., Making your location easy to find
+  'Location Optimization',        // e.g., Improving your business's findability
+  'Delivery Success Strategies',  // e.g., Reducing failed deliveries
+  'Location Marketing',          // e.g., Promoting your physical location
+  'Food Delivery Optimization',  // e.g., Restaurant delivery challenges
+  'Retail Delivery Solutions',   // e.g., Shop delivery improvements
+  'Service Business Location',   // e.g., Getting found by service customers
+  'Event Venue Directions',      // e.g., Helping guests find your venue
+  'Healthcare Location Access'   // e.g., Patient navigation to facilities
 ] as const;
 
 // Keywords to include for SEO
 const CORE_KEYWORDS = [
-  'delivery optimization',
-  'failed deliveries',
+  'business location',
+  'easy to find',
+  'clear directions',
   'delivery success',
-  'location guidance',
+  'location findability',
+  'address accuracy',
+  'customer navigation',
+  'delivery optimization',
+  'location visibility',
+  'business accessibility',
   'delivery instructions',
+  'location marketing',
+  'navigation guidance',
   'address verification',
-  'last mile delivery',
-  'delivery efficiency',
-  'route optimization',
-  'delivery accuracy'
+  'customer experience'
 ] as const;
 
 interface GeneratedContent {
@@ -94,11 +104,26 @@ async function generateTopic(): Promise<string> {
     messages: [
       {
         role: 'system',
-        content: `You are a logistics and delivery optimization expert. Generate a compelling blog post topic about ${category} that would be valuable for businesses looking to improve their delivery operations.`
+        content: `You are an expert in business location optimization and delivery success. Your goal is to help businesses solve real problems related to:
+- Making their locations easier to find for customers and delivery drivers
+- Improving delivery success rates
+- Enhancing their location's visibility and accessibility
+- Optimizing their address communication
+
+Focus on practical, actionable advice that addresses common pain points.`
+      },
+      {
+        role: 'user',
+        content: `Generate a compelling blog post topic about ${category} that addresses a specific challenge faced by businesses. 
+The topic should:
+- Target a real pain point that businesses experience
+- Promise clear, actionable solutions
+- Appeal to business owners and operations managers
+- Focus on improving findability or delivery success`
       }
     ],
     temperature: 0.7,
-    max_tokens: 50
+    max_tokens: 100
   });
 
   return completion.choices[0].message.content || '';
@@ -110,15 +135,30 @@ async function generateOutline(topic: string): Promise<string[]> {
     messages: [
       {
         role: 'system',
-        content: 'You are a content strategist specializing in logistics and delivery optimization.'
+        content: `You are a content strategist specializing in business location optimization and delivery success. 
+Your goal is to create practical, actionable content that helps businesses:
+- Improve their findability
+- Optimize their delivery operations
+- Enhance customer experience
+- Increase operational efficiency`
       },
       {
         role: 'user',
-        content: `Create a detailed outline for a blog post about: ${topic}. Include 4-6 main sections with subpoints.`
+        content: `Create a detailed outline for a blog post about: ${topic}
+
+The outline should:
+- Start with the core problem/challenge
+- Include real-world examples or scenarios
+- Focus on practical, implementable solutions
+- Address both immediate fixes and long-term strategies
+- Include relevant statistics or data points where applicable
+- End with measurable outcomes or success indicators
+
+Include 4-6 main sections with specific subpoints.`
       }
     ],
     temperature: 0.7,
-    max_tokens: 300
+    max_tokens: 400
   });
 
   return completion.choices[0].message.content?.split('\n').filter(Boolean) || [];
