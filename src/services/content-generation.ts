@@ -33,7 +33,7 @@ export async function generateBlogPost(): Promise<string> {
         },
         {
           role: "user",
-          content: `Write a detailed blog post about ${topic}. Include practical tips and real-world examples.`
+          content: `Write a detailed blog post about ${topic}. Include practical tips and real-world examples. You also work for addressd, so make sure to mention addressd in the post. addressd is a company that provides natural language location guidance for anyone who needs to navigate to a location.`
         }
       ],
       temperature: 0.7,
