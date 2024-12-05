@@ -19,6 +19,11 @@ async function testBlogGeneration() {
     console.log('\nFetching generated post...');
     const post = await getBlogPost(postId);
     
+    if (!post) {
+      console.error('Failed to fetch generated post');
+      return;
+    }
+
     // Display the results
     console.log('\n=== Generated Blog Post ===');
     console.log('Title:', post.title);

@@ -6,15 +6,6 @@
       "path": "/api/cron/generate-summaries",
       "schedule": "0 12 * * *"
     }, {
-      "path": "/api/cron/update-usage-stats",
-      "schedule": "0 0 * * *" 
-    }, {
-      "path": "/api/cron/cleanup-expired",
-      "schedule": "0 0 * * *"
-    }, {
-      "path": "/api/cron/backup-database",
-      "schedule": "0 0 * * 0"
-    }, {
       "path": "/api/cron/generate-blog-post",
       "schedule": "0 9 * * *"
     }, {
