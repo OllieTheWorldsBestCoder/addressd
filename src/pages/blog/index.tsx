@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiTag, FiEye, FiHeart } from 'react-icons/fi';
 import Layout from '@/components/Layout';
+import BlogCard from '@/components/BlogCard';
 import { BlogPost, BlogCategory, BlogTag } from '@/types/blog';
-import { getAllBlogPosts, getAllCategories, getAllTags } from '@/services/blog';
+import { getBlogPosts, getAllCategories, getAllTags } from '@/services/blog';
 import { GetServerSideProps } from 'next';
 
 // Animation variants
@@ -28,13 +27,36 @@ interface BlogIndexProps {
   initialPosts: BlogPost[];
   categories: BlogCategory[];
   tags: BlogTag[];
+  hasMore: boolean;
 }
 
-export default function BlogIndex({ initialPosts, categories, tags }: BlogIndexProps) {
+export default function BlogIndex({ initialPosts, categories, tags, hasMore }: BlogIndexProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedTag, setSelectedTag] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [posts] = useState<BlogPost[]>(initialPosts);
+  const [posts, setPosts] = useState<BlogPost[]>(initialPosts);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMorePosts, setHasMorePosts] = useState(hasMore);
+
+  const loadMorePosts = async () => {
+    if (loading || !hasMorePosts) return;
+    
+    setLoading(true);
+    try {
+      const nextPage = page + 1;
+      const response = await fetch(`/api/blog/posts?page=${nextPage}&category=${selectedCategory}&tag=${selectedTag}`);
+      const data = await response.json();
+      
+      setPosts(prev => [...prev, ...data.posts]);
+      setHasMorePosts(data.hasMore);
+      setPage(nextPage);
+    } catch (error) {
+      console.error('Error loading more posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredPosts = posts.filter(post => {
     if (selectedCategory !== 'all' && !post.categories?.includes(selectedCategory)) return false;
@@ -135,55 +157,7 @@ export default function BlogIndex({ initialPosts, categories, tags }: BlogIndexP
             <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredPosts.length > 0 ? (
                 filteredPosts.map(post => (
-                  <Link key={post.id} href={`/blog/${post.slug}`}>
-                    <motion.article 
-                      className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-shadow p-6 border border-gray-100"
-                      whileHover={{ y: -4 }}
-                    >
-                      {post.imageUrl && (
-                        <div className="aspect-video rounded-lg overflow-hidden mb-4">
-                          <img 
-                            src={post.imageUrl} 
-                            alt={post.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                        {post.title}
-                      </h2>
-                      <p className="text-gray-600 text-sm mb-4">
-                        {post.excerpt}
-                      </p>
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <div className="flex items-center">
-                          <FiCalendar className="mr-1" />
-                          {new Date(post.publishedAt).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <span className="flex items-center">
-                            <FiEye className="mr-1" />
-                            {post.views}
-                          </span>
-                          <span className="flex items-center">
-                            <FiHeart className="mr-1" />
-                            {post.likes}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2 mt-4">
-                        {post.tags?.map(tag => (
-                          <span 
-                            key={tag}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                          >
-                            <FiTag className="mr-1" />
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </motion.article>
-                  </Link>
+                  <BlogCard key={post.id} post={post} />
                 ))
               ) : (
                 <div className="col-span-full text-center py-12">
@@ -191,6 +165,19 @@ export default function BlogIndex({ initialPosts, categories, tags }: BlogIndexP
                 </div>
               )}
             </motion.div>
+
+            {/* Load More Button */}
+            {hasMorePosts && (
+              <motion.div variants={itemVariants} className="text-center mt-8">
+                <button
+                  onClick={loadMorePosts}
+                  disabled={loading}
+                  className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Loading...' : 'Load More Posts'}
+                </button>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </div>
@@ -198,19 +185,20 @@ export default function BlogIndex({ initialPosts, categories, tags }: BlogIndexP
   );
 }
 
-export const getServerSideProps: GetServerSideProps = async () => {
+export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   try {
-    const [posts, categories, tags] = await Promise.all([
-      getAllBlogPosts(),
+    const { posts, hasMore } = await getBlogPosts(1, query.category as string, query.tag as string);
+    const [categories, tags] = await Promise.all([
       getAllCategories(),
       getAllTags()
     ]);
 
     return {
       props: {
-        initialPosts: JSON.parse(JSON.stringify(posts)), // Serialize dates
+        initialPosts: JSON.parse(JSON.stringify(posts)),
         categories: JSON.parse(JSON.stringify(categories)),
-        tags: JSON.parse(JSON.stringify(tags))
+        tags: JSON.parse(JSON.stringify(tags)),
+        hasMore
       }
     };
   } catch (error) {
@@ -219,7 +207,8 @@ export const getServerSideProps: GetServerSideProps = async () => {
       props: {
         initialPosts: [],
         categories: [],
-        tags: []
+        tags: [],
+        hasMore: false
       }
     };
   }

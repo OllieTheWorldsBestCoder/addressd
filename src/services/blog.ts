@@ -80,18 +80,18 @@ export async function getBlogPosts(
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   const postsRef = collection(db, 'blog_posts');
-  const q = query(postsRef, where('slug', '==', slug), firestoreLimit(1));
+  const q = query(postsRef, where('slug', '==', slug), where('published', '==', true), firestoreLimit(1));
   const snapshot = await getDocs(q);
   
   if (snapshot.empty) {
     return null;
   }
   
-  const doc = snapshot.docs[0];
-  const data = doc.data() as FirestoreBlogPost;
+  const postDoc = snapshot.docs[0];
+  const data = postDoc.data() as FirestoreBlogPost;
   const { publishedAt, updatedAt, lastOptimizedAt, ...rest } = data;
   return {
-    id: doc.id,
+    id: postDoc.id,
     ...rest,
     publishedAt: publishedAt.toDate(),
     updatedAt: updatedAt.toDate(),
