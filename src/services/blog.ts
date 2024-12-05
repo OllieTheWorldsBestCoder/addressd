@@ -40,7 +40,6 @@ export async function getBlogPosts(
   const postsRef = collection(db, 'blog_posts');
   let q = query(
     postsRef,
-    where('published', '==', true),
     orderBy('publishedAt', 'desc'),
     firestoreLimit(POSTS_PER_PAGE)
   );
@@ -70,10 +69,10 @@ export async function getBlogPosts(
   const nextQuery = query(
     postsRef,
     orderBy('publishedAt', 'desc'),
-    firestoreLimit(1)
+    firestoreLimit(POSTS_PER_PAGE + 1)
   );
   const nextSnapshot = await getDocs(nextQuery);
-  const hasMore = !nextSnapshot.empty;
+  const hasMore = nextSnapshot.docs.length > POSTS_PER_PAGE;
 
   return { posts, hasMore };
 }
