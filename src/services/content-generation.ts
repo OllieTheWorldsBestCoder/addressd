@@ -25,7 +25,7 @@ export async function generateBlogPost(): Promise<string> {
 
     // 2. Generate content
     const contentCompletion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -47,11 +47,11 @@ export async function generateBlogPost(): Promise<string> {
 
     // 3. Generate SEO metadata
     const seoCompletion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an SEO expert. Generate optimized metadata for blog posts."
+          content: "You are an SEO expert. Generate optimized metadata for blog posts. Return your response in this format: {title: string, description: string, keywords: string}"
         },
         {
           role: "user",
@@ -59,11 +59,11 @@ export async function generateBlogPost(): Promise<string> {
         }
       ],
       temperature: 0.3,
-      max_tokens: 500,
-      response_format: { type: "json_object" }
+      max_tokens: 500
     });
 
-    const seoData = JSON.parse(seoCompletion.choices[0]?.message?.content || '{}');
+    const seoContent = seoCompletion.choices[0]?.message?.content || '';
+    const seoData = JSON.parse(seoContent.replace(/```json\n?|\n?```/g, ''));
     
     // 4. Create blog post
     const post: Omit<BlogPost, 'id'> = {
@@ -101,7 +101,7 @@ export async function optimizeBlogPost(post: BlogPost): Promise<Partial<BlogPost
   try {
     // Generate optimized content
     const optimizationCompletion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -120,11 +120,11 @@ export async function optimizeBlogPost(post: BlogPost): Promise<Partial<BlogPost
 
     // Generate new metadata
     const seoCompletion = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an SEO expert. Generate optimized metadata for blog posts."
+          content: "You are an SEO expert. Generate optimized metadata for blog posts. Return your response in this format: {title: string, description: string, keywords: string}"
         },
         {
           role: "user",
@@ -132,11 +132,11 @@ export async function optimizeBlogPost(post: BlogPost): Promise<Partial<BlogPost
         }
       ],
       temperature: 0.3,
-      max_tokens: 500,
-      response_format: { type: "json_object" }
+      max_tokens: 500
     });
 
-    const seoData = JSON.parse(seoCompletion.choices[0]?.message?.content || '{}');
+    const seoContent = seoCompletion.choices[0]?.message?.content || '';
+    const seoData = JSON.parse(seoContent.replace(/```json\n?|\n?```/g, ''));
 
     return {
       content: optimizedContent,
