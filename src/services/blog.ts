@@ -99,28 +99,36 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
 }
 
 export async function getRelatedPosts(currentPost: BlogPost, limit: number = 2): Promise<BlogPost[]> {
+  if (!currentPost.tags || currentPost.tags.length === 0) {
+    return [];
+  }
+
   const postsRef = collection(db, 'blog_posts');
+  // Use the first tag to find related posts
   const q = query(
     postsRef,
-    where('published', '==', true),
-    where('tags', 'array-contains-any', currentPost.tags),
-    where('slug', '!=', currentPost.slug),
+    where('tags', 'array-contains', currentPost.tags[0]),
     orderBy('publishedAt', 'desc'),
-    firestoreLimit(limit)
+    firestoreLimit(limit + 1) // Get one extra to filter out current post
   );
   
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => {
-    const data = doc.data() as FirestoreBlogPost;
-    const { publishedAt, updatedAt, lastOptimizedAt, ...rest } = data;
-    return {
-      id: doc.id,
-      ...rest,
-      publishedAt: publishedAt.toDate(),
-      updatedAt: updatedAt.toDate(),
-      lastOptimizedAt: lastOptimizedAt?.toDate() || undefined
-    } as BlogPost;
-  });
+  const posts = snapshot.docs
+    .map(doc => {
+      const data = doc.data() as FirestoreBlogPost;
+      const { publishedAt, updatedAt, lastOptimizedAt, ...rest } = data;
+      return {
+        id: doc.id,
+        ...rest,
+        publishedAt: publishedAt.toDate(),
+        updatedAt: updatedAt.toDate(),
+        lastOptimizedAt: lastOptimizedAt?.toDate() || undefined
+      } as BlogPost;
+    })
+    .filter(post => post.slug !== currentPost.slug) // Filter out the current post
+    .slice(0, limit); // Limit to requested number of posts
+
+  return posts;
 }
 
 export async function getAllCategories(): Promise<BlogCategory[]> {
