@@ -19,7 +19,8 @@
     "test-contribution": "ts-node src/scripts/test-contribution.ts",
     "test-auth": "ts-node src/scripts/test-auth-flow.ts",
     "test-stripe": "ts-node src/scripts/test-stripe-integration.ts",
-    "test-api-flow": "ts-node src/scripts/test-api-flow.ts"
+    "test-api-flow": "ts-node src/scripts/test-api-flow.ts",
+    "test-blog": "ts-node src/scripts/test-blog-generation.ts"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",

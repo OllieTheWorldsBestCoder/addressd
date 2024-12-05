@@ -1,10 +1,25 @@
 {
     "crons": [{
-      "path": "/api/cron/optimize-addresses",
+      "path": "/api/cron/optimize-addresses", 
       "schedule": "0 0 * * *"
     }, {
       "path": "/api/cron/generate-summaries",
       "schedule": "0 12 * * *"
+    }, {
+      "path": "/api/cron/update-usage-stats",
+      "schedule": "0 0 * * *" 
+    }, {
+      "path": "/api/cron/cleanup-expired",
+      "schedule": "0 0 * * *"
+    }, {
+      "path": "/api/cron/backup-database",
+      "schedule": "0 0 * * 0"
+    }, {
+      "path": "/api/cron/generate-blog-post",
+      "schedule": "0 9 * * *"
+    }, {
+      "path": "/api/cron/optimize-blog-posts",
+      "schedule": "0 3 1 * *"
     }],
     "headers": [
       {
@@ -15,7 +30,7 @@
             "value": "https://addressd.webflow.io"
           },
           {
-            "key": "Access-Control-Allow-Methods",
+            "key": "Access-Control-Allow-Methods", 
             "value": "GET, POST, OPTIONS"
           },
           {
