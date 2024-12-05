@@ -199,34 +199,33 @@ export default function BlogPostPage({ post, relatedPosts }: BlogPostPageProps) 
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const slug = params?.slug as string;
+  const post = await getBlogPost(slug);
   
-  // TODO: Fetch post and related posts from Firestore
-  const post: BlogPost = {
-    id: '1',
-    title: 'Sample Post',
-    slug: slug,
-    content: '<p>Sample content</p>',
-    excerpt: 'Sample excerpt',
-    publishedAt: new Date(),
-    updatedAt: new Date(),
-    author: 'John Doe',
-    tags: ['delivery', 'optimization'],
-    categories: ['guides', 'delivery'],
-    metaTitle: 'Sample Post',
-    metaDescription: 'Sample description',
-    keywords: ['delivery', 'optimization'],
-    views: 0,
-    likes: 0,
-    isGenerated: false,
-    published: true
-  };
+  if (!post) {
+    return {
+      notFound: true
+    };
+  }
 
-  const relatedPosts: BlogPost[] = [];
+  const relatedPosts = await getRelatedPosts(post);
+
+  // Convert dates to strings for serialization
+  const serializedPost = {
+    ...post,
+    publishedAt: post.publishedAt.toISOString(),
+    updatedAt: post.updatedAt.toISOString(),
+    lastOptimizedAt: post.lastOptimizedAt?.toISOString()
+  };
 
   return {
     props: {
-      post: JSON.parse(JSON.stringify(post)), // Serialize dates
-      relatedPosts
+      post: serializedPost,
+      relatedPosts: relatedPosts.map(p => ({
+        ...p,
+        publishedAt: p.publishedAt.toISOString(),
+        updatedAt: p.updatedAt.toISOString(),
+        lastOptimizedAt: p.lastOptimizedAt?.toISOString()
+      }))
     }
   };
 } 
