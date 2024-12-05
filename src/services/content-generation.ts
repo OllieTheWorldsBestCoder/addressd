@@ -25,7 +25,7 @@ export async function generateBlogPost(): Promise<string> {
 
     // 2. Generate content
     const contentCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt4o-mini",
       messages: [
         {
           role: "system",
@@ -47,15 +47,15 @@ export async function generateBlogPost(): Promise<string> {
 
     // 3. Generate SEO metadata
     const seoCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt4o-mini",
       messages: [
         {
           role: "system",
-          content: "You are an SEO expert. Generate optimized metadata for blog posts. Return your response in this format: {title: string, description: string, keywords: string}"
+          content: "You are an SEO expert. Generate optimized metadata for blog posts. Format your response as a JSON object with these exact fields: title, description, keywords. Do not include any other text or formatting."
         },
         {
           role: "user",
-          content: `Generate SEO metadata (title, description, keywords) for this blog post about ${topic}:\n\n${content.content.substring(0, 500)}...`
+          content: `Generate SEO metadata for this blog post about ${topic}:\n\n${content.content.substring(0, 500)}...`
         }
       ],
       temperature: 0.3,
@@ -63,7 +63,28 @@ export async function generateBlogPost(): Promise<string> {
     });
 
     const seoContent = seoCompletion.choices[0]?.message?.content || '';
-    const seoData = JSON.parse(seoContent.replace(/```json\n?|\n?```/g, ''));
+    let seoData;
+    try {
+      // Try parsing the raw response first
+      seoData = JSON.parse(seoContent);
+    } catch (e) {
+      // If that fails, try cleaning up the response
+      const cleanedContent = seoContent
+        .replace(/```json\n?|\n?```/g, '') // Remove code blocks
+        .replace(/^[^{]*({.*})[^}]*$/, '$1') // Extract JSON object
+        .trim();
+      try {
+        seoData = JSON.parse(cleanedContent);
+      } catch (e2) {
+        console.error('Failed to parse SEO data:', e2);
+        // Fallback to default values
+        seoData = {
+          title: `${topic} - A Comprehensive Guide`,
+          description: content.content.substring(0, 160).trim(),
+          keywords: topic.toLowerCase().split(' ').join(',')
+        };
+      }
+    }
     
     // 4. Create blog post
     const post: Omit<BlogPost, 'id'> = {
