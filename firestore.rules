@@ -6,54 +6,53 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Users collection - allow reading for API key validation
+    // User profiles
     match /users/{userId} {
-      allow read: if true;  // Allow reading users for API key validation
-      allow create: if true;  // Allow user creation
-      allow update: if true;  // Allow updating user data
-      allow delete: if false; // Don't allow user deletion
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Rate limits collection
-    match /rateLimits/{tokenId} {
-      allow read, write: if true;  // Allow rate limit checking and updating
-    }
-
-    // Addresses collection
+    // Addresses
     match /addresses/{addressId} {
       allow read: if true;
-      allow create: if true;
-      allow update: if true;
-      allow delete: if false;
+      allow write: if isAuthenticated();
     }
 
-    // Address merges collection
-    match /addressMerges/{mergeId} {
-      allow read: if true;
-      allow write: if false;
-    }
-
-    // Backups collection
-    match /backups/{backupId} {
-      allow read: if true;
-      allow write: if false;
-    }
-
-    // Magic links collection
-    match /magicLinks/{linkId} {
-      allow read, write: if true;
-    }
-
-    // Embeds collection
+    // Embeds
     match /embeds/{embedId} {
-      allow read: if true;  // Allow reading embed data
-      allow create: if true;  // Allow creating new embeds
-      allow update: if true;  // Allow updating embed data
-      allow delete: if false; // Don't allow embed deletion
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && 
+        request.auth.uid == resource.data.userId;
+    }
+
+    // Blog posts
+    match /blog_posts/{postId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+      
+      // Allow incrementing view count
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
+      
+      // Allow liking posts
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']);
+    }
+
+    // Blog categories
+    match /blog_categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Blog tags
+    match /blog_tags/{tagId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
   }
 }
