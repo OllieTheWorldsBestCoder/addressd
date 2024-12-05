@@ -6,14 +6,6 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    function isAdmin() {
-      return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-
-    function isCronJob() {
-      return request.auth != null && request.auth.uid == 'cron-job';
-    }
 
     // User profiles
     match /users/{userId} {
@@ -38,7 +30,7 @@ service cloud.firestore {
     // Blog posts
     match /blog_posts/{postId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin() || isCronJob();
+      allow create, update, delete: if isAuthenticated();
       
       // Allow incrementing view count
       allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
@@ -50,13 +42,13 @@ service cloud.firestore {
     // Blog categories
     match /blog_categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin() || isCronJob();
+      allow write: if isAuthenticated();
     }
 
     // Blog tags
     match /blog_tags/{tagId} {
       allow read: if true;
-      allow write: if isAdmin() || isCronJob();
+      allow write: if isAuthenticated();
     }
   }
 }

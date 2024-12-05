@@ -57,15 +57,31 @@ interface GeneratedContent {
 
 export async function generateBlogPost(): Promise<string> {
   try {
+    console.log('Starting blog post generation...');
+
     // 1. Generate topic and outline
+    console.log('Generating topic...');
     const topic = await generateTopic();
+    console.log('Generated topic:', topic);
+
+    console.log('Generating outline...');
     const outline = await generateOutline(topic);
+    console.log('Generated outline:', outline);
     
     // 2. Generate full content
+    console.log('Generating content...');
     const content = await generateContent(topic, outline);
+    console.log('Generated content length:', content.content.length);
     
     // 3. Generate SEO metadata
+    console.log('Generating SEO metadata...');
     const seoData = await generateSEOMetadata(topic, content);
+    console.log('Generated SEO metadata:', {
+      title: seoData.title,
+      excerpt: seoData.excerpt?.substring(0, 100) + '...',
+      tags: seoData.tags,
+      keywords: seoData.keywords.length
+    });
     
     // 4. Create blog post
     const post: Omit<BlogPost, 'id'> = {
@@ -87,8 +103,10 @@ export async function generateBlogPost(): Promise<string> {
       lastOptimizedAt: new Date()
     };
 
+    console.log('Creating blog post in Firestore...');
     // Save to Firestore
     const postId = await createBlogPost(post);
+    console.log('Successfully created blog post with ID:', postId);
     return postId;
   } catch (error) {
     console.error('Error generating blog post:', error);
