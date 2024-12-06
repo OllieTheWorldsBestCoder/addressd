@@ -45,7 +45,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const [apiCopySuccess, setApiCopySuccess] = useState(false);
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://addressd.vercel.app';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://addressd.co';
   const [addressDetails, setAddressDetails] = useState<{[key: string]: {
     address: string;
     subscription?: SubscriptionDetails;

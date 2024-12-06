@@ -59,7 +59,7 @@ export default async function handler(
     }
 
     // Get the base URL, defaulting to production if not set
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://addressd.vercel.app';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://addressd.co';
 
     // Generate embed code
     const embedCode = `<div id="addressd-embed"></div>
