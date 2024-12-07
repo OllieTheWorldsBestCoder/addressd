@@ -8,7 +8,6 @@ import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
 import crypto from 'crypto';
 import { MapboxService } from './mapbox.service';
-import { v4 as uuidv4 } from 'uuid';
 
 interface AddressValidationResponse {
   result: {
@@ -61,7 +60,7 @@ export class AddressService {
   private openai: OpenAI;
   private addressCollection = 'addresses';
   private learningService: LearningService;
-
+  
   constructor() {
     this.googleMapsClient = new Client({});
     
@@ -134,7 +133,7 @@ export class AddressService {
           address_components: validationData.result.address.addressComponents.map(comp => ({
             long_name: comp.componentName.text,
             short_name: comp.componentName.text,
-            types: [comp.componentType]
+            types: [comp.componentType as GeocodingAddressComponentType]
           })),
           types: ['street_address'],
           postcode_localities: [],
@@ -161,7 +160,7 @@ export class AddressService {
           address_components: validationData.result.address.addressComponents.map(comp => ({
             long_name: comp.componentName.text,
             short_name: comp.componentName.text,
-            types: [comp.componentType]
+            types: [comp.componentType as GeocodingAddressComponentType]
           })),
           types: ['route'],
           postcode_localities: [],
@@ -223,6 +222,59 @@ export class AddressService {
     } catch (error) {
       console.error('Error validating address:', error);
       return null;
+    }
+  }
+
+  async createOrUpdateAddress(rawAddress: string): Promise<Address | null> {
+    try {
+      console.log('[AddressService] Starting address validation...');
+      const validatedAddress = await this.validateAndFormatAddress(rawAddress);
+      if (!validatedAddress) {
+        console.log('[AddressService] Address validation failed');
+        return null;
+      }
+
+      const addressId = crypto.randomUUID();
+      const now = new Date();
+
+      console.log('[AddressService] Creating initial address data...');
+      const addressData: Address = {
+        id: addressId,
+        formattedAddress: validatedAddress.formatted_address,
+        location: validatedAddress.geometry.location,
+        components: validatedAddress.address_components,
+        matchedAddresses: [{ 
+          rawAddress, 
+          timestamp: now.toISOString() 
+        }],
+        createdAt: now,
+        updatedAt: now,
+        views: 0,
+        summary: validatedAddress.building_description || 'No description available yet.',
+        buildingEntrance: validatedAddress.building_entrance
+      };
+
+      // Generate full description before saving
+      console.log('[AddressService] Generating full description...');
+      const fullDescription = await this.generateDescription(addressData);
+      
+      if (fullDescription) {
+        console.log('[AddressService] Full description generated:', fullDescription.substring(0, 50) + '...');
+        addressData.summary = fullDescription;
+      } else {
+        console.log('[AddressService] Failed to generate full description');
+      }
+
+      // Save address with full description
+      console.log('[AddressService] Saving address to database...');
+      const addressRef = doc(db, this.addressCollection, addressId);
+      await setDoc(addressRef, addressData);
+
+      console.log('[AddressService] Address creation complete');
+      return addressData;
+    } catch (error) {
+      console.error('[AddressService] Error creating/updating address:', error);
+      throw error;
     }
   }
 
@@ -320,97 +372,109 @@ export class AddressService {
     }
   }
 
-  async createOrUpdateAddress(address: string): Promise<Address | null> {
-    console.log('[AddressService] Creating or updating address:', address);
-    
-    const validatedAddress = await this.validateAndFormatAddress(address);
-    if (!validatedAddress) {
-      console.log('[AddressService] Address validation failed');
-      return null;
-    }
-
-    const { formattedAddress, location } = validatedAddress;
-    const addressId = uuidv4();
-
-    console.log('[AddressService] Generating description for:', formattedAddress);
-    const description = await this.generateDescription(formattedAddress, location);
-    
-    if (!description) {
-      console.log('[AddressService] Failed to generate description');
-      return null;
-    }
-
-    const addressData: Address = {
-      id: addressId,
-      formattedAddress,
-      location,
-      summary: description,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      views: 0
-    };
-
-    console.log('[AddressService] Saving address to Firestore:', addressId);
-    await this.db.collection('addresses').doc(addressId).set(addressData);
-
-    return addressData;
-  }
-
-  private async findExistingAddressInternal(formattedAddress: string, location: { lat: number; lng: number }): Promise<Address | null> {
+  private async generateDescription(address: Address): Promise<string> {
     try {
-      const allAddressesQuery = query(collection(db, this.addressCollection));
-      const allAddresses = await getDocs(allAddressesQuery);
-      const DISTANCE_THRESHOLD = 10; // meters
+      console.log('[AddressService] Finding nearest building...');
+      // Find building footprint using Mapbox
+      const building = await mapboxService.findNearestBuilding(
+        address.location.lat,
+        address.location.lng
+      );
 
-      for (const doc of allAddresses.docs) {
-        const addr = doc.data() as Address;
-        
-        // Skip if address doesn't have location data
-        if (!addr.location?.lat || !addr.location?.lng) {
-          console.log('[AddressService] Skipping address without location data');
-          continue;
+      console.log('[AddressService] Getting nearby places...');
+      // Get nearby places with a larger radius and more types
+      const placesResponse = await this.googleMapsClient.placesNearby({
+        params: {
+          location: { 
+            lat: address.location.lat, 
+            lng: address.location.lng 
+          },
+          radius: 200, // Increased radius to find more landmarks
+          key: process.env.GOOGLE_MAPS_API_KEY!,
+          type: 'point_of_interest' // Single type as required by API
         }
+      });
 
-        const distance = getVectorDistance(
-          location,
-          addr.location
-        );
-
-        if (distance <= DISTANCE_THRESHOLD) {
+      // Process nearby places with distances and directions
+      console.log('[AddressService] Processing nearby places...');
+      const nearbyPlaces = await Promise.all(
+        placesResponse.data.results.slice(0, 5).map(async place => {
+          if (!place.geometry?.location) return null;
+          
+          const distance = this.calculateDistance(
+            address.location.lat,
+            address.location.lng,
+            place.geometry.location.lat,
+            place.geometry.location.lng
+          );
+          const bearing = this.calculateBearing(
+            place.geometry.location.lat,
+            place.geometry.location.lng,
+            address.location.lat,
+            address.location.lng
+          );
+          const direction = this.bearingToCardinal(bearing);
           return {
-            ...addr,
-            id: doc.id
+            name: place.name || 'Unknown place',
+            type: place.types?.[0] || 'location',
+            distance: Math.round(distance),
+            direction
           };
+        })
+      );
+
+      // Filter out null values and format nearby places information
+      const validPlaces = nearbyPlaces.filter((place): place is NonNullable<typeof place> => place !== null);
+      const nearbyPlacesText = validPlaces
+        .map(place => `${place.name} (${place.distance}m ${place.direction})`)
+        .join(', ');
+
+      console.log('[AddressService] Found nearby places:', nearbyPlacesText);
+
+      // Get street view metadata
+      console.log('[AddressService] Checking street view...');
+      let streetViewInfo = '';
+      try {
+        const streetViewResponse = await fetch(
+          `https://maps.googleapis.com/maps/api/streetview/metadata?location=${address.location.lat},${address.location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        );
+        const streetViewData = await streetViewResponse.json();
+        if (streetViewData.status === 'OK') {
+          streetViewInfo = 'The location is visible from street view. ';
         }
+      } catch (error) {
+        console.log('[AddressService] Street view not available');
       }
 
-      return null;
-    } catch (error) {
-      console.error('Error finding existing address:', error);
-      return null;
-    }
-  }
+      const buildingDescription = building 
+        ? mapboxService.generateBuildingDescriptor(building.properties)
+        : 'building';
 
-  private async generateDescription(address: string, location: Location): Promise<string | null> {
-    try {
-      console.log('[AddressService] Initializing OpenAI for description generation');
-      const openai = new OpenAI();
+      const entranceInfo = building?.entrance 
+        ? `The main entrance is ${this.describeEntranceLocation(building.entrance, building.polygon)}.`
+        : '';
 
-      const prompt = `Generate a concise, informative description of this address location: ${address}. 
-      Focus on its geographical position, nearby landmarks, and any notable features that would be helpful for deliveries or navigation.
-      Keep it under 200 words and make it practical for delivery drivers and visitors.
-      Location coordinates: ${location.lat}, ${location.lng}`;
+      console.log('[AddressService] Generating OpenAI description...');
+      const prompt = `Generate a detailed, natural-sounding description for this location. Include these details:
+      - Building type: ${buildingDescription}
+      ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
+      - Street view: ${streetViewInfo}
+      - Nearby landmarks: ${nearbyPlacesText || 'none found'}
+      
+      Format the response as clear, step-by-step directions that help someone find this location easily.
+      Focus on visual landmarks and distinctive features.
+      Include cardinal directions (north, south, etc.) when mentioning landmarks.
+      If there's a prominent landmark nearby, start the directions from there.`;
 
-      console.log('[AddressService] Sending request to OpenAI');
-      const response = await openai.chat.completions.create({
-        model: "gpt-4-0125-preview",
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4-0125-preview',
         messages: [
           { 
-            role: "system", 
-            content: "You are a helpful assistant that generates concise, practical descriptions of addresses for delivery drivers and visitors." 
+            role: 'system',
+            content: 'You are a local expert who gives clear, precise directions. Focus on visual landmarks and practical navigation cues that delivery drivers and visitors can easily follow.'
           },
           { 
-            role: "user", 
+            role: 'user',
             content: prompt 
           }
         ],
@@ -418,13 +482,17 @@ export class AddressService {
         max_tokens: 300
       });
 
-      const description = response.choices[0]?.message?.content?.trim();
-      console.log('[AddressService] Generated description:', description);
-      
-      return description || null;
+      const description = completion.choices[0]?.message?.content;
+      if (!description) {
+        console.log('[AddressService] OpenAI returned no description');
+        return this.generateFallbackDirections(address);
+      }
+
+      console.log('[AddressService] Successfully generated description');
+      return description;
     } catch (error) {
       console.error('[AddressService] Error generating description:', error);
-      return null;
+      return this.generateFallbackDirections(address);
     }
   }
 
@@ -443,9 +511,9 @@ export class AddressService {
             lat: address.location.lat, 
             lng: address.location.lng 
           },
-          radius: 200,
+          radius: 200, // Increased radius to find more landmarks
           key: process.env.GOOGLE_MAPS_API_KEY!,
-          type: 'point_of_interest'
+          type: 'point_of_interest' // Single type as required by API
         }
       });
 
@@ -535,31 +603,6 @@ export class AddressService {
     return `on the ${direction} side of the building`;
   }
 
-  async getDirections(addressId: string): Promise<string> {
-    try {
-      const addressRef = doc(db, this.addressCollection, addressId);
-      const addressDoc = await getDoc(addressRef);
-
-      if (!addressDoc.exists()) {
-        throw new Error('Address not found');
-      }
-
-      const address = addressDoc.data() as Address;
-
-      // If we have user-contributed descriptions, use those
-      if (address.descriptions && address.descriptions.length > 0) {
-        return address.summary || address.descriptions[0].content;
-      }
-
-      // If no descriptions available, use the fallback building footprint approach
-      return this.generateFallbackDirections(address);
-
-    } catch (error) {
-      console.error('Error getting directions:', error);
-      throw error;
-    }
-  }
-
   private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
     const R = 6371; // Earth's radius in kilometers
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -568,7 +611,7 @@ export class AddressService {
               Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Distance in kilometers
+    return R * c * 1000; // Convert to meters
   }
 
   private getRelativeDirection(cardinalDirection: string): string {

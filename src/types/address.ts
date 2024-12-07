@@ -37,6 +37,7 @@ export interface AddressResponse {
   summary: string;
   uploadLink: string;
   addressId: string;
+  formattedAddress: string;
 }
 
 export interface AddressFeedback {
