@@ -8,6 +8,50 @@ import { getVectorDistance } from '../utils/vector';
 import crypto from 'crypto';
 import { MapboxService } from './mapbox.service';
 
+interface AddressValidationResponse {
+  result: {
+    verdict: {
+      validationGranularity: 'PREMISE' | 'SUB_PREMISE' | 'ROUTE' | 'OTHER';
+      addressComplete: boolean;
+      hasInferredComponents: boolean;
+      hasReplacedComponents: boolean;
+      hasUnconfirmedComponents: boolean;
+    };
+    address: {
+      formattedAddress: string;
+      postalAddress: {
+        regionCode: string;
+        languageCode: string;
+        postalCode: string;
+        administrativeArea: string;
+        locality: string;
+        addressLines: string[];
+      };
+      addressComponents: Array<{
+        componentType: string;
+        componentName: {
+          text: string;
+          languageCode: string;
+        };
+        confirmationLevel: 'CONFIRMED' | 'UNCONFIRMED' | 'UNCONFIRMED_AND_SUSPICIOUS';
+      }>;
+    };
+    geocode: {
+      location: {
+        latitude: number;
+        longitude: number;
+      };
+      plusCode: {
+        globalCode: string;
+      };
+      bounds: {
+        low: { latitude: number; longitude: number };
+        high: { latitude: number; longitude: number };
+      };
+    };
+  };
+}
+
 const mapboxService = MapboxService.getInstance();
 
 export class AddressService {
@@ -23,6 +67,128 @@ export class AddressService {
       apiKey: process.env.OPENAI_API_KEY,
     });
     this.learningService = new LearningService();
+  }
+
+  async validateAndFormatAddress(address: string): Promise<GeocodeResult | null> {
+    try {
+      const validationResponse = await fetch(
+        'https://addressvalidation.googleapis.com/v1:validateAddress',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY || ''
+          },
+          body: JSON.stringify({
+            address: {
+              addressLines: [address]
+            }
+          })
+        }
+      );
+
+      const validationData: AddressValidationResponse = await validationResponse.json();
+      const verdict = validationData.result.verdict;
+      
+      const bounds = {
+        northeast: {
+          lat: validationData.result.geocode.bounds.high.latitude,
+          lng: validationData.result.geocode.bounds.high.longitude
+        },
+        southwest: {
+          lat: validationData.result.geocode.bounds.low.latitude,
+          lng: validationData.result.geocode.bounds.low.longitude
+        }
+      };
+
+      if ((verdict.validationGranularity === 'PREMISE' || 
+           verdict.validationGranularity === 'SUB_PREMISE') && 
+          verdict.addressComplete) {
+        return {
+          formatted_address: validationData.result.address.formattedAddress,
+          geometry: {
+            location: {
+              lat: validationData.result.geocode.location.latitude,
+              lng: validationData.result.geocode.location.longitude
+            },
+            viewport: bounds
+          },
+          address_components: validationData.result.address.addressComponents.map(comp => ({
+            long_name: comp.componentName.text,
+            short_name: comp.componentName.text,
+            types: [comp.componentType]
+          })),
+          types: ['street_address'],
+          postcode_localities: [],
+          plus_code: {
+            compound_code: '',
+            global_code: validationData.result.geocode.plusCode?.globalCode || ''
+          },
+          partial_match: false,
+          place_id: crypto.randomUUID()
+        } as GeocodeResult;
+      }
+
+      if (verdict.validationGranularity === 'ROUTE' && 
+          verdict.addressComplete && 
+          !verdict.hasUnconfirmedComponents) {
+        return {
+          formatted_address: validationData.result.address.formattedAddress,
+          geometry: {
+            location: {
+              lat: validationData.result.geocode.location.latitude,
+              lng: validationData.result.geocode.location.longitude
+            },
+            viewport: bounds
+          },
+          address_components: validationData.result.address.addressComponents.map(comp => ({
+            long_name: comp.componentName.text,
+            short_name: comp.componentName.text,
+            types: [comp.componentType]
+          })),
+          types: ['route'],
+          postcode_localities: [],
+          plus_code: {
+            compound_code: '',
+            global_code: validationData.result.geocode.plusCode?.globalCode || ''
+          },
+          partial_match: false,
+          place_id: crypto.randomUUID()
+        } as GeocodeResult;
+      }
+
+      // Fallback to Geocoding API
+      console.log('Falling back to Geocoding API');
+      const geocodeResponse = await this.googleMapsClient.geocode({
+        params: {
+          address,
+          key: process.env.GOOGLE_MAPS_API_KEY!
+        }
+      });
+
+      if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
+        const result = geocodeResponse.data.results[0];
+        
+        const hasStreetNumber = result.address_components.some(
+          comp => comp.types.includes('street_number')
+        );
+        const hasRoute = result.address_components.some(
+          comp => comp.types.includes('route')
+        );
+        const hasPostcode = result.address_components.some(
+          comp => comp.types.includes('postal_code')
+        );
+
+        if ((hasStreetNumber || hasRoute) && hasPostcode) {
+          return result;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Error validating address:', error);
+      return null;
+    }
   }
 
   async findExistingAddress(address: string): Promise<Address | null> {
@@ -228,7 +394,7 @@ export class AddressService {
     const Δφ = (p2.lat-p1.lat) * Math.PI/180;
     const Δλ = (p2.lng-p1.lng) * Math.PI/180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+    const a = Math.sin(Δ��/2) * Math.sin(Δφ/2) +
               Math.cos(φ1) * Math.cos(φ2) *
               Math.sin(Δλ/2) * Math.sin(Δλ/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
