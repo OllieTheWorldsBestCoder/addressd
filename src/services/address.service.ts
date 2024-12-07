@@ -90,6 +90,18 @@ export class AddressService {
 
       const validationData: AddressValidationResponse = await validationResponse.json();
       const verdict = validationData.result.verdict;
+      const location = {
+        lat: validationData.result.geocode.location.latitude,
+        lng: validationData.result.geocode.location.longitude
+      };
+      
+      // Look up nearest building using Mapbox
+      const nearestBuilding = await mapboxService.findNearestBuilding(location.lat, location.lng);
+      let buildingDescription = '';
+      
+      if (nearestBuilding) {
+        buildingDescription = mapboxService.generateBuildingDescriptor(nearestBuilding.properties);
+      }
       
       const bounds = {
         northeast: {
@@ -108,10 +120,7 @@ export class AddressService {
         return {
           formatted_address: validationData.result.address.formattedAddress,
           geometry: {
-            location: {
-              lat: validationData.result.geocode.location.latitude,
-              lng: validationData.result.geocode.location.longitude
-            },
+            location,
             viewport: bounds
           },
           address_components: validationData.result.address.addressComponents.map(comp => ({
@@ -126,7 +135,9 @@ export class AddressService {
             global_code: validationData.result.geocode.plusCode?.globalCode || ''
           },
           partial_match: false,
-          place_id: crypto.randomUUID()
+          place_id: crypto.randomUUID(),
+          building_description: buildingDescription,
+          building_entrance: nearestBuilding?.entrance || null
         } as GeocodeResult;
       }
 
@@ -136,10 +147,7 @@ export class AddressService {
         return {
           formatted_address: validationData.result.address.formattedAddress,
           geometry: {
-            location: {
-              lat: validationData.result.geocode.location.latitude,
-              lng: validationData.result.geocode.location.longitude
-            },
+            location,
             viewport: bounds
           },
           address_components: validationData.result.address.addressComponents.map(comp => ({
@@ -154,7 +162,9 @@ export class AddressService {
             global_code: validationData.result.geocode.plusCode?.globalCode || ''
           },
           partial_match: false,
-          place_id: crypto.randomUUID()
+          place_id: crypto.randomUUID(),
+          building_description: buildingDescription,
+          building_entrance: nearestBuilding?.entrance || null
         } as GeocodeResult;
       }
 
@@ -170,6 +180,18 @@ export class AddressService {
       if (geocodeResponse.data.results && geocodeResponse.data.results.length > 0) {
         const result = geocodeResponse.data.results[0];
         
+        // Look up nearest building for geocoded result
+        const geocodedLocation = result.geometry.location;
+        const nearestBuildingGeocoded = await mapboxService.findNearestBuilding(
+          geocodedLocation.lat,
+          geocodedLocation.lng
+        );
+        let buildingDescriptionGeocoded = '';
+        
+        if (nearestBuildingGeocoded) {
+          buildingDescriptionGeocoded = mapboxService.generateBuildingDescriptor(nearestBuildingGeocoded.properties);
+        }
+        
         const hasStreetNumber = result.address_components.some(
           comp => comp.types.includes(AddressType.street_number)
         );
@@ -181,7 +203,11 @@ export class AddressService {
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
-          return result;
+          return {
+            ...result,
+            building_description: buildingDescriptionGeocoded,
+            building_entrance: nearestBuildingGeocoded?.entrance || null
+          };
         }
       }
 
@@ -279,72 +305,37 @@ export class AddressService {
     }
   }
 
-  async createOrUpdateAddress(address: string): Promise<Address | null> {
+  async createOrUpdateAddress(rawAddress: string): Promise<Address | null> {
     try {
-      // Geocode the address
-      const geocodeResponse = await this.googleMapsClient.geocode({
-        params: {
-          address,
-          key: process.env.GOOGLE_MAPS_API_KEY!
-        }
-      });
+      const validatedAddress = await this.validateAndFormatAddress(rawAddress);
+      if (!validatedAddress) return null;
 
-      if (!geocodeResponse.data.results || geocodeResponse.data.results.length === 0) {
-        return null;
-      }
-
-      const result = geocodeResponse.data.results[0];
-      const { formatted_address, geometry } = result;
-
-      // Check for existing address
-      const existingAddress = await this.findExistingAddressInternal(
-        formatted_address,
-        {
-          lat: geometry.location.lat,
-          lng: geometry.location.lng
-        }
-      );
+      const addressId = crypto.randomUUID();
+      const now = new Date();
       
-      if (existingAddress) {
-        const updatedAddress = {
-          ...existingAddress,
-          matchedAddresses: [
-            ...(existingAddress.matchedAddresses || []),
-            {
-              rawAddress: address,
-              matchedAt: new Date()
-            }
-          ],
-          updatedAt: new Date()
-        };
-
-        await setDoc(doc(db, this.addressCollection, existingAddress.id), updatedAddress);
-        return updatedAddress;
-      }
-
-      // Create new address
-      const newAddress: Address = {
-        id: crypto.randomUUID(),
-        rawAddress: address,
-        formattedAddress: formatted_address,
-        latitude: geometry.location.lat,
-        longitude: geometry.location.lng,
-        geohash: '',
-        matchedAddresses: [{
-          rawAddress: address,
-          matchedAt: new Date()
+      const addressData: Address = {
+        id: addressId,
+        formattedAddress: validatedAddress.formatted_address,
+        location: validatedAddress.geometry.location,
+        components: validatedAddress.address_components,
+        matchedAddresses: [{ 
+          rawAddress, 
+          timestamp: now.toISOString() 
         }],
-        descriptions: [],
-        summary: '',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: now,
+        updatedAt: now,
+        views: 0,
+        summary: validatedAddress.building_description || 'No description available yet.',
+        buildingEntrance: validatedAddress.building_entrance
       };
 
-      await setDoc(doc(db, this.addressCollection, newAddress.id), newAddress);
-      return newAddress;
+      const addressRef = doc(db, this.addressCollection, addressId);
+      await setDoc(addressRef, addressData);
+
+      return addressData;
     } catch (error) {
       console.error('Error creating/updating address:', error);
-      return null;
+      throw error;
     }
   }
 
