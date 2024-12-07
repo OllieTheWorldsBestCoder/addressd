@@ -1,15 +1,15 @@
 {
     "crons": [{
-      "path": "/api/cron/optimize-addresses", 
+      "path": "https://www.addressd.co/api/cron/optimize-addresses", 
       "schedule": "0 0 * * *"
     }, {
-      "path": "/api/cron/generate-summaries",
+      "path": "https://www.addressd.co/api/cron/generate-summaries",
       "schedule": "0 12 * * *"
     }, {
-      "path": "/api/cron/generate-blog-post",
+      "path": "https://www.addressd.co/api/cron/generate-blog-post",
       "schedule": "0 9 * * *"
     }, {
-      "path": "/api/cron/optimize-blog-posts",
+      "path": "https://www.addressd.co/api/cron/optimize-blog-posts",
       "schedule": "0 3 1 * *"
     }],
     "functions": {
