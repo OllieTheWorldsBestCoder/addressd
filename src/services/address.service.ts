@@ -2,7 +2,7 @@ import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-serv
 import type { GeocodingAddressComponentType } from "@googlemaps/google-maps-services-js";
 import OpenAI from "openai";
 import { db } from '../config/firebase';
-import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { Address } from '../types/address';
 import { LearningService } from './learning.service';
 import { getVectorDistance } from '../utils/vector';
@@ -327,6 +327,7 @@ export class AddressService {
       const addressId = crypto.randomUUID();
       const now = new Date();
       
+      // Create initial address data
       const addressData: Address = {
         id: addressId,
         formattedAddress: validatedAddress.formatted_address,
@@ -339,10 +340,19 @@ export class AddressService {
         createdAt: now,
         updatedAt: now,
         views: 0,
-        summary: validatedAddress.building_description || 'No description available yet.',
+        summary: validatedAddress.building_description || 'building',
         buildingEntrance: validatedAddress.building_entrance
       };
 
+      // Generate full description before saving
+      console.log('Generating full description...');
+      const fullDescription = await this.generateDescription(addressData);
+      
+      if (fullDescription) {
+        addressData.summary = fullDescription;
+      }
+
+      // Save address with full description
       const addressRef = doc(db, this.addressCollection, addressId);
       await setDoc(addressRef, addressData);
 
