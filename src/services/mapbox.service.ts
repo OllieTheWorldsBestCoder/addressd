@@ -8,15 +8,13 @@ const DEFAULT_ZOOM = 16;
 
 export class MapboxService {
   private static instance: MapboxService;
-  private clientToken: string;
-  private serverToken: string;
+  private accessToken: string;
 
   private constructor() {
-    this.clientToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
-    this.serverToken = process.env.MAPBOX_SERVER_TOKEN || '';
+    this.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
     
-    if (!this.clientToken || !this.serverToken) {
-      console.warn('Mapbox tokens not properly configured');
+    if (!this.accessToken) {
+      console.warn('Mapbox token not configured');
     }
   }
 
@@ -27,8 +25,8 @@ export class MapboxService {
     return MapboxService.instance;
   }
 
-  private getToken(isServerSide: boolean = true): string {
-    return isServerSide ? this.serverToken : this.clientToken;
+  private getToken(): string {
+    return this.accessToken;
   }
 
   private async handleMapboxError(error: any): Promise<null> {
