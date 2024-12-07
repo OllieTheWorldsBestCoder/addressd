@@ -8,13 +8,15 @@ const DEFAULT_ZOOM = 16;
 
 export class MapboxService {
   private static instance: MapboxService;
-  private accessToken: string;
-  private baseUrl = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
+  private clientToken: string;
+  private serverToken: string;
 
   private constructor() {
-    this.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
-    if (!this.accessToken) {
-      console.warn('Mapbox access token not found');
+    this.clientToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
+    this.serverToken = process.env.MAPBOX_SERVER_TOKEN || '';
+    
+    if (!this.clientToken || !this.serverToken) {
+      console.warn('Mapbox tokens not properly configured');
     }
   }
 
@@ -23,6 +25,23 @@ export class MapboxService {
       MapboxService.instance = new MapboxService();
     }
     return MapboxService.instance;
+  }
+
+  private getToken(isServerSide: boolean = true): string {
+    return isServerSide ? this.serverToken : this.clientToken;
+  }
+
+  private async handleMapboxError(error: any): Promise<null> {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        console.error('Mapbox authentication failed. Please check your API tokens.');
+      } else {
+        console.error('Mapbox API error:', error.response?.status, error.message);
+      }
+    } else {
+      console.error('Unexpected error:', error);
+    }
+    return null;
   }
 
   private latLngToTileXY(lat: number, lng: number, zoom: number): MapboxTileCoordinates {
@@ -45,15 +64,19 @@ export class MapboxService {
     return { lat, lng };
   }
 
-  private async fetchVectorTile(tileCoords: MapboxTileCoordinates): Promise<VectorTile> {
-    const { x, y, z } = tileCoords;
-    const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/${z}/${x}/${y}.vector.pbf?access_token=${this.accessToken}`;
-    
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer'
-    });
-    
-    return new VectorTile(new Protobuf(response.data));
+  private async fetchVectorTile(tileCoords: MapboxTileCoordinates): Promise<VectorTile | null> {
+    try {
+      const { x, y, z } = tileCoords;
+      const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/${z}/${x}/${y}.vector.pbf?access_token=${this.getToken()}`;
+      
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer'
+      });
+      
+      return new VectorTile(new Protobuf(response.data));
+    } catch (error) {
+      return this.handleMapboxError(error);
+    }
   }
 
   private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -90,69 +113,21 @@ export class MapboxService {
     return entrance;
   }
 
-  async geocode(address: string) {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/${encodeURIComponent(address)}.json`,
-        {
-          params: {
-            access_token: this.accessToken,
-            types: 'address',
-            limit: 1
-          }
-        }
-      );
-
-      if (response.data.features && response.data.features.length > 0) {
-        const feature = response.data.features[0];
-        return {
-          coordinates: feature.center,
-          place_name: feature.place_name,
-          context: feature.context
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('Mapbox geocoding error:', error);
-      return null;
-    }
-  }
-
-  async reverseGeocode(lng: number, lat: number) {
-    try {
-      const response = await axios.get(
-        `${this.baseUrl}/${lng},${lat}.json`,
-        {
-          params: {
-            access_token: this.accessToken,
-            types: 'address',
-            limit: 1
-          }
-        }
-      );
-
-      if (response.data.features && response.data.features.length > 0) {
-        const feature = response.data.features[0];
-        return {
-          coordinates: feature.center,
-          place_name: feature.place_name,
-          context: feature.context
-        };
-      }
-      return null;
-    } catch (error) {
-      console.error('Mapbox reverse geocoding error:', error);
-      return null;
-    }
-  }
-
   public async findNearestBuilding(lat: number, lng: number): Promise<BuildingFootprint | null> {
     try {
       const tileCoords = this.latLngToTileXY(lat, lng, DEFAULT_ZOOM);
       const vectorTile = await this.fetchVectorTile(tileCoords);
       
+      if (!vectorTile) {
+        console.warn('No vector tile data available');
+        return null;
+      }
+
       const buildingLayer = vectorTile.layers['building'];
-      if (!buildingLayer) return null;
+      if (!buildingLayer) {
+        console.warn('No building layer found in vector tile');
+        return null;
+      }
 
       let nearestBuilding: BuildingFootprint | null = null;
       let minDistance = Infinity;
@@ -160,6 +135,8 @@ export class MapboxService {
       for (let i = 0; i < buildingLayer.length; i++) {
         const feature = buildingLayer.feature(i);
         const geometry = feature.loadGeometry();
+        
+        if (!geometry || geometry.length === 0) continue;
         
         // Convert tile coordinates to lat/lng
         const polygon = geometry[0].map(point => {
@@ -191,8 +168,7 @@ export class MapboxService {
 
       return nearestBuilding;
     } catch (error) {
-      console.error('Error finding nearest building:', error);
-      return null;
+      return this.handleMapboxError(error);
     }
   }
 
