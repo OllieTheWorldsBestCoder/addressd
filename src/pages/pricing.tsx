@@ -109,121 +109,76 @@ export default function Pricing() {
             </div>
           </div>
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto px-4">
             {/* Embed Plan */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Business Locator Embed
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  Perfect for businesses that want to help customers find their location easily
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h3 className="text-2xl font-bold mb-4">Embed</h3>
+              <p className="text-gray-600 mb-6">
+                Add natural language directions to your website with our easy-to-use embed.
+              </p>
+              <div className="mb-8">
+                <p className="text-4xl font-bold">
+                  {billingPeriod === 'monthly' ? '£3' : '£20'}
+                  <span className="text-lg text-gray-500 font-normal">
+                    /{billingPeriod === 'monthly' ? 'mo' : 'year'}
+                  </span>
                 </p>
-                <div className="mt-8">
-                  <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-gray-900">£3</span>
-                    <span className="text-base font-medium text-gray-500">/month</span>
-                  </div>
-                  <p className="mt-1 text-sm text-green-600">Save 44% with yearly billing</p>
-                </div>
-                <ul className="mt-6 space-y-4">
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Natural language directions</span>
-                  </li>
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Easy website integration</span>
-                  </li>
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Usage analytics</span>
-                  </li>
-                </ul>
-                <button 
-                  className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3"
-                  onClick={() => handleCheckoutStart('embed', billingPeriod === 'monthly' ? 3 : 20)}
-                >
-                  Start Improving Deliveries
-                </button>
               </div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center">
+                  <FiCheck className="h-5 w-5 text-green-500" />
+                  <span className="ml-3">Natural language directions</span>
+                </li>
+                <li className="flex items-center">
+                  <FiCheck className="h-5 w-5 text-green-500" />
+                  <span className="ml-3">Easy website integration</span>
+                </li>
+                <li className="flex items-center">
+                  <FiCheck className="h-5 w-5 text-green-500" />
+                  <span className="ml-3">Usage analytics</span>
+                </li>
+              </ul>
+              <Link 
+                href="/signup"
+                className="block w-full text-center py-3 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+              >
+                Get Started
+              </Link>
             </div>
 
             {/* API Plan */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Delivery Optimization API
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  For businesses that want to integrate directions into their delivery system
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h3 className="text-2xl font-bold mb-4">API</h3>
+              <p className="text-gray-600 mb-6">
+                Integrate natural language directions directly into your application.
+              </p>
+              <div className="mb-8">
+                <p className="text-4xl font-bold">
+                  £50
+                  <span className="text-lg text-gray-500 font-normal">/mo</span>
                 </p>
-                <div className="mt-8">
-                  <div className="flex items-baseline">
-                    <span className="text-4xl font-bold text-gray-900">£50</span>
-                    <span className="text-base font-medium text-gray-500">/month</span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-600">Includes 10,000 API calls</p>
-                </div>
-                <ul className="mt-6 space-y-4">
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">RESTful API access</span>
-                  </li>
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Delivery optimization</span>
-                  </li>
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Advanced analytics</span>
-                  </li>
-                </ul>
-                <button 
-                  className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3"
-                  onClick={() => handleCheckoutStart('api', billingPeriod === 'monthly' ? 50 : 500)}
-                >
-                  Start API Integration
-                </button>
+                <p className="text-sm text-gray-500">+ £0.005 per request</p>
               </div>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="p-6">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Custom Enterprise Solutions
-                </h3>
-                <p className="mt-2 text-gray-600">
-                  Tailored solutions for large-scale delivery operations
-                </p>
-                <div className="mt-8">
-                  <div className="flex items-baseline">
-                    <span className="text-2xl font-bold text-gray-900">Custom Pricing</span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-600">Contact us for details</p>
-                </div>
-                <ul className="mt-6 space-y-4">
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Custom integration support</span>
-                  </li>
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">Dedicated account manager</span>
-                  </li>
-                  <li className="flex items-center">
-                    <FiCheck className="h-5 w-5 text-green-500" />
-                    <span className="ml-3">SLA guarantees</span>
-                  </li>
-                </ul>
-                <button 
-                  className="mt-8 w-full bg-primary text-white rounded-lg px-4 py-3"
-                  onClick={() => handleCheckoutStart('enterprise', 0)}
-                >
-                  Request Custom Quote
-                </button>
-              </div>
+              <ul className="space-y-4 mb-8">
+                <li className="flex items-center">
+                  <FiCheck className="h-5 w-5 text-green-500" />
+                  <span className="ml-3">RESTful API access</span>
+                </li>
+                <li className="flex items-center">
+                  <FiCheck className="h-5 w-5 text-green-500" />
+                  <span className="ml-3">Delivery optimization</span>
+                </li>
+                <li className="flex items-center">
+                  <FiCheck className="h-5 w-5 text-green-500" />
+                  <span className="ml-3">Advanced analytics</span>
+                </li>
+              </ul>
+              <Link 
+                href="/signup?product=api"
+                className="block w-full text-center py-3 px-6 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+              >
+                Get Started
+              </Link>
             </div>
           </div>
 
