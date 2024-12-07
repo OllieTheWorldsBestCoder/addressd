@@ -42,6 +42,8 @@ export default function AddressSearch() {
     e.preventDefault();
     if (!address.trim()) return;
 
+    const addressToSubmit = selectedPlace?.formatted_address || address;
+
     setIsLoading(true);
     setError('');
     setResult(null);
@@ -52,7 +54,7 @@ export default function AddressSearch() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ address: addressToSubmit }),
       });
 
       const data = await response.json();
@@ -71,9 +73,16 @@ export default function AddressSearch() {
   };
 
   const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
-    setSelectedPlace(place);
     if (place.formatted_address) {
+      setSelectedPlace(place);
       setAddress(place.formatted_address);
+    }
+  };
+
+  const handleAddressChange = (val: string) => {
+    setAddress(val);
+    if (selectedPlace?.formatted_address && val !== selectedPlace.formatted_address) {
+      setSelectedPlace(null);
     }
   };
 
@@ -83,12 +92,7 @@ export default function AddressSearch() {
         <div className="flex gap-3">
           <AddressAutocomplete
             value={address}
-            onChange={(val: string) => {
-              setAddress(val);
-              if (!selectedPlace?.formatted_address || val !== selectedPlace.formatted_address) {
-                setSelectedPlace(null);
-              }
-            }}
+            onChange={handleAddressChange}
             onSelect={handleAddressSelect}
             disabled={isLoading}
             className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
