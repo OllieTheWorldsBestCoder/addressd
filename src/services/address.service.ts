@@ -321,13 +321,17 @@ export class AddressService {
 
   async createOrUpdateAddress(rawAddress: string): Promise<Address | null> {
     try {
+      console.log('[AddressService] Starting address validation...');
       const validatedAddress = await this.validateAndFormatAddress(rawAddress);
-      if (!validatedAddress) return null;
+      if (!validatedAddress) {
+        console.log('[AddressService] Address validation failed');
+        return null;
+      }
 
       const addressId = crypto.randomUUID();
       const now = new Date();
       
-      // Create initial address data
+      console.log('[AddressService] Creating initial address data...');
       const addressData: Address = {
         id: addressId,
         formattedAddress: validatedAddress.formatted_address,
@@ -340,25 +344,30 @@ export class AddressService {
         createdAt: now,
         updatedAt: now,
         views: 0,
-        summary: validatedAddress.building_description || 'building',
+        summary: validatedAddress.building_description || 'No description available yet.',
         buildingEntrance: validatedAddress.building_entrance
       };
 
       // Generate full description before saving
-      console.log('Generating full description...');
+      console.log('[AddressService] Generating full description...');
       const fullDescription = await this.generateDescription(addressData);
       
       if (fullDescription) {
+        console.log('[AddressService] Full description generated:', fullDescription.substring(0, 50) + '...');
         addressData.summary = fullDescription;
+      } else {
+        console.log('[AddressService] Failed to generate full description');
       }
 
       // Save address with full description
+      console.log('[AddressService] Saving address to database...');
       const addressRef = doc(db, this.addressCollection, addressId);
       await setDoc(addressRef, addressData);
 
+      console.log('[AddressService] Address creation complete');
       return addressData;
     } catch (error) {
-      console.error('Error creating/updating address:', error);
+      console.error('[AddressService] Error creating/updating address:', error);
       throw error;
     }
   }
@@ -400,12 +409,14 @@ export class AddressService {
 
   private async generateDescription(address: Address): Promise<string> {
     try {
+      console.log('[AddressService] Finding nearest building...');
       // Find building footprint using Mapbox
       const building = await mapboxService.findNearestBuilding(
         address.location.lat,
         address.location.lng
       );
 
+      console.log('[AddressService] Getting nearby places...');
       // Get nearby places with a larger radius and more types
       const placesResponse = await this.googleMapsClient.placesNearby({
         params: {
@@ -420,6 +431,7 @@ export class AddressService {
       });
 
       // Process nearby places with distances and directions
+      console.log('[AddressService] Processing nearby places...');
       const nearbyPlaces = await Promise.all(
         placesResponse.data.results.slice(0, 5).map(async place => {
           if (!place.geometry?.location) return null;
@@ -452,7 +464,10 @@ export class AddressService {
         .map(place => `${place.name} (${place.distance}m ${place.direction})`)
         .join(', ');
 
-      // Get street view metadata instead of actual image
+      console.log('[AddressService] Found nearby places:', nearbyPlacesText);
+
+      // Get street view metadata
+      console.log('[AddressService] Checking street view...');
       let streetViewInfo = '';
       try {
         const streetViewResponse = await fetch(
@@ -463,7 +478,7 @@ export class AddressService {
           streetViewInfo = 'The location is visible from street view. ';
         }
       } catch (error) {
-        // Street view might not be available
+        console.log('[AddressService] Street view not available');
       }
 
       const buildingDescription = building 
@@ -474,6 +489,7 @@ export class AddressService {
         ? `The main entrance is ${this.describeEntranceLocation(building.entrance, building.polygon)}.`
         : '';
 
+      console.log('[AddressService] Generating OpenAI description...');
       const prompt = `Generate a detailed, natural-sounding description for this location. Include these details:
       - Building type: ${buildingDescription}
       ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
@@ -501,9 +517,16 @@ export class AddressService {
         max_tokens: 300
       });
 
-      return completion.choices[0]?.message?.content || this.generateFallbackDirections(address);
+      const description = completion.choices[0]?.message?.content;
+      if (!description) {
+        console.log('[AddressService] OpenAI returned no description');
+        return this.generateFallbackDirections(address);
+      }
+
+      console.log('[AddressService] Successfully generated description');
+      return description;
     } catch (error) {
-      console.error('Error generating description:', error);
+      console.error('[AddressService] Error generating description:', error);
       return this.generateFallbackDirections(address);
     }
   }
