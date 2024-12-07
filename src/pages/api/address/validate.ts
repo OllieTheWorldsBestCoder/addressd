@@ -73,7 +73,8 @@ export default async function handler(
     const response: AddressResponse = {
       summary: result.summary || 'Address validated successfully',
       uploadLink: `${process.env.NEXT_PUBLIC_BASE_URL}/upload/${result.id}`,
-      addressId: result.id
+      addressId: result.id,
+      formattedAddress: result.formattedAddress
     };
 
     console.log('Sending response:', response);
