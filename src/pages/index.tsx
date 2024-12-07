@@ -165,23 +165,118 @@ export default function Home() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
-                  className="bg-white rounded-xl shadow-lg p-8"
+                  className="bg-white rounded-xl shadow-lg p-8 md:col-span-3 mb-12"
                 >
                   <div className="flex items-center mb-4">
                     <div className="p-2 bg-primary/10 rounded-lg">
                       <FiCode className="text-2xl text-primary" />
                     </div>
-                    <h3 className="text-xl font-semibold ml-3">Embed</h3>
+                    <h3 className="text-xl font-semibold ml-3">Embed Natural Directions</h3>
                   </div>
-                  <p className="text-gray-600 mb-6">
-                    Add clear directions to your website with a simple embed code. Perfect for business listings and contact pages.
-                  </p>
-                  <Link
-                    href="/embed"
-                    className="inline-flex items-center text-primary hover:text-primary-dark"
-                  >
-                    Learn more <FiArrowRight className="ml-2" />
-                  </Link>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-8">
+                    {/* Left side: Demo */}
+                    <div>
+                      <div className="bg-gray-50 rounded-xl p-6 transform hover:scale-[1.02] transition-transform duration-300">
+                        <div className="flex items-center mb-4">
+                          <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                          <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                          <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                        </div>
+                        <div className="space-y-4">
+                          <h4 className="text-lg font-semibold text-gray-900">Delivery Instructions</h4>
+                          <p className="text-gray-600 text-sm leading-relaxed">
+                            Look for a modern glass-fronted building with a distinctive blue awning. 
+                            The entrance is on the right side as you approach from High Street. 
+                            You'll see a café at street level and clear signage.
+                          </p>
+                          <div className="flex items-center text-sm text-gray-500">
+                            <FiCheck className="text-green-500 mr-2" />
+                            Verified by addressd
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Code Preview */}
+                      <div className="mt-6 bg-gray-900 rounded-xl p-6 overflow-hidden">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full bg-red-400 mr-2"></div>
+                            <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+                            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                          </div>
+                          <span className="text-gray-400 text-sm">embed.html</span>
+                        </div>
+                        <pre className="text-gray-300 font-mono text-sm overflow-x-auto">
+                          <code>{`<div id="addressd-embed"></div>
+<script src="https://addressd.co/embed.js" 
+  data-address="your-address-id"
+  data-theme="light">
+</script>`}</code>
+                        </pre>
+                      </div>
+                    </div>
+
+                    {/* Right side: Features */}
+                    <div className="space-y-6">
+                      <div className="flex items-start">
+                        <div className="p-2 bg-green-100 rounded-lg mt-1">
+                          <FiCheck className="text-green-500" />
+                        </div>
+                        <div className="ml-4">
+                          <h3 className="font-semibold text-gray-900">One-Line Integration</h3>
+                          <p className="text-gray-600 text-sm">
+                            Add the embed to your site with a single line of code. Works with any website or platform.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="p-2 bg-blue-100 rounded-lg mt-1">
+                          <FiShield className="text-blue-500" />
+                        </div>
+                        <div className="ml-4">
+                          <h3 className="font-semibold text-gray-900">Verified Directions</h3>
+                          <p className="text-gray-600 text-sm">
+                            All directions are verified by our community and AI to ensure accuracy.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="p-2 bg-purple-100 rounded-lg mt-1">
+                          <FiBox className="text-purple-500" />
+                        </div>
+                        <div className="ml-4">
+                          <h3 className="font-semibold text-gray-900">Custom Styling</h3>
+                          <p className="text-gray-600 text-sm">
+                            Match your brand with customizable themes, colors, and styles.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start">
+                        <div className="p-2 bg-orange-100 rounded-lg mt-1">
+                          <FiTrendingUp className="text-orange-500" />
+                        </div>
+                        <div className="ml-4">
+                          <h3 className="font-semibold text-gray-900">Analytics & Insights</h3>
+                          <p className="text-gray-600 text-sm">
+                            Track views, engagement, and how customers interact with your directions.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8">
+                        <Link
+                          href="/embed"
+                          className="inline-flex items-center px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                        >
+                          Try the Embed <FiArrowRight className="ml-2" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
 
                 {/* API Option */}
