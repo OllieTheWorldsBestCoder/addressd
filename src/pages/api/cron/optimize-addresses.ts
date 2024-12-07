@@ -1,66 +1,33 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { AddressOptimizationService } from '../../../services/optimization.service';
-import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
-import { db } from '../../../config/firebase';
-
-// Add function to generate address statistics
-async function generateAddressStats() {
-  const addressesRef = collection(db, 'addresses');
-  const snapshot = await getDocs(addressesRef);
-  
-  const stats = {
-    total: snapshot.size,
-    withDescriptions: 0,
-    withMatchedAddresses: 0,
-    highConfidence: 0,
-    averageConfidence: 0,
-    timestamp: new Date()
-  };
-
-  let totalConfidence = 0;
-
-  snapshot.docs.forEach(doc => {
-    const address = doc.data();
-    if (address.descriptions?.length > 0) stats.withDescriptions++;
-    if (address.matchedAddresses?.length > 0) stats.withMatchedAddresses++;
-    if (address.confidence >= 0.8) stats.highConfidence++;
-    totalConfidence += address.confidence || 0;
-  });
-
-  stats.averageConfidence = totalConfidence / snapshot.size;
-
-  // Store stats in Firestore
-  await setDoc(doc(db, 'statistics', 'addresses'), {
-    ...stats,
-    updatedAt: new Date()
-  });
-}
+import { OptimizationService } from '../../../services/optimization.service';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Verify cron secret
+  const cronSecret = req.headers['x-cron-secret'];
+  if (cronSecret !== process.env.CRON_SECRET_KEY) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   try {
-    const optimizer = new AddressOptimizationService();
-
-    // Run daily optimization
-    const optimizationResults = await optimizer.optimizeDatabase();
-
-    // Update search indices
-    await optimizer.updateSearchIndices();
-
-    // Generate address statistics
-    await generateAddressStats();
-
-    return res.status(200).json({
-      message: 'Optimization complete',
-      results: optimizationResults
+    const optimizationService = new OptimizationService();
+    await optimizationService.optimizeAddresses();
+    
+    return res.status(200).json({ 
+      success: true,
+      message: 'Address optimization completed successfully'
     });
   } catch (error) {
-    console.error('Error in optimize-addresses:', error);
+    console.error('Error in optimize-addresses cron:', error);
     return res.status(500).json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to optimize addresses',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 } 
