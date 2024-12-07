@@ -102,10 +102,10 @@ export default function Home() {
           >
             <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <h1 className="text-4xl sm:text-5xl font-bold text-center mb-8">
-                Clear Directions for Your Business
+                Enhance Deliveries with Natural Language Directions
               </h1>
               <p className="text-xl text-gray-600 text-center mb-12">
-                Help customers find your location with natural, easy-to-follow directions
+                Reduce failed deliveries by up to 20% with clear, accurate location guidance
               </p>
               <AddressSearch />
             </div>

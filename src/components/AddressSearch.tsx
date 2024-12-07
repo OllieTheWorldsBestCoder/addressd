@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiMapPin, FiImage, FiCpu } from 'react-icons/fi';
+import { FiSearch, FiMapPin, FiImage, FiCpu, FiArrowRight } from 'react-icons/fi';
 
 interface LoadingState {
   message: string;
@@ -55,69 +55,69 @@ export default function AddressSearch() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="relative">
-          <input
-            type="text"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Enter your business address..."
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary pl-12"
-            disabled={isLoading}
-          />
-          <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <form onSubmit={handleSubmit} className="relative">
+        <div className="flex">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Enter your business address..."
+              className="w-full h-14 px-4 rounded-l-lg border border-gray-300 focus:ring-2 focus:ring-primary focus:border-primary pl-12"
+              disabled={isLoading}
+            />
+            <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          </div>
+          
+          <button
+            type="submit"
+            disabled={isLoading || !address.trim()}
+            className={`h-14 w-14 flex items-center justify-center rounded-r-lg transition-all
+              ${address.trim() 
+                ? 'bg-primary text-white hover:bg-primary-dark' 
+                : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+          >
+            <FiArrowRight className={`w-6 h-6 transition-transform ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading || !address.trim()}
-          className={`w-full py-3 px-6 rounded-lg bg-primary text-white font-medium transition-all
-            ${isLoading ? 'opacity-75 cursor-not-allowed' : 'hover:bg-primary-dark'}
-          `}
-        >
-          {isLoading ? 'Processing...' : 'Get Directions'}
-        </button>
-      </form>
-
-      <AnimatePresence mode="wait">
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mt-8 text-center"
-          >
+        <AnimatePresence mode="wait">
+          {isLoading && (
             <motion.div
-              key={loadingStateIndex}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center justify-center space-x-3"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute left-0 right-0 top-16 text-center"
             >
-              {loadingStates[loadingStateIndex].icon}
-              <span className="text-lg text-gray-700">
-                {loadingStates[loadingStateIndex].message}
-              </span>
+              <motion.div
+                key={loadingStateIndex}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                className="flex items-center justify-center space-x-3 bg-white/80 backdrop-blur-sm rounded-lg py-2 px-4 shadow-sm"
+              >
+                {loadingStates[loadingStateIndex].icon}
+                <span className="text-sm text-gray-700">
+                  {loadingStates[loadingStateIndex].message}
+                </span>
+              </motion.div>
             </motion.div>
-            <div className="mt-4 flex justify-center">
-              <div className="w-2 h-2 bg-primary rounded-full mx-1 animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-primary rounded-full mx-1 animate-bounce" style={{ animationDelay: '300ms' }} />
-              <div className="w-2 h-2 bg-primary rounded-full mx-1 animate-bounce" style={{ animationDelay: '600ms' }} />
-            </div>
-          </motion.div>
-        )}
+          )}
 
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="mt-4 p-3 rounded-lg bg-red-50 text-red-600 text-center"
-          >
-            {error}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute left-0 right-0 top-16 p-3 rounded-lg bg-red-50 text-red-600 text-center text-sm"
+            >
+              {error}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </form>
     </div>
   );
 } 
+</```
+rewritten_file>
