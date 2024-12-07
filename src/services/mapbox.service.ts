@@ -6,16 +6,14 @@ import { MapboxTileCoordinates, BuildingFeature, BuildingFootprint } from '../ty
 const TILE_SIZE = 512;
 const DEFAULT_ZOOM = 16;
 
+type Direction = 'north' | 'south' | 'east' | 'west' | 'northeast' | 'northwest' | 'southeast' | 'southwest';
+
 export class MapboxService {
   private static instance: MapboxService;
   private accessToken: string;
 
   private constructor() {
-    this.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN || '';
-    
-    if (!this.accessToken) {
-      console.warn('Mapbox token not configured');
-    }
+    this.accessToken = process.env.MAPBOX_ACCESS_TOKEN || '';
   }
 
   public static getInstance(): MapboxService {
@@ -25,170 +23,101 @@ export class MapboxService {
     return MapboxService.instance;
   }
 
-  private getToken(): string {
-    return this.accessToken;
-  }
+  generateBuildingDescriptor(properties: BuildingFeature['properties']): string {
+    let description = '';
 
-  private async handleMapboxError(error: any): Promise<null> {
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
-        console.error('Mapbox authentication failed. Please check your API tokens.');
-      } else {
-        console.error('Mapbox API error:', error.response?.status, error.message);
-      }
-    } else {
-      console.error('Unexpected error:', error);
-    }
-    return null;
-  }
-
-  private latLngToTileXY(lat: number, lng: number, zoom: number): MapboxTileCoordinates {
-    const scale = Math.pow(2, zoom);
-    
-    const sin = Math.sin(lat * Math.PI / 180);
-    const x = Math.floor(((lng + 180) / 360) * scale);
-    const y = Math.floor(((0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale));
-    
-    return { x, y, z: zoom };
-  }
-
-  private tileToLatLng(x: number, y: number, zoom: number): { lat: number; lng: number } {
-    const scale = Math.pow(2, zoom);
-    const lng = (x / scale) * 360 - 180;
-    
-    const n = Math.PI - 2 * Math.PI * y / scale;
-    const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-    
-    return { lat, lng };
-  }
-
-  private async fetchVectorTile(tileCoords: MapboxTileCoordinates): Promise<VectorTile | null> {
-    try {
-      const { x, y, z } = tileCoords;
-      const url = `https://api.mapbox.com/v4/mapbox.mapbox-streets-v8/${z}/${x}/${y}.vector.pbf?access_token=${this.getToken()}`;
-      
-      const response = await axios.get(url, {
-        responseType: 'arraybuffer'
-      });
-      
-      return new VectorTile(new Protobuf(response.data));
-    } catch (error) {
-      return this.handleMapboxError(error);
-    }
-  }
-
-  private calculateDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
-    const R = 6371e3; // Earth's radius in meters
-    const phi1 = lat1 * Math.PI / 180;
-    const phi2 = lat2 * Math.PI / 180;
-    const deltaPhi = (lat2 - lat1) * Math.PI / 180;
-    const deltaLambda = (lng2 - lng1) * Math.PI / 180;
-
-    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-              Math.cos(phi1) * Math.cos(phi2) *
-              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c;
-  }
-
-  private estimateEntrance(polygon: number[][], streetLat: number, streetLng: number): { lat: number; lng: number } {
-    let minDist = Infinity;
-    let entrance = { lat: 0, lng: 0 };
-
-    // Find the edge closest to the street
-    for (let i = 0; i < polygon.length - 1; i++) {
-      const midLat = (polygon[i][0] + polygon[i+1][0]) / 2;
-      const midLng = (polygon[i][1] + polygon[i+1][1]) / 2;
-      const dist = this.calculateDistance(midLat, midLng, streetLat, streetLng);
-      
-      if (dist < minDist) {
-        minDist = dist;
-        entrance = { lat: midLat, lng: midLng };
-      }
-    }
-
-    return entrance;
-  }
-
-  public async findNearestBuilding(lat: number, lng: number): Promise<BuildingFootprint | null> {
-    try {
-      const tileCoords = this.latLngToTileXY(lat, lng, DEFAULT_ZOOM);
-      const vectorTile = await this.fetchVectorTile(tileCoords);
-      
-      if (!vectorTile) {
-        console.warn('No vector tile data available');
-        return null;
-      }
-
-      const buildingLayer = vectorTile.layers['building'];
-      if (!buildingLayer) {
-        console.warn('No building layer found in vector tile');
-        return null;
-      }
-
-      let nearestBuilding: BuildingFootprint | null = null;
-      let minDistance = Infinity;
-
-      for (let i = 0; i < buildingLayer.length; i++) {
-        const feature = buildingLayer.feature(i);
-        const geometry = feature.loadGeometry();
-        
-        if (!geometry || geometry.length === 0) continue;
-        
-        // Convert tile coordinates to lat/lng
-        const polygon = geometry[0].map(point => {
-          const { lat: tileLat, lng: tileLng } = this.tileToLatLng(
-            tileCoords.x + point.x / TILE_SIZE,
-            tileCoords.y + point.y / TILE_SIZE,
-            tileCoords.z
-          );
-          return [tileLat, tileLng];
-        });
-
-        const distance = this.calculateDistance(
-          lat,
-          lng,
-          polygon[0][0],
-          polygon[0][1]
-        );
-
-        if (distance < minDistance) {
-          minDistance = distance;
-          const entrance = this.estimateEntrance(polygon, lat, lng);
-          nearestBuilding = {
-            polygon,
-            entrance,
-            properties: feature.properties
-          };
-        }
-      }
-
-      return nearestBuilding;
-    } catch (error) {
-      return this.handleMapboxError(error);
-    }
-  }
-
-  public generateBuildingDescriptor(properties: BuildingFeature['properties']): string {
-    const descriptors: string[] = [];
-
-    if (properties['building:levels']) {
-      descriptors.push(`${properties['building:levels']}-story`);
-    }
-
+    // Add building material if available
     if (properties['building:material']) {
-      descriptors.push(properties['building:material']);
+      description += `It's a ${properties['building:material']} building. `;
     }
 
+    // Add building levels if available
+    if (properties['building:levels']) {
+      description += `The building is ${properties['building:levels']} stories tall. `;
+    }
+
+    // Add roof color if available
     if (properties['roof:color']) {
-      descriptors.push(`with a ${properties['roof:color']} roof`);
+      description += `Look for the ${properties['roof:color']} roof. `;
     }
 
-    if (descriptors.length === 0) {
-      return 'building';
-    }
+    return description.trim();
+  }
 
-    return `${descriptors.join(' ')} building`;
+  getEntranceDescription(entrance: { lat: number; lng: number }, userLocation?: { lat: number; lng: number }): string {
+    if (!userLocation) {
+      // If we don't have user location, use relative terms based on building orientation
+      const naturalDirections: Record<Direction, string> = {
+        'north': 'at the back',
+        'south': 'at the front',
+        'east': 'on the right side',
+        'west': 'on the left side',
+        'northeast': 'on the right side towards the back',
+        'northwest': 'on the left side towards the back',
+        'southeast': 'on the right side towards the front',
+        'southwest': 'on the left side towards the front'
+      };
+
+      // Get the direction based on the entrance coordinates
+      const direction = this.getDirection(entrance);
+      return `The entrance is ${naturalDirections[direction]} of the building`;
+    } else {
+      // If we have user location, give directions relative to their approach
+      const bearing = this.calculateBearing(userLocation, entrance);
+      
+      if (bearing > 315 || bearing <= 45) {
+        return "The entrance is straight ahead";
+      } else if (bearing > 45 && bearing <= 135) {
+        return "The entrance is on your right";
+      } else if (bearing > 135 && bearing <= 225) {
+        return "The entrance is behind you";
+      } else {
+        return "The entrance is on your left";
+      }
+    }
+  }
+
+  private calculateBearing(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const toDeg = (rad: number) => (rad * 180) / Math.PI;
+
+    const lat1 = toRad(from.lat);
+    const lat2 = toRad(to.lat);
+    const dLon = toRad(to.lng - from.lng);
+
+    const y = Math.sin(dLon) * Math.cos(lat2);
+    const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+    const bearing = toDeg(Math.atan2(y, x));
+
+    return (bearing + 360) % 360;
+  }
+
+  private getDirection(entrance: { lat: number; lng: number }): Direction {
+    // Simple direction calculation based on coordinates
+    // This is a simplified version - in reality, you'd want to use the building's orientation
+    const bearing = this.calculateBearing(
+      { lat: entrance.lat - 0.0001, lng: entrance.lng - 0.0001 }, // Reference point slightly southwest
+      entrance
+    );
+
+    if (bearing > 337.5 || bearing <= 22.5) return 'north';
+    if (bearing > 22.5 && bearing <= 67.5) return 'northeast';
+    if (bearing > 67.5 && bearing <= 112.5) return 'east';
+    if (bearing > 112.5 && bearing <= 157.5) return 'southeast';
+    if (bearing > 157.5 && bearing <= 202.5) return 'south';
+    if (bearing > 202.5 && bearing <= 247.5) return 'southwest';
+    if (bearing > 247.5 && bearing <= 292.5) return 'west';
+    return 'northwest';
+  }
+
+  async findNearestBuilding(lat: number, lng: number): Promise<BuildingFootprint | null> {
+    try {
+      // Implementation of finding nearest building using Mapbox API
+      // This would involve querying the vector tiles or Mapbox's building footprints API
+      return null;
+    } catch (error) {
+      console.error('Error finding nearest building:', error);
+      return null;
+    }
   }
 } 

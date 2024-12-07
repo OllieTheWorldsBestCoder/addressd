@@ -57,7 +57,7 @@ export default function AddressSearch() {
   return (
     <div className="max-w-3xl mx-auto">
       <form onSubmit={handleSubmit} className="relative">
-        <div className="flex">
+        <div className="flex gap-3">
           <AddressAutocomplete
             value={address}
             onChange={(val: string) => {
@@ -68,19 +68,26 @@ export default function AddressSearch() {
             }}
             onSelect={handleAddressSelect}
             disabled={isLoading}
-            className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-l-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
+            className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
             placeholder="Enter an address to add directions..."
           />
           <button
             type="submit"
             disabled={isLoading || !address.trim()}
-            className="px-6 py-4 bg-primary text-white rounded-r-lg hover:bg-primary-dark transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed min-w-[160px]"
+            className="w-14 h-14 bg-primary text-white rounded-lg hover:bg-primary-dark transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label={isLoading ? "Finding..." : "Get Directions"}
           >
-            <span>{isLoading ? 'Finding...' : 'Get Directions'}</span>
-            <FiArrowRight className="ml-2" />
+            <FiArrowRight className="w-6 h-6" />
           </button>
         </div>
       </form>
+
+      {isLoading && (
+        <div className="mt-4 flex items-center justify-center gap-3 text-gray-500">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span>Finding the best way to describe this location...</span>
+        </div>
+      )}
 
       {error && (
         <div className="mt-4 bg-red-50 text-red-600 p-4 rounded-lg">
