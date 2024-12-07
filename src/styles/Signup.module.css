@@ -159,4 +159,29 @@
 .googleButton img {
   width: 24px;
   height: 24px;
+}
+
+/* Additional styles for the signup page */
+.codeBlock {
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+.featureCard {
+  transition: transform 0.2s ease-in-out;
+}
+
+.featureCard:hover {
+  transform: translateY(-2px);
+}
+
+.googleButton {
+  transition: transform 0.2s ease-in-out;
+}
+
+.googleButton:hover {
+  transform: scale(1.02);
+}
+
+.googleButton:active {
+  transform: scale(0.98);
 } 
