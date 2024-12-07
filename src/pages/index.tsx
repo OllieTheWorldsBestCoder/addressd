@@ -8,6 +8,7 @@ import AddressAutocomplete from '../components/AddressAutocomplete';
 import AddressFeedback from '../components/AddressFeedback';
 import { auth } from '../config/firebase';
 import { User } from 'firebase/auth';
+import AddressSearch from '../components/AddressSearch';
 
 // Declare the google namespace to ensure PlaceResult type is available
 declare global {
@@ -99,13 +100,15 @@ export default function Home() {
             transition={{ duration: 0.6 }}
             className="text-center max-w-7xl mx-auto"
           >
-            <h1 className="text-5xl font-bold text-primary mb-6">
-              Enhance Deliveries with Precise, Natural Language Directions
-            </h1>
-            <p className="text-xl text-gray-600 mb-12">
-              Reduce failed deliveries by up to 20% and delight customers with clear, accurate location guidance. 
-              Our natural language directions make every address instantly understandable.
-            </p>
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+              <h1 className="text-4xl sm:text-5xl font-bold text-center mb-8">
+                Clear Directions for Your Business
+              </h1>
+              <p className="text-xl text-gray-600 text-center mb-12">
+                Help customers find your location with natural, easy-to-follow directions
+              </p>
+              <AddressSearch />
+            </div>
 
             {/* Main Input Form */}
             <form onSubmit={handleSubmit} className="max-w-3xl mx-auto mb-16">

@@ -455,23 +455,23 @@ export class AddressService {
         : '';
 
       console.log('[AddressService] Generating OpenAI description...');
-      const prompt = `Generate a detailed, natural-sounding description for this location. Include these details:
+      const prompt = `Generate a concise, natural-sounding description focusing on the final approach to this location. Include these details:
       - Building type: ${buildingDescription}
       ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
       - Street view: ${streetViewInfo}
       - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
-      Format the response as clear, step-by-step directions that help someone find this location easily.
-      Focus on visual landmarks and distinctive features.
-      Include cardinal directions (north, south, etc.) when mentioning landmarks.
-      If there's a prominent landmark nearby, start the directions from there.`;
+      Format the response as 2-3 clear steps focusing on the final 100 meters of the journey.
+      Prioritize the most visible landmarks and distinctive features.
+      Use cardinal directions (north, south, etc.) when mentioning landmarks.
+      Start from the nearest prominent landmark.`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4-0125-preview',
         messages: [
           { 
             role: 'system',
-            content: 'You are a local expert who gives clear, precise directions. Focus on visual landmarks and practical navigation cues that delivery drivers and visitors can easily follow.'
+            content: 'You are a local expert who gives precise, concise directions. Focus on the final approach and most visible landmarks that help identify the exact location.'
           },
           { 
             role: 'user',
@@ -479,7 +479,7 @@ export class AddressService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 300
+        max_tokens: 200
       });
 
       const description = completion.choices[0]?.message?.content;
