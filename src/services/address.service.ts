@@ -25,6 +25,93 @@ export class AddressService {
     this.learningService = new LearningService();
   }
 
+  async findExistingAddress(address: string): Promise<Address | null> {
+    try {
+      console.log('\n=== Starting Address Search ===');
+      console.log('Input address:', address);
+      console.log('Timestamp:', new Date().toISOString());
+
+      // First, try exact match on formatted address
+      const exactMatchQuery = query(
+        collection(db, this.addressCollection),
+        where('formattedAddress', '==', address)
+      );
+      console.log('[AddressService] Checking exact match...');
+      const exactMatches = await getDocs(exactMatchQuery);
+
+      if (!exactMatches.empty) {
+        console.log('[AddressService] Found exact match');
+        return {
+          ...exactMatches.docs[0].data(),
+          id: exactMatches.docs[0].id
+        } as Address;
+      }
+
+      // Then, try matching raw address in matchedAddresses array
+      const rawMatchQuery = query(
+        collection(db, this.addressCollection),
+        where('matchedAddresses', 'array-contains', { rawAddress: address })
+      );
+      console.log('[AddressService] Checking raw address match...');
+      const rawMatches = await getDocs(rawMatchQuery);
+
+      if (!rawMatches.empty) {
+        console.log('[AddressService] Found raw address match');
+        return {
+          ...rawMatches.docs[0].data(),
+          id: rawMatches.docs[0].id
+        } as Address;
+      }
+
+      // If no direct matches, try geocoding and proximity search
+      console.log('[AddressService] No direct matches found, trying geocoding...');
+      const geocodeResponse = await this.googleMapsClient.geocode({
+        params: {
+          address,
+          key: process.env.GOOGLE_MAPS_API_KEY!
+        }
+      });
+
+      if (!geocodeResponse.data.results || geocodeResponse.data.results.length === 0) {
+        console.log('[AddressService] Geocoding failed');
+        return null;
+      }
+
+      const result = geocodeResponse.data.results[0];
+      console.log('[AddressService] Checking proximity matches...');
+      
+      // Check all addresses for proximity match
+      const allAddresses = await getDocs(collection(db, this.addressCollection));
+      const DISTANCE_THRESHOLD = 10; // meters
+
+      for (const doc of allAddresses.docs) {
+        const addr = doc.data() as Address;
+        const distance = this.calculateDistance(
+          { 
+            lat: result.geometry.location.lat, 
+            lng: result.geometry.location.lng 
+          },
+          { lat: addr.latitude, lng: addr.longitude }
+        );
+
+        if (distance <= DISTANCE_THRESHOLD) {
+          console.log('[AddressService] Found proximity match:', addr.formattedAddress);
+          return { ...addr, id: doc.id };
+        }
+      }
+
+      console.log('[AddressService] No matches found');
+      return null;
+
+    } catch (error) {
+      console.error('\n=== Error in findExistingAddress ===');
+      console.error('Input address:', address);
+      console.error('Error details:', error);
+      console.error('Stack:', error instanceof Error ? error.stack : 'No stack available');
+      throw error;
+    }
+  }
+
   async createOrUpdateAddress(address: string): Promise<Address | null> {
     try {
       // Geocode the address
