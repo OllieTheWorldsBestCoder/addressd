@@ -16,7 +16,8 @@ service cloud.firestore {
     // Addresses
     match /addresses/{addressId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow create: if true;
+      allow update, delete: if isAuthenticated();
     }
 
     // Embeds

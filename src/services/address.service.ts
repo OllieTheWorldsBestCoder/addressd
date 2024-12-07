@@ -396,42 +396,91 @@ export class AddressService {
         address.location.lng
       );
 
-      if (!building) {
-        return 'No building information available.';
-      }
-
-      // Get nearby places
+      // Get nearby places with a larger radius and more types
       const placesResponse = await this.googleMapsClient.placesNearby({
         params: {
           location: { 
             lat: address.location.lat, 
             lng: address.location.lng 
           },
-          radius: 100,
+          radius: 200, // Increased radius to find more landmarks
           key: process.env.GOOGLE_MAPS_API_KEY!,
-          type: 'point_of_interest'
+          type: 'point_of_interest' // Single type as required by API
         }
       });
 
-      const nearbyPlaces = placesResponse.data.results
-        .slice(0, 3)
-        .map(place => place.name)
+      // Process nearby places with distances and directions
+      const nearbyPlaces = await Promise.all(
+        placesResponse.data.results.slice(0, 5).map(async place => {
+          if (!place.geometry?.location) return null;
+          
+          const distance = this.calculateDistance(
+            address.location.lat,
+            address.location.lng,
+            place.geometry.location.lat,
+            place.geometry.location.lng
+          );
+          const bearing = this.calculateBearing(
+            place.geometry.location.lat,
+            place.geometry.location.lng,
+            address.location.lat,
+            address.location.lng
+          );
+          const direction = this.bearingToCardinal(bearing);
+          return {
+            name: place.name || 'Unknown place',
+            type: place.types?.[0] || 'location',
+            distance: Math.round(distance),
+            direction
+          };
+        })
+      );
+
+      // Filter out null values and format nearby places information
+      const validPlaces = nearbyPlaces.filter((place): place is NonNullable<typeof place> => place !== null);
+      const nearbyPlacesText = validPlaces
+        .map(place => `${place.name} (${place.distance}m ${place.direction})`)
         .join(', ');
 
-      const buildingDescription = mapboxService.generateBuildingDescriptor(building.properties);
-      const prompt = `Generate a detailed description for this address location. Include these details:
+      // Get street view metadata instead of actual image
+      let streetViewInfo = '';
+      try {
+        const streetViewResponse = await fetch(
+          `https://maps.googleapis.com/maps/api/streetview/metadata?location=${address.location.lat},${address.location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+        );
+        const streetViewData = await streetViewResponse.json();
+        if (streetViewData.status === 'OK') {
+          streetViewInfo = 'The location is visible from street view. ';
+        }
+      } catch (error) {
+        // Street view might not be available
+      }
+
+      const buildingDescription = building 
+        ? mapboxService.generateBuildingDescriptor(building.properties)
+        : 'building';
+
+      const entranceInfo = building?.entrance 
+        ? `The main entrance is ${this.describeEntranceLocation(building.entrance, building.polygon)}.`
+        : '';
+
+      const prompt = `Generate a detailed, natural-sounding description for this location. Include these details:
       - Building type: ${buildingDescription}
-      - Entrance location: ${building.entrance ? `at coordinates (${building.entrance.lat}, ${building.entrance.lng})` : 'unknown'}
-      - Nearby landmarks: ${nearbyPlaces || 'none found'}
+      ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
+      - Street view: ${streetViewInfo}
+      - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
-      Format the response as a natural paragraph that helps someone find this location easily.`;
+      Format the response as clear, step-by-step directions that help someone find this location easily.
+      Focus on visual landmarks and distinctive features.
+      Include cardinal directions (north, south, etc.) when mentioning landmarks.
+      If there's a prominent landmark nearby, start the directions from there.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that generates clear, detailed address descriptions.'
+            content: 'You are a local expert who gives clear, precise directions. Focus on visual landmarks and practical navigation cues that delivery drivers and visitors can easily follow.'
           },
           {
             role: 'user',
@@ -439,13 +488,13 @@ export class AddressService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 200
+        max_tokens: 300
       });
 
-      return completion.choices[0]?.message?.content || 'No description available.';
+      return completion.choices[0]?.message?.content || this.generateFallbackDirections(address);
     } catch (error) {
       console.error('Error generating description:', error);
-      return 'Error generating description.';
+      return this.generateFallbackDirections(address);
     }
   }
 
@@ -457,48 +506,70 @@ export class AddressService {
         address.location.lng
       );
 
-      if (!building) {
-        return `The location is at ${address.formattedAddress}`;
-      }
-
-      // Find nearby POI
+      // Find nearby POIs
       const response = await this.googleMapsClient.placesNearby({
         params: {
           location: { 
             lat: address.location.lat, 
             lng: address.location.lng 
           },
-          radius: 100,
+          radius: 200,
           key: process.env.GOOGLE_MAPS_API_KEY!,
           type: 'point_of_interest'
         }
       });
 
-      const firstResult = response.data.results?.[0];
-      const poiName = firstResult?.name;
-      const buildingDescriptor = mapboxService.generateBuildingDescriptor(building.properties);
-
       let directions = '';
+      const buildingDescriptor = building 
+        ? mapboxService.generateBuildingDescriptor(building.properties)
+        : 'building';
 
-      if (poiName && firstResult?.geometry?.location) {
-        const bearing = this.calculateBearing(
-          firstResult.geometry.location.lat,
-          firstResult.geometry.location.lng,
-          building.entrance?.lat || building.polygon[0][0],
-          building.entrance?.lng || building.polygon[0][1]
-        );
-        const direction = this.bearingToCardinal(bearing);
-        directions = `From ${poiName}, head ${direction}. `;
+      // Process up to 3 nearest landmarks
+      const landmarks = response.data.results
+        .filter(place => place.geometry?.location)
+        .slice(0, 3)
+        .map(place => {
+          if (!place.geometry?.location) return null;
+          
+          const distance = this.calculateDistance(
+            address.location.lat,
+            address.location.lng,
+            place.geometry.location.lat,
+            place.geometry.location.lng
+          );
+          const bearing = this.calculateBearing(
+            place.geometry.location.lat,
+            place.geometry.location.lng,
+            address.location.lat,
+            address.location.lng
+          );
+          return {
+            name: place.name || 'Unknown place',
+            distance: Math.round(distance),
+            direction: this.bearingToCardinal(bearing)
+          };
+        })
+        .filter((landmark): landmark is NonNullable<typeof landmark> => landmark !== null)
+        .sort((a, b) => a.distance - b.distance);
+
+      if (landmarks.length > 0) {
+        const nearest = landmarks[0];
+        directions = `From ${nearest.name}, head ${nearest.direction} for ${nearest.distance} meters. `;
+        
+        if (landmarks.length > 1) {
+          const second = landmarks[1];
+          directions += `You'll pass ${second.name} on your ${this.getRelativeDirection(second.direction)}. `;
+        }
       }
 
       directions += `Look for ${buildingDescriptor}. `;
 
-      if (building.entrance) {
+      if (building?.entrance) {
         const entranceDirection = this.describeEntranceLocation(building.entrance, building.polygon);
         directions += `The main entrance is ${entranceDirection}.`;
       }
 
-      return directions;
+      return directions || `The location is at ${address.formattedAddress}`;
     } catch (error) {
       console.error('Error generating fallback directions:', error);
       return `The location is at ${address.formattedAddress}`;
@@ -557,5 +628,30 @@ export class AddressService {
       console.error('Error getting directions:', error);
       throw error;
     }
+  }
+
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in kilometers
+  }
+
+  private getRelativeDirection(cardinalDirection: string): string {
+    const directions: { [key: string]: string } = {
+      'north': 'left',
+      'northeast': 'left',
+      'east': 'left',
+      'southeast': 'left',
+      'south': 'right',
+      'southwest': 'right',
+      'west': 'right',
+      'northwest': 'right'
+    };
+    return directions[cardinalDirection] || 'side';
   }
 } 
