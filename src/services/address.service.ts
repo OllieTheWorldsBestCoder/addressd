@@ -367,7 +367,7 @@ export class AddressService {
     }
   }
 
-  private async generateSummary(address: Address): Promise<string> {
+  private async generateDescription(address: Address): Promise<string> {
     try {
       // Find building footprint using Mapbox
       const building = await mapboxService.findNearestBuilding(
@@ -379,19 +379,38 @@ export class AddressService {
         return 'No building information available.';
       }
 
+      // Get nearby places
+      const placesResponse = await this.googleMapsClient.placesNearby({
+        params: {
+          location: { 
+            lat: address.location.lat, 
+            lng: address.location.lng 
+          },
+          radius: 100,
+          key: process.env.GOOGLE_MAPS_API_KEY!,
+          type: 'point_of_interest'
+        }
+      });
+
+      const nearbyPlaces = placesResponse.data.results
+        .slice(0, 3)
+        .map(place => place.name)
+        .join(', ');
+
       const buildingDescription = mapboxService.generateBuildingDescriptor(building.properties);
-      const prompt = `Generate a concise, natural description for this address location. Include these details:
+      const prompt = `Generate a detailed description for this address location. Include these details:
       - Building type: ${buildingDescription}
       - Entrance location: ${building.entrance ? `at coordinates (${building.entrance.lat}, ${building.entrance.lng})` : 'unknown'}
+      - Nearby landmarks: ${nearbyPlaces || 'none found'}
       
-      Format the response as a single paragraph, focusing on helpful navigation details.`;
+      Format the response as a natural paragraph that helps someone find this location easily.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4-0125-preview',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant that generates clear, concise address descriptions.'
+            content: 'You are a helpful assistant that generates clear, detailed address descriptions.'
           },
           {
             role: 'user',
@@ -399,12 +418,12 @@ export class AddressService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 150
+        max_tokens: 200
       });
 
       return completion.choices[0]?.message?.content || 'No description available.';
     } catch (error) {
-      console.error('Error generating summary:', error);
+      console.error('Error generating description:', error);
       return 'Error generating description.';
     }
   }
@@ -413,20 +432,20 @@ export class AddressService {
     try {
       // Find building footprint using Mapbox
       const building = await mapboxService.findNearestBuilding(
-        address.latitude,
-        address.longitude
+        address.location.lat,
+        address.location.lng
       );
 
       if (!building) {
-        return `The location is at ${address.formattedAddress}`;
+        returnThe location is at ${address.formattedAddress}`;
       }
 
       // Find nearby POI
       const response = await this.googleMapsClient.placesNearby({
         params: {
           location: { 
-            lat: address.latitude, 
-            lng: address.longitude 
+            lat: address.location.lat, 
+            lng: address.location.lng 
           },
           radius: 100,
           key: process.env.GOOGLE_MAPS_API_KEY!,
