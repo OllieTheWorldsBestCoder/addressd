@@ -437,7 +437,7 @@ export class AddressService {
       );
 
       if (!building) {
-        returnThe location is at ${address.formattedAddress}`;
+        return `The location is at ${address.formattedAddress}`;
       }
 
       // Find nearby POI
