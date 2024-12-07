@@ -152,27 +152,70 @@ export class AddressOptimizationService {
     }
   }
 
-  private calculateDistance(p1: {lat: number, lng: number}, p2: {lat: number, lng: number}): number {
+  private calculateDistance(p1: { lat: number; lng: number }, p2: { lat: number; lng: number }): number {
     const R = 6371e3; // Earth's radius in meters
-    const φ1 = p1.lat * Math.PI/180;
-    const φ2 = p2.lat * Math.PI/180;
-    const Δφ = (p2.lat-p1.lat) * Math.PI/180;
-    const Δλ = (p2.lng-p1.lng) * Math.PI/180;
+    const phi1 = p1.lat * Math.PI / 180;
+    const phi2 = p2.lat * Math.PI / 180;
+    const deltaPhi = (p2.lat - p1.lat) * Math.PI / 180;
+    const deltaLambda = (p2.lng - p1.lng) * Math.PI / 180;
 
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
     return R * c;
   }
 
+  private async findSimilarAddresses(addresses: Address[]): Promise<Map<string, string[]>> {
+    const similarAddresses = new Map<string, string[]>();
+
+    for (let i = 0; i < addresses.length; i++) {
+      const address = addresses[i];
+      const similar: string[] = [];
+
+      for (let j = 0; j < addresses.length; j++) {
+        if (i === j) continue;
+        const otherAddress = addresses[j];
+        const distance = this.calculateDistance(
+          address.location,
+          otherAddress.location
+        );
+
+        if (distance <= 10) { // 10 meters threshold
+          similar.push(otherAddress.id);
+        }
+      }
+
+      if (similar.length > 0) {
+        similarAddresses.set(address.id, similar);
+      }
+    }
+
+    return similarAddresses;
+  }
+
   private calculateAddressSimilarity(a1: Address, a2: Address): number {
-    const s1 = a1.formattedAddress.toLowerCase();
-    const s2 = a2.formattedAddress.toLowerCase();
-    
-    const words1 = new Set(s1.split(/[\s,]+/));
-    const words2 = new Set(s2.split(/[\s,]+/));
+    // Calculate physical distance similarity
+    const distance = this.calculateDistance(
+      a1.location,
+      a2.location
+    );
+    const distanceSimilarity = Math.max(0, 1 - distance / 1000); // Normalize to 0-1 range
+
+    // Calculate text similarity between formatted addresses
+    const textSimilarity = this.calculateTextSimilarity(
+      a1.formattedAddress,
+      a2.formattedAddress
+    );
+
+    // Weight the similarities (adjust weights as needed)
+    return 0.7 * distanceSimilarity + 0.3 * textSimilarity;
+  }
+
+  private calculateTextSimilarity(s1: string, s2: string): number {
+    const words1 = new Set(s1.toLowerCase().split(/\s+/));
+    const words2 = new Set(s2.toLowerCase().split(/\s+/));
     
     const intersection = new Set([...words1].filter(x => words2.has(x)));
     const union = new Set([...words1, ...words2]);
@@ -280,5 +323,55 @@ export class AddressOptimizationService {
       })),
       timestamp: new Date()
     });
+  }
+
+  async optimizeAddresses(): Promise<void> {
+    try {
+      const addressesRef = collection(db, 'addresses');
+      const addressesSnapshot = await getDocs(addressesRef);
+      const addresses = addressesSnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as Address[];
+
+      // Find similar addresses
+      const similarAddresses = await this.findSimilarAddresses(addresses);
+
+      // Process each group of similar addresses
+      for (const [mainId, similarIds] of similarAddresses) {
+        const mainAddress = addresses.find(a => a.id === mainId);
+        if (!mainAddress) continue;
+
+        const similar = addresses.filter(a => similarIds.includes(a.id));
+        
+        // Merge descriptions and matched addresses
+        const mergedMatchedAddresses = [
+          ...(mainAddress.matchedAddresses || []),
+          ...similar.flatMap(a => a.matchedAddresses || [])
+        ];
+
+        const mergedDescriptions = [
+          ...(mainAddress.descriptions || []),
+          ...similar.flatMap(a => a.descriptions || [])
+        ];
+
+        // Update the main address
+        const mainRef = doc(db, 'addresses', mainId);
+        await setDoc(mainRef, {
+          ...mainAddress,
+          matchedAddresses: mergedMatchedAddresses,
+          descriptions: mergedDescriptions,
+          updatedAt: new Date()
+        }, { merge: true });
+
+        // Delete the similar addresses
+        for (const similarId of similarIds) {
+          await deleteDoc(doc(db, 'addresses', similarId));
+        }
+      }
+    } catch (error) {
+      console.error('Error optimizing addresses:', error);
+      throw error;
+    }
   }
 } 
