@@ -96,11 +96,18 @@ export class AddressService {
       };
       
       // Look up nearest building using Mapbox
-      const nearestBuilding = await mapboxService.findNearestBuilding(location.lat, location.lng);
       let buildingDescription = '';
+      let buildingEntrance = null;
       
-      if (nearestBuilding) {
-        buildingDescription = mapboxService.generateBuildingDescriptor(nearestBuilding.properties);
+      try {
+        const nearestBuilding = await mapboxService.findNearestBuilding(location.lat, location.lng);
+        if (nearestBuilding) {
+          buildingDescription = mapboxService.generateBuildingDescriptor(nearestBuilding.properties);
+          buildingEntrance = nearestBuilding.entrance;
+        }
+      } catch (error) {
+        console.warn('Unable to fetch building data:', error);
+        // Continue without building data
       }
       
       const bounds = {
@@ -136,8 +143,8 @@ export class AddressService {
           },
           partial_match: false,
           place_id: crypto.randomUUID(),
-          building_description: buildingDescription,
-          building_entrance: nearestBuilding?.entrance || null
+          building_description: buildingDescription || '',
+          building_entrance: buildingEntrance
         } as GeocodeResult;
       }
 
@@ -163,8 +170,8 @@ export class AddressService {
           },
           partial_match: false,
           place_id: crypto.randomUUID(),
-          building_description: buildingDescription,
-          building_entrance: nearestBuilding?.entrance || null
+          building_description: buildingDescription || '',
+          building_entrance: buildingEntrance
         } as GeocodeResult;
       }
 
@@ -205,7 +212,7 @@ export class AddressService {
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
           return {
             ...result,
-            building_description: buildingDescriptionGeocoded,
+            building_description: buildingDescriptionGeocoded || '',
             building_entrance: nearestBuildingGeocoded?.entrance || null
           };
         }
@@ -280,6 +287,13 @@ export class AddressService {
 
       for (const doc of allAddresses.docs) {
         const addr = doc.data() as Address;
+        
+        // Skip if address doesn't have location data
+        if (!addr.location?.lat || !addr.location?.lng) {
+          console.log('[AddressService] Skipping address without location data');
+          continue;
+        }
+
         const distance = getVectorDistance(
           {
             lat: result.geometry.location.lat,
@@ -347,6 +361,13 @@ export class AddressService {
 
       for (const doc of allAddresses.docs) {
         const addr = doc.data() as Address;
+        
+        // Skip if address doesn't have location data
+        if (!addr.location?.lat || !addr.location?.lng) {
+          console.log('[AddressService] Skipping address without location data');
+          continue;
+        }
+
         const distance = getVectorDistance(
           location,
           addr.location
