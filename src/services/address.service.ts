@@ -274,34 +274,34 @@ export class AddressService {
       console.log('[AddressService] Checking proximity matches...');
       
       // Check all addresses for proximity match
-      const allAddresses = await getDocs(collection(db, this.addressCollection));
+      const allAddressesQuery = query(collection(db, this.addressCollection));
+      const allAddresses = await getDocs(allAddressesQuery);
       const DISTANCE_THRESHOLD = 10; // meters
 
       for (const doc of allAddresses.docs) {
         const addr = doc.data() as Address;
-        const distance = this.calculateDistance(
-          { 
-            lat: result.geometry.location.lat, 
-            lng: result.geometry.location.lng 
+        const distance = getVectorDistance(
+          {
+            lat: result.geometry.location.lat,
+            lng: result.geometry.location.lng
           },
-          { lat: addr.latitude, lng: addr.longitude }
+          addr.location
         );
 
         if (distance <= DISTANCE_THRESHOLD) {
-          console.log('[AddressService] Found proximity match:', addr.formattedAddress);
-          return { ...addr, id: doc.id };
+          console.log('[AddressService] Found proximity match');
+          return {
+            ...addr,
+            id: doc.id
+          };
         }
       }
 
       console.log('[AddressService] No matches found');
       return null;
-
     } catch (error) {
-      console.error('\n=== Error in findExistingAddress ===');
-      console.error('Input address:', address);
-      console.error('Error details:', error);
-      console.error('Stack:', error instanceof Error ? error.stack : 'No stack available');
-      throw error;
+      console.error('Error finding existing address:', error);
+      return null;
     }
   }
 
