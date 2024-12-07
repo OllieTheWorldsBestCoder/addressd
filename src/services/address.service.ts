@@ -1,4 +1,5 @@
 import { Client, GeocodeResult, AddressType } from "@googlemaps/google-maps-services-js";
+import type { GeocodingAddressComponentType } from "@googlemaps/google-maps-services-js";
 import OpenAI from "openai";
 import { db } from '../config/firebase';
 import { collection, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
@@ -170,13 +171,13 @@ export class AddressService {
         const result = geocodeResponse.data.results[0];
         
         const hasStreetNumber = result.address_components.some(
-          comp => comp.types.includes('street_number')
+          comp => comp.types.includes(AddressType.street_number)
         );
         const hasRoute = result.address_components.some(
-          comp => comp.types.includes('route')
+          comp => comp.types.includes(AddressType.route)
         );
         const hasPostcode = result.address_components.some(
-          comp => comp.types.includes('postal_code')
+          comp => comp.types.includes(AddressType.postal_code)
         );
 
         if ((hasStreetNumber || hasRoute) && hasPostcode) {
@@ -389,14 +390,14 @@ export class AddressService {
 
   private calculateDistance(p1: {lat: number, lng: number}, p2: {lat: number, lng: number}): number {
     const R = 6371e3;
-    const φ1 = p1.lat * Math.PI/180;
-    const φ2 = p2.lat * Math.PI/180;
-    const Δφ = (p2.lat-p1.lat) * Math.PI/180;
-    const Δλ = (p2.lng-p1.lng) * Math.PI/180;
+    const phi1 = (p1.lat) * Math.PI/180;
+    const phi2 = (p2.lat) * Math.PI/180;
+    const deltaPhi = (p2.lat-p1.lat) * Math.PI/180;
+    const deltaLambda = (p2.lng-p1.lng) * Math.PI/180;
 
-    const a = Math.sin(Δ��/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+              Math.cos(phi1) * Math.cos(phi2) *
+              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
     return R * c;
