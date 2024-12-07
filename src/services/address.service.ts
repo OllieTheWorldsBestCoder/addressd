@@ -339,36 +339,24 @@ export class AddressService {
     }
   }
 
-  private async findExistingAddressInternal(
-    formattedAddress: string,
-    location: { lat: number, lng: number }
-  ): Promise<Address | null> {
+  private async findExistingAddressInternal(formattedAddress: string, location: { lat: number; lng: number }): Promise<Address | null> {
     try {
-      const exactMatchQuery = query(
-        collection(db, this.addressCollection),
-        where('formattedAddress', '==', formattedAddress)
-      );
-      const exactMatches = await getDocs(exactMatchQuery);
-
-      if (!exactMatches.empty) {
-        return {
-          ...exactMatches.docs[0].data(),
-          id: exactMatches.docs[0].id
-        } as Address;
-      }
-
-      const allAddresses = await getDocs(collection(db, this.addressCollection));
-      const DISTANCE_THRESHOLD = 10;
+      const allAddressesQuery = query(collection(db, this.addressCollection));
+      const allAddresses = await getDocs(allAddressesQuery);
+      const DISTANCE_THRESHOLD = 10; // meters
 
       for (const doc of allAddresses.docs) {
         const addr = doc.data() as Address;
-        const distance = this.calculateDistance(
-          { lat: location.lat, lng: location.lng },
-          { lat: addr.latitude, lng: addr.longitude }
+        const distance = getVectorDistance(
+          location,
+          addr.location
         );
 
         if (distance <= DISTANCE_THRESHOLD) {
-          return { ...addr, id: doc.id };
+          return {
+            ...addr,
+            id: doc.id
+          };
         }
       }
 
@@ -379,19 +367,46 @@ export class AddressService {
     }
   }
 
-  private calculateDistance(p1: {lat: number, lng: number}, p2: {lat: number, lng: number}): number {
-    const R = 6371e3;
-    const phi1 = (p1.lat) * Math.PI/180;
-    const phi2 = (p2.lat) * Math.PI/180;
-    const deltaPhi = (p2.lat-p1.lat) * Math.PI/180;
-    const deltaLambda = (p2.lng-p1.lng) * Math.PI/180;
+  private async generateSummary(address: Address): Promise<string> {
+    try {
+      // Find building footprint using Mapbox
+      const building = await mapboxService.findNearestBuilding(
+        address.location.lat,
+        address.location.lng
+      );
 
-    const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
-              Math.cos(phi1) * Math.cos(phi2) *
-              Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      if (!building) {
+        return 'No building information available.';
+      }
 
-    return R * c;
+      const buildingDescription = mapboxService.generateBuildingDescriptor(building.properties);
+      const prompt = `Generate a concise, natural description for this address location. Include these details:
+      - Building type: ${buildingDescription}
+      - Entrance location: ${building.entrance ? `at coordinates (${building.entrance.lat}, ${building.entrance.lng})` : 'unknown'}
+      
+      Format the response as a single paragraph, focusing on helpful navigation details.`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4-0125-preview',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful assistant that generates clear, concise address descriptions.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 150
+      });
+
+      return completion.choices[0]?.message?.content || 'No description available.';
+    } catch (error) {
+      console.error('Error generating summary:', error);
+      return 'Error generating description.';
+    }
   }
 
   private async generateFallbackDirections(address: Address): Promise<string> {
