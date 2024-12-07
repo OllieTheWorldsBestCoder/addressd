@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiArrowRight } from 'react-icons/fi';
 import AddressAutocomplete from './AddressAutocomplete';
 
@@ -8,12 +8,35 @@ interface AddressResult {
   addressId: string;
 }
 
+const loadingMessages = [
+  "Finding the location...",
+  "Looking up nearby landmarks...",
+  "Generating natural directions...",
+  "Making the description helpful...",
+  "Almost there..."
+];
+
 export default function AddressSearch() {
   const [address, setAddress] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<AddressResult | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      interval = setInterval(() => {
+        setLoadingMessageIndex((current) => 
+          current === loadingMessages.length - 1 ? current : current + 1
+        );
+      }, 2000);
+    } else {
+      setLoadingMessageIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +108,9 @@ export default function AddressSearch() {
       {isLoading && (
         <div className="mt-4 flex items-center justify-center gap-3 text-gray-500">
           <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span>Finding the best way to describe this location...</span>
+          <span className="min-w-[200px] text-center transition-all duration-300">
+            {loadingMessages[loadingMessageIndex]}
+          </span>
         </div>
       )}
 
