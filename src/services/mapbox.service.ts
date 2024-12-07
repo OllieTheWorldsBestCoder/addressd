@@ -24,24 +24,105 @@ export class MapboxService {
   }
 
   generateBuildingDescriptor(properties: BuildingFeature['properties']): string {
-    let description = '';
+    const details: string[] = [];
 
-    // Add building material if available
+    // Start with the building type and material
     if (properties['building:material']) {
-      description += `It's a ${properties['building:material']} building. `;
+      const material = properties['building:material'].toLowerCase();
+      if (material === 'brick') {
+        details.push("Look for a red brick building");
+      } else if (material === 'stone') {
+        details.push("Look for a stone building");
+      } else if (material === 'glass') {
+        details.push("Look for a modern glass-fronted building");
+      } else {
+        details.push(`Look for a ${material} building`);
+      }
     }
 
-    // Add building levels if available
+    // Add distinctive features
+    if (properties['building:colour'] || properties['building:color']) {
+      const color = (properties['building:colour'] || properties['building:color']).toLowerCase();
+      details.push(`with ${color} walls`);
+    }
+
+    // Add height information in a natural way
     if (properties['building:levels']) {
-      description += `The building is ${properties['building:levels']} stories tall. `;
+      const levels = parseInt(properties['building:levels']);
+      if (levels === 1) {
+        details.push("it's a single-story building");
+      } else if (levels === 2) {
+        details.push("it's a two-story building");
+      } else if (levels === 3) {
+        details.push("it's a three-story building");
+      } else if (levels > 3) {
+        details.push(`it's a ${levels}-story tall building`);
+      }
     }
 
-    // Add roof color if available
-    if (properties['roof:color']) {
-      description += `Look for the ${properties['roof:color']} roof. `;
+    // Add roof information if distinctive
+    if (properties['roof:color'] || properties['roof:colour']) {
+      const roofColor = (properties['roof:color'] || properties['roof:colour']).toLowerCase();
+      details.push(`with a distinctive ${roofColor} roof`);
     }
 
-    return description.trim();
+    if (properties['roof:shape']) {
+      const shape = properties['roof:shape'].toLowerCase();
+      if (shape === 'flat') {
+        details.push("with a flat roof");
+      } else if (shape === 'pitched') {
+        details.push("with a pitched roof");
+      } else if (shape === 'dome') {
+        details.push("with a domed roof");
+      }
+    }
+
+    // Add any distinctive amenities or features
+    if (properties['amenity']) {
+      details.push(`You'll see ${this.getAmenityDescription(properties['amenity'])}`);
+    }
+
+    // Add entrance information if available
+    if (properties['entrance']) {
+      details.push(this.getEntranceTypeDescription(properties['entrance']));
+    }
+
+    // Combine all details with proper punctuation
+    return details
+      .filter(detail => detail) // Remove empty strings
+      .map((detail, index) => {
+        if (index === 0) {
+          return detail.charAt(0).toUpperCase() + detail.slice(1);
+        }
+        return detail;
+      })
+      .join('. ') + '.';
+  }
+
+  private getAmenityDescription(amenity: string): string {
+    const amenityDescriptions: Record<string, string> = {
+      'restaurant': 'a restaurant at street level',
+      'cafe': 'a café at the front',
+      'shop': 'shops at street level',
+      'bank': 'a bank branch at street level',
+      'pharmacy': 'a pharmacy sign',
+      'post_office': 'post office signs',
+      'hotel': 'hotel signage at the entrance'
+    };
+
+    return amenityDescriptions[amenity] || `a ${amenity.replace('_', ' ')}`;
+  }
+
+  private getEntranceTypeDescription(entranceType: string): string {
+    const entranceDescriptions: Record<string, string> = {
+      'main': 'The main entrance is clearly marked',
+      'service': 'Look for the service entrance',
+      'garage': 'There\'s a garage entrance',
+      'emergency': 'There\'s an emergency exit',
+      'deliveries': 'The delivery entrance is marked with signs'
+    };
+
+    return entranceDescriptions[entranceType] || 'The entrance is marked';
   }
 
   getEntranceDescription(entrance: { lat: number; lng: number }, userLocation?: { lat: number; lng: number }): string {
@@ -66,13 +147,13 @@ export class MapboxService {
       const bearing = this.calculateBearing(userLocation, entrance);
       
       if (bearing > 315 || bearing <= 45) {
-        return "The entrance is straight ahead";
+        return "The entrance is straight ahead as you approach";
       } else if (bearing > 45 && bearing <= 135) {
-        return "The entrance is on your right";
+        return "As you approach, you'll find the entrance on your right";
       } else if (bearing > 135 && bearing <= 225) {
-        return "The entrance is behind you";
+        return "The entrance is on the opposite side of where you're approaching from";
       } else {
-        return "The entrance is on your left";
+        return "As you approach, you'll find the entrance on your left";
       }
     }
   }
