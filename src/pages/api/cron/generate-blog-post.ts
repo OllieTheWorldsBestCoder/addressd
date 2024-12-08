@@ -1,20 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { generateBlogPost } from '@/services/content-generation';
-import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin if not already initialized
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
-    })
-  });
-}
-
-const adminDb = getFirestore();
+import { adminDb } from '../../../config/firebase-admin';  // Use Firebase Admin
 
 // Verify cron job secret
 const verifyCronSecret = (req: NextApiRequest): boolean => {
