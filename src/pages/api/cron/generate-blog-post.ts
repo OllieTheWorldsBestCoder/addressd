@@ -4,15 +4,17 @@ import { adminDb } from '../../../config/firebase-admin';  // Use Firebase Admin
 
 // Verify cron job secret
 const verifyCronSecret = (req: NextApiRequest): boolean => {
-  // For Vercel Cron jobs, this header will be present
+  // For Vercel Cron jobs, either header will be present
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
+  const isVercelCronUserAgent = req.headers['user-agent'] === 'vercel-cron/1.0';
   
   console.log('Checking cron authentication:', {
     isVercelCron,
+    isVercelCronUserAgent,
     headers: req.headers
   });
   
-  return isVercelCron;
+  return isVercelCron || isVercelCronUserAgent;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
