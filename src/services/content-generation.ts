@@ -25,7 +25,7 @@ export async function generateBlogPost(): Promise<string> {
 
     // 2. Generate content
     const contentCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "system",
@@ -47,7 +47,7 @@ export async function generateBlogPost(): Promise<string> {
 
     // 3. Generate SEO metadata
     const seoCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "system",
@@ -122,7 +122,7 @@ export async function optimizeBlogPost(post: BlogPost): Promise<Partial<BlogPost
   try {
     // Generate optimized content
     const optimizationCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "system",
@@ -141,7 +141,7 @@ export async function optimizeBlogPost(post: BlogPost): Promise<Partial<BlogPost
 
     // Generate new metadata
     const seoCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-4o-mini-2024-07-18",
       messages: [
         {
           role: "system",
