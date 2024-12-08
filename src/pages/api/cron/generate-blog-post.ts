@@ -20,13 +20,15 @@ const adminDb = getFirestore();
 const verifyCronSecret = (req: NextApiRequest): boolean => {
   const cronSecret = process.env.CRON_SECRET_KEY;
   const headerSecret = req.headers['x-cron-secret'];
+  const isVercelCron = req.headers['x-vercel-cron'] === '1';  // Check for Vercel cron
   
   console.log('Checking cron secret:', {
     headerReceived: !!headerSecret,
     secretConfigured: !!cronSecret,
+    isVercelCron
   });
   
-  return headerSecret === cronSecret;
+  return headerSecret === cronSecret || isVercelCron;  // Allow Vercel cron jobs
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
