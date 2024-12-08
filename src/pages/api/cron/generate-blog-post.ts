@@ -8,8 +8,8 @@ const verifyCronSecret = (req: NextApiRequest): boolean => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only allow POST for cron jobs
-  if (req.method !== 'POST') {
+  // Allow both GET and POST for cron jobs
+  if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
