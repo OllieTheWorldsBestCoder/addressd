@@ -4,7 +4,15 @@ import { generateBlogPost } from '@/services/content-generation';
 // Verify cron job secret
 const verifyCronSecret = (req: NextApiRequest): boolean => {
   const cronSecret = process.env.CRON_SECRET_KEY;
-  return req.headers['x-cron-secret'] === cronSecret;
+  const headerSecret = req.headers['x-cron-secret'];
+  
+  console.log('Checking cron secret:', {
+    headerReceived: !!headerSecret, // Log if header exists
+    secretConfigured: !!cronSecret, // Log if env var exists
+    // Don't log the actual secrets for security
+  });
+  
+  return headerSecret === cronSecret;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

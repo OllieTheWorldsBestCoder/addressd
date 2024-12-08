@@ -1,16 +1,28 @@
 {
     "crons": [{
-      "path": "/api/cron/optimize-addresses", 
-      "schedule": "0 0 * * *"
+      "path": "/api/cron/optimize-addresses",
+      "schedule": "0 0 * * *",
+      "headers": {
+        "x-cron-secret": "${CRON_SECRET_KEY}"
+      }
     }, {
       "path": "/api/cron/generate-summaries",
-      "schedule": "0 12 * * *"
+      "schedule": "0 12 * * *",
+      "headers": {
+        "x-cron-secret": "${CRON_SECRET_KEY}"
+      }
     }, {
       "path": "/api/cron/generate-blog-post",
-      "schedule": "0 9 * * *"
+      "schedule": "0 9 * * *",
+      "headers": {
+        "x-cron-secret": "${CRON_SECRET_KEY}"
+      }
     }, {
       "path": "/api/cron/optimize-blog-posts",
-      "schedule": "0 3 1 * *"
+      "schedule": "0 3 1 * *",
+      "headers": {
+        "x-cron-secret": "${CRON_SECRET_KEY}"
+      }
     }],
     "functions": {
       "src/pages/api/cron/generate-blog-post.ts": {
