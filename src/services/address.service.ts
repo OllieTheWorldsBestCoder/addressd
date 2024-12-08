@@ -467,7 +467,7 @@ export class AddressService {
       Start from the nearest prominent landmark.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt4o-mini',
+        model: 'gpt-4o-mini',
         messages: [
           { 
             role: 'system',
