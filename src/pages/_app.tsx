@@ -9,8 +9,8 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <link rel="icon" type="image/png" href="/images/addressd-ad.png" />
-        <link rel="apple-touch-icon" href="/images/addressd-ad.png" />
+        <link rel="icon" type="image/png" href="/images/ad-favicon.png" />
+        <link rel="apple-touch-icon" href="/images/ad-favicon.png" />
       </Head>
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
