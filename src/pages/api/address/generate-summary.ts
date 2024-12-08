@@ -49,7 +49,7 @@ export default async function handler(
     console.log('Sending prompt to OpenAI:', prompt);
 
     const completion = await openai.chat.completions.create({
-      model: "gpt4o-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",

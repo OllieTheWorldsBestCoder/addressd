@@ -1,5 +1,20 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { generateBlogPost } from '@/services/content-generation';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Initialize Firebase Admin if not already initialized
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+    })
+  });
+}
+
+const adminDb = getFirestore();
 
 // Verify cron job secret
 const verifyCronSecret = (req: NextApiRequest): boolean => {
@@ -7,9 +22,8 @@ const verifyCronSecret = (req: NextApiRequest): boolean => {
   const headerSecret = req.headers['x-cron-secret'];
   
   console.log('Checking cron secret:', {
-    headerReceived: !!headerSecret, // Log if header exists
-    secretConfigured: !!cronSecret, // Log if env var exists
-    // Don't log the actual secrets for security
+    headerReceived: !!headerSecret,
+    secretConfigured: !!cronSecret,
   });
   
   return headerSecret === cronSecret;
@@ -28,7 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     console.log('Starting blog post generation...');
-    // Generate new blog post
     const postId = await generateBlogPost();
     console.log('Successfully generated blog post:', postId);
     
