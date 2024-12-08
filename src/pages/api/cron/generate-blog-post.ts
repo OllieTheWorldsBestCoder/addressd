@@ -4,25 +4,15 @@ import { adminDb } from '../../../config/firebase-admin';  // Use Firebase Admin
 
 // Verify cron job secret
 const verifyCronSecret = (req: NextApiRequest): boolean => {
-  const cronSecret = process.env.CRON_SECRET_KEY;
-  const headerSecret = req.headers['x-cron-secret'];
+  // For Vercel Cron jobs, this header will be present
   const isVercelCron = req.headers['x-vercel-cron'] === '1';
-  const isProduction = process.env.NODE_ENV === 'production';
   
-  console.log('Checking cron secret:', {
-    headerReceived: !!headerSecret,
-    secretConfigured: !!cronSecret,
+  console.log('Checking cron authentication:', {
     isVercelCron,
-    isProduction,
-    headers: req.headers // Log all headers to debug
+    headers: req.headers
   });
   
-  // In production, allow Vercel's internal requests
-  if (isProduction && req.headers['x-vercel-deployment-url']) {
-    return true;
-  }
-  
-  return headerSecret === cronSecret || isVercelCron;
+  return isVercelCron;
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -31,9 +21,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verify cron secret
+  // Verify cron request
   if (!verifyCronSecret(req)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: 'Unauthorized - Not a Vercel cron request' });
   }
 
   try {
