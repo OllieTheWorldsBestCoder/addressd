@@ -8,7 +8,7 @@ service cloud.firestore {
     
     function isCronRequest() {
       // Check if the request is coming from a Vercel cron job
-      return request.auth.token.email == "cron@addressd.co";
+      return request.resource.data.isVercelCron == true;
     }
 
     // User profiles

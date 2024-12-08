@@ -7,6 +7,7 @@ type FirestoreBlogPost = Omit<BlogPost, 'id' | 'publishedAt' | 'updatedAt' | 'la
   publishedAt: Timestamp;
   updatedAt: Timestamp;
   lastOptimizedAt?: Timestamp | null;
+  isVercelCron?: boolean;
 };
 
 export async function getAllBlogPosts(): Promise<BlogPost[]> {
@@ -207,7 +208,8 @@ export async function createBlogPost(post: Omit<BlogPost, 'id'>): Promise<string
     ...rest,
     publishedAt: Timestamp.fromDate(publishedAt),
     updatedAt: Timestamp.fromDate(updatedAt),
-    lastOptimizedAt: lastOptimizedAt ? Timestamp.fromDate(lastOptimizedAt) : null
+    lastOptimizedAt: lastOptimizedAt ? Timestamp.fromDate(lastOptimizedAt) : null,
+    isVercelCron: true
   };
 
   const docRef = await addDoc(collection(db, 'blog_posts'), firestorePost);
