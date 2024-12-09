@@ -396,7 +396,7 @@ export class AddressService {
       // Use OpenAI Vision to describe the image
       console.log('[AddressService] Calling OpenAI Vision API...');
       const imageDescription = await this.openai.chat.completions.create({
-        model: "gpt-4-vision-preview",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -408,7 +408,10 @@ export class AddressService {
               { type: "text", text: "Describe the most distinctive visual features of this building that would help someone identify it. Focus on color, architectural style, and any unique characteristics. Keep it under 50 words." },
               { 
                 type: "image_url", 
-                image_url: { url: imageUrl }
+                image_url: { 
+                  url: imageUrl,
+                  detail: "high"
+                }
               }
             ]
           }
