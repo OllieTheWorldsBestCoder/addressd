@@ -69,7 +69,7 @@ export default async function handler(
           messages: [
             {
               role: "system",
-              content: "You are a helpful assistant that summarizes location descriptions."
+              content: "You are a helpful assistant that creates very concise location descriptions. Keep summaries brief and focused on the most important details for finding the location."
             },
             {
               role: "user",
@@ -77,7 +77,7 @@ export default async function handler(
             }
           ],
           temperature: 0.3,
-          max_tokens: 200
+          max_tokens: 150
         });
 
         console.log('OpenAI response:', completion);

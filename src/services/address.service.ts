@@ -455,14 +455,14 @@ export class AddressService {
         : '';
 
       console.log('[AddressService] Generating OpenAI description...');
-      const prompt = `Generate a concise, natural-sounding description focusing on the final approach to this location. Include these details:
+      const prompt = `Generate a very concise description (max 150 tokens) focusing on the final approach to this location. Include only the most essential details:
       - Building type: ${buildingDescription}
       ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
       - Street view: ${streetViewInfo}
       - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
-      Format the response as 2-3 clear steps focusing on the final 100 meters of the journey.
-      Prioritize the most visible landmarks and distinctive features.
+      Format as 1-2 clear steps focusing on the final 50 meters of the journey.
+      Prioritize only the most visible landmark and distinctive features.
       Use cardinal directions (north, south, etc.) when mentioning landmarks.
       Start from the nearest prominent landmark.`;
 
@@ -471,7 +471,7 @@ export class AddressService {
         messages: [
           { 
             role: 'system',
-            content: 'You are a local expert who gives precise, concise directions. Focus on the final approach and most visible landmarks that help identify the exact location.'
+            content: 'You are a local expert who gives extremely concise directions. Focus only on the final approach and the single most visible landmark that helps identify the exact location.'
           },
           { 
             role: 'user',
@@ -479,7 +479,7 @@ export class AddressService {
           }
         ],
         temperature: 0.7,
-        max_tokens: 200
+        max_tokens: 150
       });
 
       const description = completion.choices[0]?.message?.content;
