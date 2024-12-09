@@ -451,15 +451,15 @@ export class AddressService {
             lat: address.location.lat, 
             lng: address.location.lng 
           },
-          radius: 200, // Increased radius to find more landmarks
+          radius: 200,
           key: process.env.GOOGLE_MAPS_API_KEY!,
-          type: 'point_of_interest' // Single type as required by API
+          type: 'point_of_interest'
         }
       });
 
-      // Process nearby places with distances and directions
+      // Process nearby places
       console.log('[AddressService] Processing nearby places...');
-      const nearbyPlaces = await Promise.all(
+      const validPlaces = await Promise.all(
         placesResponse.data.results.slice(0, 5).map(async place => {
           if (!place.geometry?.location) return null;
           
@@ -483,10 +483,8 @@ export class AddressService {
             direction
           };
         })
-      );
+      ).then(places => places.filter((place): place is NonNullable<typeof place> => place !== null));
 
-      // Filter out null values and format nearby places information
-      const validPlaces = nearbyPlaces.filter((place): place is NonNullable<typeof place> => place !== null);
       const nearbyPlacesText = validPlaces
         .map(place => `${place.name} (${place.distance}m ${place.direction})`)
         .join(', ');
@@ -495,30 +493,29 @@ export class AddressService {
 
       // Get the Street View result
       const streetViewResult = await streetViewPromise;
-      const streetViewInfo = streetViewResult 
-        ? `The building is visible from street view: ${streetViewResult.description}` 
-        : '';
-
+      let streetViewInfo = '';
+      
       if (streetViewResult) {
-        // Save the Street View image URL to the address document
-        await updateDoc(doc(db, this.addressCollection, address.id), {
-          streetViewUrl: streetViewResult.imageUrl
-        });
+        streetViewInfo = streetViewResult.description;
+        // Save the Street View URL separately to avoid permission issues
+        try {
+          console.log('[AddressService] Saving Street View URL...');
+          const addressRef = doc(db, this.addressCollection, address.id);
+          await updateDoc(addressRef, {
+            streetViewUrl: streetViewResult.imageUrl,
+            updatedAt: new Date()
+          });
+          console.log('[AddressService] Street View URL saved successfully');
+        } catch (error) {
+          console.error('[AddressService] Error saving Street View URL:', error);
+          // Continue without saving the URL
+        }
       }
 
-      const buildingDescription = building 
-        ? mapboxService.generateBuildingDescriptor(building.properties)
-        : 'building';
-
-      const entranceInfo = building?.entrance 
-        ? `The main entrance is ${this.describeEntranceLocation(building.entrance, building.polygon)}.`
-        : '';
-
+      // Generate the final description
       console.log('[AddressService] Generating OpenAI description...');
       const prompt = `Generate a very concise description (max 150 tokens) focusing on the final approach to this location. Include only the most essential details:
-      - Building type: ${buildingDescription}
-      ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
-      ${streetViewResult ? `- Visual description: ${streetViewResult.description}` : ''}
+      ${streetViewInfo ? `- Visual description: ${streetViewInfo}` : ''}
       - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
       Format as 1-2 clear steps focusing on the final 50 meters of the journey.
@@ -527,7 +524,7 @@ export class AddressService {
       Start from the nearest prominent landmark.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { 
             role: 'system',
