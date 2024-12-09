@@ -372,9 +372,59 @@ export class AddressService {
     }
   }
 
+  private async getStreetViewImage(location: { lat: number; lng: number }): Promise<{ imageUrl: string; description: string } | null> {
+    try {
+      // First check if Street View is available at this location
+      const metadataResponse = await fetch(
+        `https://maps.googleapis.com/maps/api/streetview/metadata?location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`
+      );
+      const metadata = await metadataResponse.json();
+      
+      if (metadata.status !== 'OK') {
+        return null;
+      }
+
+      // Get the Street View image
+      const imageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+
+      // Use OpenAI Vision to describe the image
+      const imageDescription = await this.openai.chat.completions.create({
+        model: "gpt-4-vision-preview",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful assistant that describes building exteriors from street view images. Focus on distinctive visual features that help identify the building. Be very concise."
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Describe the most distinctive visual features of this building that would help someone identify it. Focus on color, architectural style, and any unique characteristics. Keep it under 50 words." },
+              { 
+                type: "image_url", 
+                image_url: { url: imageUrl }
+              }
+            ]
+          }
+        ],
+        max_tokens: 150
+      });
+
+      return {
+        imageUrl,
+        description: imageDescription.choices[0]?.message?.content || ''
+      };
+    } catch (error) {
+      console.error('[AddressService] Error getting street view image:', error);
+      return null;
+    }
+  }
+
   private async generateDescription(address: Address): Promise<string> {
     try {
       console.log('[AddressService] Finding nearest building...');
+      // Start Street View image fetch in parallel with other operations
+      const streetViewPromise = this.getStreetViewImage(address.location);
+      
       // Find building footprint using Mapbox
       const building = await mapboxService.findNearestBuilding(
         address.location.lat,
@@ -431,19 +481,17 @@ export class AddressService {
 
       console.log('[AddressService] Found nearby places:', nearbyPlacesText);
 
-      // Get street view metadata
-      console.log('[AddressService] Checking street view...');
-      let streetViewInfo = '';
-      try {
-        const streetViewResponse = await fetch(
-          `https://maps.googleapis.com/maps/api/streetview/metadata?location=${address.location.lat},${address.location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-        );
-        const streetViewData = await streetViewResponse.json();
-        if (streetViewData.status === 'OK') {
-          streetViewInfo = 'The location is visible from street view. ';
-        }
-      } catch (error) {
-        console.log('[AddressService] Street view not available');
+      // Get the Street View result
+      const streetViewResult = await streetViewPromise;
+      const streetViewInfo = streetViewResult 
+        ? `The building is visible from street view: ${streetViewResult.description}` 
+        : '';
+
+      if (streetViewResult) {
+        // Save the Street View image URL to the address document
+        await updateDoc(doc(db, this.addressCollection, address.id), {
+          streetViewUrl: streetViewResult.imageUrl
+        });
       }
 
       const buildingDescription = building 
@@ -458,7 +506,7 @@ export class AddressService {
       const prompt = `Generate a very concise description (max 150 tokens) focusing on the final approach to this location. Include only the most essential details:
       - Building type: ${buildingDescription}
       ${entranceInfo ? `- Entrance: ${entranceInfo}` : ''}
-      - Street view: ${streetViewInfo}
+      ${streetViewResult ? `- Visual description: ${streetViewResult.description}` : ''}
       - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
       Format as 1-2 clear steps focusing on the final 50 meters of the journey.

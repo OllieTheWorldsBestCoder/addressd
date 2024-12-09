@@ -25,6 +25,8 @@ service cloud.firestore {
       allow update: if 
         // Allow adding descriptions without auth
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descriptions', 'updatedAt'])) ||
+        // Allow summary updates
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['summary', 'updatedAt'])) ||
         // Other updates require auth
         isAuthenticated();
       allow delete: if isAuthenticated();

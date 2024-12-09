@@ -31,6 +31,7 @@ export interface Address {
     lat: number;
     lng: number;
   } | null;
+  streetViewUrl?: string;
 }
 
 export interface AddressResponse {
