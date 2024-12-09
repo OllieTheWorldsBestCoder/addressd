@@ -237,6 +237,10 @@ export class AddressService {
       const addressId = crypto.randomUUID();
       const now = new Date();
 
+      // Start Street View image fetch early
+      console.log('[AddressService] Getting Street View image...');
+      const streetViewResult = await this.getStreetViewImage(validatedAddress.geometry.location);
+
       console.log('[AddressService] Creating initial address data...');
       const addressData: Address = {
         id: addressId,
@@ -251,12 +255,13 @@ export class AddressService {
         updatedAt: now,
         views: 0,
         summary: validatedAddress.building_description || 'No description available yet.',
-        buildingEntrance: validatedAddress.building_entrance
+        buildingEntrance: validatedAddress.building_entrance,
+        streetViewUrl: streetViewResult?.imageUrl || null
       };
 
       // Generate full description before saving
       console.log('[AddressService] Generating full description...');
-      const fullDescription = await this.generateDescription(addressData);
+      const fullDescription = await this.generateDescription(addressData, streetViewResult?.description);
       
       if (fullDescription) {
         console.log('[AddressService] Full description generated:', fullDescription.substring(0, 50) + '...');
@@ -265,7 +270,7 @@ export class AddressService {
         console.log('[AddressService] Failed to generate full description');
       }
 
-      // Save address with full description
+      // Save address with full description and Street View URL
       console.log('[AddressService] Saving address to database...');
       const addressRef = doc(db, this.addressCollection, addressId);
       await setDoc(addressRef, addressData);
@@ -430,12 +435,9 @@ export class AddressService {
     }
   }
 
-  private async generateDescription(address: Address): Promise<string> {
+  private async generateDescription(address: Address, streetViewDescription?: string | null): Promise<string> {
     try {
       console.log('[AddressService] Finding nearest building...');
-      // Start Street View image fetch in parallel with other operations
-      console.log('[AddressService] Starting Street View image fetch...');
-      const streetViewPromise = this.getStreetViewImage(address.location);
       
       // Find building footprint using Mapbox
       const building = await mapboxService.findNearestBuilding(
@@ -444,7 +446,7 @@ export class AddressService {
       );
 
       console.log('[AddressService] Getting nearby places...');
-      // Get nearby places with a larger radius and more types
+      // Get nearby places
       const placesResponse = await this.googleMapsClient.placesNearby({
         params: {
           location: { 
@@ -491,31 +493,10 @@ export class AddressService {
 
       console.log('[AddressService] Found nearby places:', nearbyPlacesText);
 
-      // Get the Street View result
-      const streetViewResult = await streetViewPromise;
-      let streetViewInfo = '';
-      
-      if (streetViewResult) {
-        streetViewInfo = streetViewResult.description;
-        // Save the Street View URL separately to avoid permission issues
-        try {
-          console.log('[AddressService] Saving Street View URL...');
-          const addressRef = doc(db, this.addressCollection, address.id);
-          await updateDoc(addressRef, {
-            streetViewUrl: streetViewResult.imageUrl,
-            updatedAt: new Date()
-          });
-          console.log('[AddressService] Street View URL saved successfully');
-        } catch (error) {
-          console.error('[AddressService] Error saving Street View URL:', error);
-          // Continue without saving the URL
-        }
-      }
-
       // Generate the final description
       console.log('[AddressService] Generating OpenAI description...');
       const prompt = `Generate a very concise description (max 150 tokens) focusing on the final approach to this location. Include only the most essential details:
-      ${streetViewInfo ? `- Visual description: ${streetViewInfo}` : ''}
+      ${streetViewDescription ? `- Visual description: ${streetViewDescription}` : ''}
       - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
       Format as 1-2 clear steps focusing on the final 50 meters of the journey.
