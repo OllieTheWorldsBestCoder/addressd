@@ -27,6 +27,9 @@ service cloud.firestore {
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['descriptions', 'updatedAt'])) ||
         // Allow summary updates
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['summary', 'updatedAt'])) ||
+        // Allow street view URL updates with timestamp
+        (request.resource.data.diff(resource.data).affectedKeys().hasAll(['streetViewUrl', 'updatedAt']) &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['streetViewUrl', 'updatedAt'])) ||
         // Other updates require auth
         isAuthenticated();
       allow delete: if isAuthenticated();

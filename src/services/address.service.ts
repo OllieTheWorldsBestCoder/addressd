@@ -401,7 +401,7 @@ export class AddressService {
       // Use OpenAI Vision to describe the image
       console.log('[AddressService] Calling OpenAI Vision API...');
       const imageDescription = await this.openai.chat.completions.create({
-        model: "gpt-4-vision-preview",
+        model: "gpt-4o",
         messages: [
           {
             role: "user",
@@ -420,7 +420,7 @@ export class AddressService {
             ]
           }
         ],
-        max_tokens: 300
+        max_tokens: 200
       });
 
       console.log('[AddressService] OpenAI Vision response:', imageDescription.choices[0]?.message?.content);
