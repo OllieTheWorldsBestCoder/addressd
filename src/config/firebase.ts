@@ -3,8 +3,15 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
+// Get the API key based on environment
+const apiKey = process.env.FIREBASE_API_KEY || process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+
+if (!apiKey) {
+  throw new Error('Firebase API key is not configured. Please set FIREBASE_API_KEY or NEXT_PUBLIC_FIREBASE_API_KEY in your environment.');
+}
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || process.env.FIREBASE_API_KEY,
+  apiKey,
   authDomain: "addressd-eb27f.firebaseapp.com",
   projectId: "addressd-eb27f",
   storageBucket: "addressd-eb27f.firebasestorage.app",
