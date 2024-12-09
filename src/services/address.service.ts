@@ -399,18 +399,17 @@ export class AddressService {
         model: "gpt-4o",
         messages: [
           {
-            role: "system",
-            content: "You are a helpful assistant that describes building exteriors from street view images. Focus on distinctive visual features that help identify the building. Be very concise."
-          },
-          {
             role: "user",
             content: [
-              { type: "text", text: "Describe the most distinctive visual features of this building that would help someone identify it. Focus on color, architectural style, and any unique characteristics. Keep it under 50 words." },
-              { 
-                type: "image_url", 
-                image_url: { 
+              {
+                type: "text",
+                text: "Describe the most distinctive visual features of this building that would help someone identify it. Focus on color, architectural style, and any unique characteristics. Keep it under 50 words."
+              },
+              {
+                type: "image_url",
+                image_url: {
                   url: imageUrl,
-                  detail: "high"
+                  detail: "auto"
                 }
               }
             ]
