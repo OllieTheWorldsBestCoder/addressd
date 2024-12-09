@@ -401,14 +401,14 @@ export class AddressService {
       // Use OpenAI Vision to describe the image
       console.log('[AddressService] Calling OpenAI Vision API...');
       const imageDescription = await this.openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4-vision-preview",
         messages: [
           {
             role: "user",
             content: [
               {
                 type: "text",
-                text: "Describe the most distinctive visual features of this building's exterior that would help someone identify it. Focus on architectural style, color, and any unique characteristics visible from the street. Keep it under 50 words."
+                text: "As a delivery driver, what are the key identifying features of this building? Focus on color, building number visibility, entrance location, and any obvious landmarks. Be brief and practical."
               },
               {
                 type: "image_url",
@@ -420,7 +420,7 @@ export class AddressService {
             ]
           }
         ],
-        max_tokens: 150
+        max_tokens: 300
       });
 
       console.log('[AddressService] OpenAI Vision response:', imageDescription.choices[0]?.message?.content);
@@ -495,28 +495,30 @@ export class AddressService {
 
       // Generate the final description
       console.log('[AddressService] Generating OpenAI description...');
-      const prompt = `Generate a very concise description (max 150 tokens) focusing on the final approach to this location. Include only the most essential details:
-      ${streetViewDescription ? `- Visual description: ${streetViewDescription}` : ''}
+      const prompt = `Create a brief, practical description for delivery drivers to find this location. Include:
+      ${streetViewDescription ? `- Building appearance: ${streetViewDescription}` : ''}
       - Nearby landmarks: ${nearbyPlacesText || 'none found'}
       
-      Format as 1-2 clear steps focusing on the final 50 meters of the journey.
-      Prioritize only the most visible landmark and distinctive features.
-      Use cardinal directions (north, south, etc.) when mentioning landmarks.
-      Start from the nearest prominent landmark.`;
+      Format as 1-2 short sentences.
+      - Start with the nearest business/landmark
+      - Include exact distance in meters
+      - Mention building numbers if visible
+      - Focus on permanent features (avoid temporary or seasonal elements)
+      - Use cardinal directions only when essential`;
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-4',
         messages: [
           { 
             role: 'system',
-            content: 'You are a local expert who gives extremely concise directions. Focus only on the final approach and the single most visible landmark that helps identify the exact location.'
+            content: 'You are a delivery driver giving precise, practical directions. Focus on permanent features and building numbers. Be brief and clear.'
           },
           { 
             role: 'user',
             content: prompt 
           }
         ],
-        temperature: 0.7,
+        temperature: 0.3,  // Lower temperature for more consistent, practical responses
         max_tokens: 150
       });
 
