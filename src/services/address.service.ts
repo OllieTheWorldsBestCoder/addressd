@@ -256,7 +256,7 @@ export class AddressService {
         views: 0,
         summary: validatedAddress.building_description || 'No description available yet.',
         buildingEntrance: validatedAddress.building_entrance,
-        streetViewUrl: streetViewResult?.imageUrl || null
+        streetViewUrl: streetViewResult?.imageUrl || undefined
       };
 
       // Generate full description before saving
