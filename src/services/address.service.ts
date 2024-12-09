@@ -374,22 +374,29 @@ export class AddressService {
 
   private async getStreetViewImage(location: { lat: number; lng: number }): Promise<{ imageUrl: string; description: string } | null> {
     try {
+      console.log('[AddressService] Getting Street View image for location:', location);
+      
       // First check if Street View is available at this location
-      const metadataResponse = await fetch(
-        `https://maps.googleapis.com/maps/api/streetview/metadata?location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`
-      );
+      const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      console.log('[AddressService] Checking Street View metadata URL:', metadataUrl);
+      
+      const metadataResponse = await fetch(metadataUrl);
       const metadata = await metadataResponse.json();
+      console.log('[AddressService] Street View metadata response:', metadata);
       
       if (metadata.status !== 'OK') {
+        console.log('[AddressService] No Street View available for this location');
         return null;
       }
 
       // Get the Street View image
       const imageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      console.log('[AddressService] Generated Street View image URL');
 
       // Use OpenAI Vision to describe the image
+      console.log('[AddressService] Calling OpenAI Vision API...');
       const imageDescription = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-4-vision-preview",
         messages: [
           {
             role: "system",
@@ -409,6 +416,8 @@ export class AddressService {
         max_tokens: 150
       });
 
+      console.log('[AddressService] OpenAI Vision response:', imageDescription.choices[0]?.message?.content);
+
       return {
         imageUrl,
         description: imageDescription.choices[0]?.message?.content || ''
@@ -423,6 +432,7 @@ export class AddressService {
     try {
       console.log('[AddressService] Finding nearest building...');
       // Start Street View image fetch in parallel with other operations
+      console.log('[AddressService] Starting Street View image fetch...');
       const streetViewPromise = this.getStreetViewImage(address.location);
       
       // Find building footprint using Mapbox
