@@ -382,7 +382,7 @@ export class AddressService {
       console.log('[AddressService] Getting Street View image for location:', location);
       
       // First check if Street View is available at this location
-      const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      const metadataUrl = `https://maps.googleapis.com/maps/api/streetview/metadata?location=${location.lat},${location.lng}&source=outdoor&radius=50&key=${process.env.GOOGLE_MAPS_API_KEY}`;
       console.log('[AddressService] Checking Street View metadata URL:', metadataUrl);
       
       const metadataResponse = await fetch(metadataUrl);
@@ -394,8 +394,8 @@ export class AddressService {
         return null;
       }
 
-      // Get the Street View image
-      const imageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&location=${location.lat},${location.lng}&key=${process.env.GOOGLE_MAPS_API_KEY}`;
+      // Get the Street View image using the exact pano_id from metadata to ensure consistency
+      const imageUrl = `https://maps.googleapis.com/maps/api/streetview?size=600x300&pano=${metadata.pano_id}&source=outdoor&key=${process.env.GOOGLE_MAPS_API_KEY}`;
       console.log('[AddressService] Generated Street View image URL');
 
       // Use OpenAI Vision to describe the image
@@ -408,7 +408,7 @@ export class AddressService {
             content: [
               {
                 type: "text",
-                text: "Describe the most distinctive visual features of this building that would help someone identify it. Focus on color, architectural style, and any unique characteristics. Keep it under 50 words."
+                text: "Describe the most distinctive visual features of this building's exterior that would help someone identify it. Focus on architectural style, color, and any unique characteristics visible from the street. Keep it under 50 words."
               },
               {
                 type: "image_url",
