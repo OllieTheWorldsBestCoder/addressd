@@ -96,7 +96,7 @@ export default function AddressSearch() {
             onSelect={handleAddressSelect}
             disabled={isLoading}
             className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
-            placeholder="Enter an address to add directions..."
+            placeholder="Enter an address ..."
           />
           <button
             type="submit"
@@ -126,7 +126,7 @@ export default function AddressSearch() {
 
       {result && (
         <div className="mt-6 bg-white p-6 rounded-lg shadow-lg">
-          <h2 className="text-2xl font-semibold mb-4">Address Validated</h2>
+          <h2 className="text-2xl font-semibold mb-4">Found your address</h2>
           <p className="text-gray-700 mb-4">
             <strong>Summary:</strong> {result.summary}
           </p>
