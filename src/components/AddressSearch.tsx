@@ -46,7 +46,8 @@ export default function AddressSearch() {
     console.log('[AddressSearch] Submitting address:', {
       typed: address,
       selected: selectedPlace?.formatted_address,
-      final: addressToSubmit
+      final: addressToSubmit,
+      selectedPlace
     });
 
     setIsLoading(true);
@@ -59,7 +60,10 @@ export default function AddressSearch() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address: addressToSubmit }),
+        body: JSON.stringify({ 
+          address: addressToSubmit,
+          placeId: selectedPlace?.place_id
+        }),
       });
 
       const data = await response.json();
@@ -82,11 +86,10 @@ export default function AddressSearch() {
     if (place.formatted_address) {
       setSelectedPlace(place);
       setAddress(place.formatted_address);
-      // Remove auto-submit for now to debug the issue
-      // const syntheticEvent = {
-      //   preventDefault: () => {},
-      // } as React.FormEvent;
-      // handleSubmit(syntheticEvent);
+      console.log('[AddressSearch] Updated state with selected place:', {
+        address: place.formatted_address,
+        place
+      });
     }
   };
 
@@ -94,8 +97,10 @@ export default function AddressSearch() {
     console.log('[AddressSearch] Address changed:', val);
     setAddress(val);
     // Only clear selected place if the user is actively changing the input
-    if (selectedPlace?.formatted_address && val !== selectedPlace.formatted_address) {
-      console.log('[AddressSearch] Clearing selected place');
+    // and it's different from the formatted address
+    if (selectedPlace?.formatted_address && 
+        val !== selectedPlace.formatted_address) {
+      console.log('[AddressSearch] Clearing selected place - input changed');
       setSelectedPlace(null);
     }
   };

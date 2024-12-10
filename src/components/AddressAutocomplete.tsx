@@ -16,6 +16,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
   useEffect(() => {
     if (!inputRef.current || !window.google) return;
 
+    console.log('[AddressAutocomplete] Initializing autocomplete');
     autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
       types: ['address'],
       fields: [
@@ -27,29 +28,40 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       ],
     });
 
-    autocompleteRef.current.addListener('place_changed', () => {
+    const placeChangedListener = () => {
+      console.log('[AddressAutocomplete] Place changed event fired');
       const place = autocompleteRef.current?.getPlace();
+      console.log('[AddressAutocomplete] Selected place:', place);
       if (place) {
         onSelect(place);
       }
-    });
+    };
+
+    autocompleteRef.current.addListener('place_changed', placeChangedListener);
 
     return () => {
       if (autocompleteRef.current) {
+        console.log('[AddressAutocomplete] Cleaning up listeners');
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
       }
     };
   }, [onSelect]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[AddressAutocomplete] Input changed:', e.target.value);
+    onChange(e.target.value);
+  };
 
   return (
     <input
       ref={inputRef}
       type="text"
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handleInputChange}
       disabled={disabled}
       className={className}
       placeholder={placeholder}
+      autoComplete="off" // Prevent browser autocomplete from interfering
     />
   );
 } 
