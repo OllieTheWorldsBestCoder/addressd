@@ -12,11 +12,9 @@ interface Props {
 export default function AddressAutocomplete({ value, onChange, onSelect, disabled, className, placeholder }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Initialize autocomplete once
   useEffect(() => {
-    if (isInitialized || !inputRef.current || !window.google) return;
+    if (!inputRef.current || !window.google) return;
 
     console.log('[AddressAutocomplete] Initializing autocomplete');
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -44,16 +42,14 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
     });
 
     autocompleteRef.current = autocomplete;
-    setIsInitialized(true);
 
     return () => {
       if (autocompleteRef.current) {
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
         autocompleteRef.current = null;
-        setIsInitialized(false);
       }
     };
-  }, []);
+  }, [onChange, onSelect]);
 
   // Handle manual input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
