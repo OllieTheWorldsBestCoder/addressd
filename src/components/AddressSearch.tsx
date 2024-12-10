@@ -41,6 +41,12 @@ export default function AddressSearch() {
     e.preventDefault();
     if (!address.trim()) return;
 
+    // Check if address is too short or incomplete
+    if (address.length < 7) {
+      setError('Please enter more details about the address');
+      return;
+    }
+
     console.log('[AddressSearch] Submitting address:', address);
 
     setIsLoading(true);
@@ -59,7 +65,12 @@ export default function AddressSearch() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to validate address');
+        // Convert technical errors into user-friendly messages
+        if (data.error?.toLowerCase().includes('invalid address')) {
+          throw new Error('Please provide more details about the address, like street number, street name, and city');
+        } else {
+          throw new Error(data.error || 'Failed to validate address');
+        }
       }
 
       setResult(data);
