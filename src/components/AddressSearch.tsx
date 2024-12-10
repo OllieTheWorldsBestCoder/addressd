@@ -41,42 +41,86 @@ export default function AddressSearch() {
     e.preventDefault();
     if (!address.trim()) return;
 
-    // Check if address is too short or incomplete
-    if (address.length < 7) {
+    // Check if address is too short
+    if (address.length < 5) {
       setError('Please enter more details about the address');
       return;
     }
 
-    console.log('[AddressSearch] Submitting address:', address);
+    console.log('[AddressSearch] Validating address:', address);
 
-    setIsLoading(true);
-    setError('');
-    setResult(null);
-
+    // Use Google Geocoding API to validate address components
     try {
+      const geocoder = new google.maps.Geocoder();
+      const result = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+        geocoder.geocode({ address }, (results: google.maps.GeocoderResult[], status: google.maps.GeocoderStatus) => {
+          if (status === 'OK' && results) {
+            resolve(results);
+          } else {
+            reject(status);
+          }
+        });
+      });
+
+      if (result.length === 0) {
+        setError('Address not found. Please check the address and try again.');
+        return;
+      }
+
+      const addressComponents = result[0].address_components;
+      const hasStreetNumber = addressComponents.some(component => 
+        component.types.includes('street_number')
+      );
+      const hasRoute = addressComponents.some(component => 
+        component.types.includes('route')
+      );
+      const hasPostalCode = addressComponents.some(component => 
+        component.types.includes('postal_code')
+      );
+
+      // Check if we only have a postal code without street information
+      if (hasPostalCode && (!hasStreetNumber || !hasRoute)) {
+        setError('Please enter a complete address including street name and number, not just a postcode');
+        return;
+      }
+
+      // Check if we're missing essential address components
+      if (!hasStreetNumber || !hasRoute) {
+        setError('Please provide more details like street number and street name');
+        return;
+      }
+
+      console.log('[AddressSearch] Submitting validated address:', address);
+
+      setIsLoading(true);
+      setError('');
+      setResult(null);
+
       const response = await fetch('/api/address/validate-frontend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ address }),
+        body: JSON.stringify({ 
+          address,
+          geocoded: result[0].formatted_address 
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // Convert technical errors into user-friendly messages
-        if (data.error?.toLowerCase().includes('invalid address')) {
-          throw new Error('Please provide more details about the address, like street number, street name, and city');
-        } else {
-          throw new Error(data.error || 'Failed to validate address');
-        }
+        throw new Error(data.error || 'Failed to validate address');
       }
 
       setResult(data);
     } catch (err) {
       console.error('Error validating address:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      if (err === 'ZERO_RESULTS') {
+        setError('Address not found. Please check the address and try again.');
+      } else {
+        setError('Please provide a valid address with street number and name');
+      }
     } finally {
       setIsLoading(false);
     }
