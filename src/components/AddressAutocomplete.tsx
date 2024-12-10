@@ -12,17 +12,16 @@ interface Props {
 export default function AddressAutocomplete({ value, onChange, onSelect, disabled, className, placeholder }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-  const onSelectRef = useRef(onSelect);
-  const onChangeRef = useRef(onChange);
 
-  // Keep refs updated with latest callback values
+  // Initialize Google Places Autocomplete
   useEffect(() => {
-    onSelectRef.current = onSelect;
-    onChangeRef.current = onChange;
-  }, [onSelect, onChange]);
+    if (!inputRef.current || !window.google) return;
 
-  useEffect(() => {
-    if (!inputRef.current || !window.google || autocompleteRef.current) return;
+    // Clean up previous instance if it exists
+    if (autocompleteRef.current) {
+      google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      autocompleteRef.current = null;
+    }
 
     console.log('[AddressAutocomplete] Initializing autocomplete');
     const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
@@ -42,9 +41,8 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       console.log('[AddressAutocomplete] Selected place:', place);
       
       if (place && place.formatted_address) {
-        // Use refs to access latest callbacks
-        onChangeRef.current(place.formatted_address);
-        onSelectRef.current(place);
+        onChange(place.formatted_address);
+        onSelect(place);
       }
     });
 
@@ -56,7 +54,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
         autocompleteRef.current = null;
       }
     };
-  }, []); // Empty dependency array since we're using refs
+  }, [onSelect, onChange]); // Re-initialize when callbacks change
 
   return (
     <input
