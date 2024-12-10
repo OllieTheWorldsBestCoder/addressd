@@ -21,7 +21,6 @@ export default function AddressSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<AddressResult | null>(null);
-  const [selectedPlace, setSelectedPlace] = useState<google.maps.places.PlaceResult | null>(null);
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
 
   useEffect(() => {
@@ -42,13 +41,7 @@ export default function AddressSearch() {
     e.preventDefault();
     if (!address.trim()) return;
 
-    const addressToSubmit = selectedPlace?.formatted_address || address;
-    console.log('[AddressSearch] Submitting address:', {
-      typed: address,
-      selected: selectedPlace?.formatted_address,
-      final: addressToSubmit,
-      selectedPlace
-    });
+    console.log('[AddressSearch] Submitting address:', address);
 
     setIsLoading(true);
     setError('');
@@ -60,10 +53,7 @@ export default function AddressSearch() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          address: addressToSubmit,
-          placeId: selectedPlace?.place_id
-        }),
+        body: JSON.stringify({ address }),
       });
 
       const data = await response.json();
@@ -84,25 +74,13 @@ export default function AddressSearch() {
   const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
     console.log('[AddressSearch] Place selected:', place);
     if (place.formatted_address) {
-      setSelectedPlace(place);
       setAddress(place.formatted_address);
-      console.log('[AddressSearch] Updated state with selected place:', {
-        address: place.formatted_address,
-        place
-      });
     }
   };
 
   const handleAddressChange = (val: string) => {
     console.log('[AddressSearch] Address changed:', val);
     setAddress(val);
-    // Only clear selected place if the user is actively changing the input
-    // and it's different from the formatted address
-    if (selectedPlace?.formatted_address && 
-        val !== selectedPlace.formatted_address) {
-      console.log('[AddressSearch] Clearing selected place - input changed');
-      setSelectedPlace(null);
-    }
   };
 
   return (
