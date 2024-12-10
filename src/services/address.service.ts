@@ -472,10 +472,10 @@ export class AddressService {
             place.geometry.location.lng
           );
           const bearing = this.calculateBearing(
-            place.geometry.location.lat,
-            place.geometry.location.lng,
             address.location.lat,
-            address.location.lng
+            address.location.lng,
+            place.geometry.location.lat,
+            place.geometry.location.lng
           );
           const direction = this.bearingToCardinal(bearing);
           return {
@@ -576,10 +576,10 @@ export class AddressService {
             place.geometry.location.lng
           );
           const bearing = this.calculateBearing(
-            place.geometry.location.lat,
-            place.geometry.location.lng,
             address.location.lat,
-            address.location.lng
+            address.location.lng,
+            place.geometry.location.lat,
+            place.geometry.location.lng
           );
           return {
             name: place.name || 'Unknown place',
