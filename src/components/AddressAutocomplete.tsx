@@ -18,7 +18,13 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
 
     autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
       types: ['address'],
-      fields: ['formatted_address', 'address_components', 'geometry'],
+      fields: [
+        'formatted_address',
+        'address_components',
+        'geometry',
+        'place_id',
+        'types'
+      ],
     });
 
     autocompleteRef.current.addListener('place_changed', () => {

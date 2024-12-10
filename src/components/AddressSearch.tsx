@@ -76,6 +76,10 @@ export default function AddressSearch() {
     if (place.formatted_address) {
       setSelectedPlace(place);
       setAddress(place.formatted_address);
+      const syntheticEvent = {
+        preventDefault: () => {},
+      } as React.FormEvent;
+      handleSubmit(syntheticEvent);
     }
   };
 
