@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { FiArrowRight } from 'react-icons/fi';
 import AddressAutocomplete from './AddressAutocomplete';
 
@@ -71,17 +71,18 @@ export default function AddressSearch() {
     }
   };
 
-  const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
+  const handleAddressSelect = useCallback((place: google.maps.places.PlaceResult) => {
     console.log('[AddressSearch] Place selected:', place);
     if (place.formatted_address) {
       setAddress(place.formatted_address);
+      console.log('[AddressSearch] Address state updated to:', place.formatted_address);
     }
-  };
+  }, []);
 
-  const handleAddressChange = (val: string) => {
+  const handleAddressChange = useCallback((val: string) => {
     console.log('[AddressSearch] Address changed:', val);
     setAddress(val);
-  };
+  }, []);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -93,7 +94,7 @@ export default function AddressSearch() {
             onSelect={handleAddressSelect}
             disabled={isLoading}
             className="flex-1 px-6 py-4 text-lg border-2 border-gray-200 rounded-lg focus:border-secondary focus:ring-2 focus:ring-secondary focus:ring-opacity-20 transition-all"
-            placeholder="Enter an address ..."
+            placeholder="Enter a delivery address to get clear directions..."
           />
           <button
             type="submit"
