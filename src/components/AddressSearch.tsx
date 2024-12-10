@@ -43,6 +43,11 @@ export default function AddressSearch() {
     if (!address.trim()) return;
 
     const addressToSubmit = selectedPlace?.formatted_address || address;
+    console.log('[AddressSearch] Submitting address:', {
+      typed: address,
+      selected: selectedPlace?.formatted_address,
+      final: addressToSubmit
+    });
 
     setIsLoading(true);
     setError('');
@@ -73,19 +78,24 @@ export default function AddressSearch() {
   };
 
   const handleAddressSelect = (place: google.maps.places.PlaceResult) => {
+    console.log('[AddressSearch] Place selected:', place);
     if (place.formatted_address) {
       setSelectedPlace(place);
       setAddress(place.formatted_address);
-      const syntheticEvent = {
-        preventDefault: () => {},
-      } as React.FormEvent;
-      handleSubmit(syntheticEvent);
+      // Remove auto-submit for now to debug the issue
+      // const syntheticEvent = {
+      //   preventDefault: () => {},
+      // } as React.FormEvent;
+      // handleSubmit(syntheticEvent);
     }
   };
 
   const handleAddressChange = (val: string) => {
+    console.log('[AddressSearch] Address changed:', val);
     setAddress(val);
+    // Only clear selected place if the user is actively changing the input
     if (selectedPlace?.formatted_address && val !== selectedPlace.formatted_address) {
+      console.log('[AddressSearch] Clearing selected place');
       setSelectedPlace(null);
     }
   };
