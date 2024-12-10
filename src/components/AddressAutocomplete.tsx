@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
   value: string;
@@ -12,12 +12,14 @@ interface Props {
 export default function AddressAutocomplete({ value, onChange, onSelect, disabled, className, placeholder }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
+  // Initialize autocomplete once
   useEffect(() => {
-    if (!inputRef.current || !window.google) return;
+    if (isInitialized || !inputRef.current || !window.google) return;
 
     console.log('[AddressAutocomplete] Initializing autocomplete');
-    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+    const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
       types: ['address'],
       fields: [
         'formatted_address',
@@ -28,28 +30,36 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       ],
     });
 
-    const placeChangedListener = () => {
+    autocomplete.addListener('place_changed', () => {
       console.log('[AddressAutocomplete] Place changed event fired');
-      const place = autocompleteRef.current?.getPlace();
+      const place = autocomplete.getPlace();
       console.log('[AddressAutocomplete] Selected place:', place);
-      if (place) {
+      
+      if (place && place.formatted_address) {
+        // Update the input value with the full address
+        onChange(place.formatted_address);
+        // Notify parent component about the selection
         onSelect(place);
       }
-    };
+    });
 
-    autocompleteRef.current.addListener('place_changed', placeChangedListener);
+    autocompleteRef.current = autocomplete;
+    setIsInitialized(true);
 
     return () => {
       if (autocompleteRef.current) {
-        console.log('[AddressAutocomplete] Cleaning up listeners');
         google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
+        setIsInitialized(false);
       }
     };
-  }, [onSelect]);
+  }, []);
 
+  // Handle manual input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('[AddressAutocomplete] Input changed:', e.target.value);
-    onChange(e.target.value);
+    const newValue = e.target.value;
+    console.log('[AddressAutocomplete] Input changed:', newValue);
+    onChange(newValue);
   };
 
   return (
@@ -61,7 +71,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, disable
       disabled={disabled}
       className={className}
       placeholder={placeholder}
-      autoComplete="off" // Prevent browser autocomplete from interfering
+      autoComplete="off"
     />
   );
 } 
