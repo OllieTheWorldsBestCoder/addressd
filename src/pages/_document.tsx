@@ -8,6 +8,7 @@ export default function Document() {
         <meta httpEquiv="Pragma" content="no-cache" />
         <meta httpEquiv="Expires" content="0" />
         <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
+        <script id="vtag-ai-js" async src="https://r2.leadsy.ai/tag.js" data-pid="fXOCeYg5ZZPGhi7a" data-version="062024"></script>
       </Head>
       <body>
         <Main />
