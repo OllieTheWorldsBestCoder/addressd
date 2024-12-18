@@ -145,11 +145,13 @@ export default function Profile() {
       await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Detailed sign-in error:', err);
-      if (err.code === 'auth/invalid-api-key') {
-        setError('Authentication configuration error. Please contact support.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to sign in');
+      if (err && typeof err === 'object' && 'code' in err) {
+        if (err.code === 'auth/invalid-api-key') {
+          setError('Authentication configuration error. Please contact support.');
+          return;
+        }
       }
+      setError(err instanceof Error ? err.message : 'Failed to sign in');
     }
   };
 
