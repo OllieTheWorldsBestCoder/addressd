@@ -137,10 +137,19 @@ export default function Profile() {
   const handleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
+      console.log('Firebase config:', {
+        apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      });
       await signInWithPopup(auth, provider);
     } catch (err) {
-      console.error('Error signing in:', err);
-      setError('Failed to sign in');
+      console.error('Detailed sign-in error:', err);
+      if (err.code === 'auth/invalid-api-key') {
+        setError('Authentication configuration error. Please contact support.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Failed to sign in');
+      }
     }
   };
 

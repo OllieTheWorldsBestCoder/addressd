@@ -11,7 +11,7 @@ if (!apiKey) {
 }
 
 const firebaseConfig = {
-  apiKey,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: "addressd-eb27f.firebaseapp.com",
   projectId: "addressd-eb27f",
   storageBucket: "addressd-eb27f.firebasestorage.app",
