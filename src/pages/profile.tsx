@@ -137,11 +137,18 @@ export default function Profile() {
   const handleSignIn = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      console.log('Firebase config:', {
-        apiKey: !!process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-        authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+      
+      // Add required scopes
+      provider.addScope('email');
+      provider.addScope('profile');
+      
+
+      console.log('Auth configuration:', {
+        clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.substring(0, 8) + '...',
+        authDomain: auth.app.options.authDomain,
+        projectId: auth.app.options.projectId
       });
+
       await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Detailed sign-in error:', err);
